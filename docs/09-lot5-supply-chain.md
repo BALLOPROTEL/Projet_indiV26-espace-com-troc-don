@@ -268,3 +268,49 @@ Correctif :
 - vérifier pendant le build que `.prisma/client/default.js` existe bien.
 
 Une migration future vers le générateur `prisma-client` avec un `output` explicite supprimera cette dépendance au layout interne de `node_modules`.
+
+
+## Durcissement final du runtime — suppression des package managers
+
+Le premier scan Trivy concluant fonctionnellement a montré :
+
+- application NestJS : 0 finding HIGH/CRITICAL ;
+- Alpine : 0 finding HIGH/CRITICAL ;
+- Prisma runtime : 0 finding HIGH/CRITICAL ;
+- `deepmerge-ts 8.0.1` : 0 finding HIGH/CRITICAL ;
+- 4 vulnérabilités HIGH provenant uniquement de `npm` préinstallé dans l'image officielle Node.
+
+Findings observés :
+- `brace-expansion` ;
+- `ip-address` ;
+- `tar`.
+
+Ces packages appartiennent au gestionnaire npm embarqué dans l'image de base et ne sont pas requis pour exécuter l'application.
+
+Le runtime final suit donc le pattern de durcissement recommandé par l'image officielle Node :
+
+1. le stage build reste basé sur `node:24.20.0-alpine3.24` ;
+2. le stage runtime repart de `alpine:3.24.1` ;
+3. seul le binaire `node` est copié depuis le stage build ;
+4. npm, Yarn et Corepack ne sont pas présents dans le runtime ;
+5. `libstdc++`, `openssl`, `ca-certificates` et `dumb-init` sont installés comme dépendances runtime ;
+6. l'utilisateur `node` UID/GID 1000 est créé ;
+7. `dumb-init` devient l'entrypoint pour une gestion correcte des signaux.
+
+Cette approche réduit la surface d'attaque et doit éliminer les findings provenant de npm.
+
+## Durcissement du contexte Docker — fichiers .env imbriqués
+
+Un log de build a montré `Environment variables loaded from .env` pendant `prisma generate`.
+
+Le premier `.dockerignore` excluait les fichiers `.env` de niveau racine, mais ne protégeait pas explicitement tous les chemins imbriqués.
+
+La configuration est renforcée avec :
+
+```text
+**/.env
+**/.env.*
+!**/.env.example
+```
+
+Ainsi, les fichiers d'environnement locaux imbriqués ne doivent plus entrer dans le contexte Docker. Les `.env.example` restent autorisés.
