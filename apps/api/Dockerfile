@@ -21,7 +21,15 @@ COPY apps/api apps/api
 
 RUN pnpm db:generate \
   && pnpm api:build \
-  && pnpm --filter api deploy --prod --legacy /runtime/api
+  && pnpm --filter api deploy --prod --legacy /runtime/api \
+  && GENERATED_PRISMA_CLIENT="$(find /workspace/node_modules/.pnpm -type d -path '*/node_modules/.prisma/client' -print -quit)" \
+  && RUNTIME_PRISMA_PACKAGE="$(find /runtime/api/node_modules/.pnpm -type d -path '*/node_modules/@prisma/client' -print -quit)" \
+  && test -n "${GENERATED_PRISMA_CLIENT}" \
+  && test -n "${RUNTIME_PRISMA_PACKAGE}" \
+  && RUNTIME_PACKAGE_NODE_MODULES="$(dirname "$(dirname "${RUNTIME_PRISMA_PACKAGE}")")" \
+  && mkdir -p "${RUNTIME_PACKAGE_NODE_MODULES}/.prisma/client" \
+  && cp -a "${GENERATED_PRISMA_CLIENT}/." "${RUNTIME_PACKAGE_NODE_MODULES}/.prisma/client/" \
+  && test -f "${RUNTIME_PACKAGE_NODE_MODULES}/.prisma/client/default.js"
 
 FROM ${NODE_IMAGE} AS runtime
 
