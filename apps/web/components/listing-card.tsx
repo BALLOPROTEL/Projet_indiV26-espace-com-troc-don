@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import {
   formatListingDate,
@@ -10,15 +11,17 @@ type Props = {
   listing: Listing;
   showStatus?: boolean;
   footer?: ReactNode;
+  href?: string;
 };
 
 export function ListingCard({
   listing,
   showStatus = false,
   footer,
+  href,
 }: Props) {
-  return (
-    <article className="listing-card">
+  const content = (
+    <>
       <div className="listing-card__meta">
         <span
           className={`tag tag--${listing.operationType.toLowerCase()}`}
@@ -49,6 +52,34 @@ export function ListingCard({
           ) : null}
         </div>
       ) : null}
+
+      {href ? (
+        <span className="listing-card__cta" aria-hidden="true">
+          Voir la fiche <span>↗</span>
+        </span>
+      ) : null}
+    </>
+  );
+
+  return (
+    <article
+      className={
+        href
+          ? 'listing-card listing-card--interactive'
+          : 'listing-card'
+      }
+    >
+      {href ? (
+        <Link
+          className="listing-card__link"
+          href={href}
+          aria-label={`Voir la fiche : ${listing.title}`}
+        >
+          {content}
+        </Link>
+      ) : (
+        content
+      )}
 
       {footer ? (
         <div className="listing-card__footer">{footer}</div>
