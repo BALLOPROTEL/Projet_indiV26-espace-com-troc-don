@@ -64,6 +64,9 @@ async function request<T>(
 export const listingsApi = {
   public: () => request<Listing[]>('/listings'),
 
+  publicById: (id: string) =>
+    request<Listing>(`/listings/${encodeURIComponent(id)}`),
+
   mine: (token: string) =>
     request<Listing[]>('/listings/me', {}, token),
 
