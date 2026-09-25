@@ -50,6 +50,7 @@ jobs:
           test -f docs/02-quality-gates.md
           test -f docs/05-lot1-base-technique.md
           test -f docs/06-lot2-keycloak-rbac.md
+          test -f docs/07-lot3-listings-moderation.md
           test -f package.json
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
@@ -58,6 +59,7 @@ jobs:
           test -f apps/api/prisma/schema.prisma
           test -f infra/keycloak/projet-indiv26-realm.json
           test -f scripts/keycloak-smoke.sh
+          test -f scripts/lot3-smoke.sh
           test -d apps/web
           test -d infra/k8s
           test -d tests/load

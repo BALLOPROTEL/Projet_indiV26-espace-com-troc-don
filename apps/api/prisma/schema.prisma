@@ -7,5 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// LOT 1 establishes the database baseline.
-// Domain models (Listing, moderation fields, etc.) are introduced in LOT 3.
+enum ListingOperationType {
+  TRADE
+  DONATION
+}
+
+enum ListingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Listing {
+  id               String               @id @default(cuid())
+  ownerId          String
+  title            String               @db.VarChar(120)
+  description      String               @db.VarChar(2000)
+  operationType    ListingOperationType
+  status           ListingStatus        @default(PENDING)
+  moderationReason String?              @db.VarChar(500)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([ownerId, createdAt])
+  @@index([status, createdAt])
+}
