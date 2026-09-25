@@ -56,6 +56,44 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "web",
+      "name": "La Petite Maison web",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "rootUrl": "http://localhost:3001",
+      "baseUrl": "http://localhost:3001",
+      "redirectUris": [
+        "http://localhost:3001/*",
+        "http://127.0.0.1:3001/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3001",
+        "http://127.0.0.1:3001"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3001/*##http://127.0.0.1:3001/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "users": [
