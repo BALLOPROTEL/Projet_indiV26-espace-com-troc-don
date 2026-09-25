@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   Listing,
@@ -69,6 +70,41 @@ describe('ListingsService', () => {
     });
   });
 
+  it('returns only the authenticated owner listings', async () => {
+    listingApi.findMany.mockResolvedValue([pendingListing]);
+
+    const result = await service.findMine('owner-1');
+
+    expect(result).toEqual([pendingListing]);
+    expect(listingApi.findMany).toHaveBeenCalledWith({
+      where: { ownerId: 'owner-1' },
+      orderBy: { createdAt: 'desc' },
+    });
+  });
+
+  it('returns PENDING listings by default for moderation', async () => {
+    listingApi.findMany.mockResolvedValue([pendingListing]);
+
+    const result = await service.findForModeration();
+
+    expect(result).toEqual([pendingListing]);
+    expect(listingApi.findMany).toHaveBeenCalledWith({
+      where: { status: ListingStatus.PENDING },
+      orderBy: { createdAt: 'asc' },
+    });
+  });
+
+  it('supports an explicit moderation status filter', async () => {
+    listingApi.findMany.mockResolvedValue([]);
+
+    await service.findForModeration(ListingStatus.REJECTED);
+
+    expect(listingApi.findMany).toHaveBeenCalledWith({
+      where: { status: ListingStatus.REJECTED },
+      orderBy: { createdAt: 'asc' },
+    });
+  });
+
   it('rejects an empty owner update', async () => {
     await expect(
       service.updateOwned('listing-1', 'owner-1', {}),
@@ -98,6 +134,34 @@ describe('ListingsService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('updates a pending listing owned by the current user', async () => {
+    listingApi.findUnique.mockResolvedValue(pendingListing);
+    listingApi.update.mockResolvedValue({
+      ...pendingListing,
+      title: 'Titre modifié',
+    });
+
+    const result = await service.updateOwned(
+      'listing-1',
+      'owner-1',
+      {
+        title: 'Titre modifié',
+      },
+    );
+
+    expect(result.title).toBe('Titre modifié');
+    expect(listingApi.update).toHaveBeenCalledWith({
+      where: { id: 'listing-1' },
+      data: {
+        title: 'Titre modifié',
+        description: undefined,
+        operationType: undefined,
+        status: ListingStatus.PENDING,
+        moderationReason: null,
+      },
+    });
+  });
+
   it('resubmits a rejected listing as PENDING after owner edit', async () => {
     listingApi.findUnique.mockResolvedValue({
       ...pendingListing,
@@ -118,6 +182,14 @@ describe('ListingsService', () => {
         moderationReason: null,
       }),
     });
+  });
+
+  it('returns 404 when the listing does not exist', async () => {
+    listingApi.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.approve('missing-listing'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('approves only a PENDING listing', async () => {
