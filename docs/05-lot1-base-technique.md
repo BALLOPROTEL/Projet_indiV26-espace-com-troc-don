@@ -17,9 +17,11 @@ cd ~/projets/Projet_individuel26/Projet_indiV26-espace-com-troc-don
 
 git fetch origin
 git switch feat/9-lot1-base-technique
+git pull --ff-only
 
 cp apps/api/.env.example apps/api/.env
 
+docker compose down
 docker compose up -d postgres
 docker compose ps
 
@@ -53,7 +55,10 @@ Le service local utilise :
 - image : `postgres:16-alpine`
 - base : `projet_indiv26`
 - utilisateur : `app`
-- port : `5432`
+- port du conteneur : `5432`
+- port exposé sur WSL : `127.0.0.1:5433`
+
+Le port local 5433 est volontairement utilisé pour éviter les collisions avec un PostgreSQL déjà présent sur le poste.
 
 Le mot de passe du compose est uniquement destiné au développement local. Il ne constitue pas un secret de production.
 
