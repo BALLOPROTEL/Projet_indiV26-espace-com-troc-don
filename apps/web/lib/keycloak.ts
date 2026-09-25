@@ -22,10 +22,18 @@ export function getKeycloak(): Keycloak {
 
 export function initKeycloak(): Promise<boolean> {
   if (!initPromise) {
+    const silentRedirectUri =
+      typeof window === 'undefined'
+        ? undefined
+        : `${window.location.origin}/silent-check-sso.html`;
+
     initPromise = getKeycloak().init({
       onLoad: 'check-sso',
       pkceMethod: 'S256',
       checkLoginIframe: false,
+      silentCheckSsoRedirectUri: silentRedirectUri,
+      silentCheckSsoFallback: false,
+      messageReceiveTimeout: 3000,
     });
   }
 
