@@ -31,6 +31,8 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=public
+      KEYCLOAK_ISSUER: http://localhost:8081/realms/projet-indiv26
+      KEYCLOAK_AUDIENCE: api
 
     steps:
       - name: Checkout
@@ -47,12 +49,15 @@ jobs:
           test -f docs/01-architecture.md
           test -f docs/02-quality-gates.md
           test -f docs/05-lot1-base-technique.md
+          test -f docs/06-lot2-keycloak-rbac.md
           test -f package.json
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
           test -f compose.yaml
           test -f apps/api/package.json
           test -f apps/api/prisma/schema.prisma
+          test -f infra/keycloak/projet-indiv26-realm.json
+          test -f scripts/keycloak-smoke.sh
           test -d apps/web
           test -d infra/k8s
           test -d tests/load
