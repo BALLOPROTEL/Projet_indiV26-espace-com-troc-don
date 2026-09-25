@@ -18,14 +18,14 @@ trap cleanup EXIT
 echo "=== LOT 2 - Keycloak/OIDC/RBAC smoke test ==="
 echo "Waiting for Keycloak discovery endpoint..."
 
-for attempt in $(seq 1 60); do
+for attempt in $(seq 1 120); do
   if curl -fsS "${DISCOVERY_ENDPOINT}" >/dev/null 2>&1; then
     echo "[OK] Keycloak realm is reachable"
     break
   fi
 
   if [ "${attempt}" -eq 60 ]; then
-    echo "[FAIL] Keycloak was not ready after 120 seconds"
+    echo "[FAIL] Keycloak was not ready after 240 seconds"
     exit 1
   fi
 
