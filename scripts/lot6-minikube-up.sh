@@ -58,7 +58,6 @@ echo "[OK] API Secret applied without storing credentials in Git."
 
 if ! kubectl -n "${NAMESPACE}" get secret api-tls >/dev/null 2>&1; then
   TLS_DIR="$(mktemp -d)"
-  trap 'rm -rf "${TLS_DIR}"' EXIT
 
   openssl req -x509 -nodes -newkey rsa:2048 -days 7 \
     -keyout "${TLS_DIR}/tls.key" \
@@ -70,6 +69,7 @@ if ! kubectl -n "${NAMESPACE}" get secret api-tls >/dev/null 2>&1; then
     --cert="${TLS_DIR}/tls.crt" \
     --key="${TLS_DIR}/tls.key"
 
+  rm -rf "${TLS_DIR}"
   echo "[OK] Self-signed TLS Secret created for the Minikube demo."
 else
   echo "[OK] Existing TLS Secret reused."
