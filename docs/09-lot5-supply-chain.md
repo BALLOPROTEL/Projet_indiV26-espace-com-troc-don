@@ -244,3 +244,27 @@ pnpm --filter api deploy --prod --legacy /runtime/api
 ```
 
 Cette option limite le comportement legacy à la phase de création du runtime Docker.
+
+
+## Incident runtime Prisma — client généré absent
+
+Après correction de `pnpm deploy --legacy`, l'image a été construite mais le smoke test a détecté :
+
+`Cannot find module '.prisma/client/default'`
+
+Le conteneur était bien configuré avec l'utilisateur non-root `node`, mais il s'arrêtait avant de répondre au liveness.
+
+Cause :
+
+- Prisma 6 avec `prisma-client-js` génère par défaut le client dans `node_modules/.prisma/client` ;
+- `pnpm deploy` n'emporte pas ce dossier généré dans le package runtime ;
+- `@prisma/client` est donc présent, mais son client généré et son moteur manquent.
+
+Correctif :
+
+- conserver `pnpm deploy --prod --legacy` pour ne pas embarquer les dépendances de développement ;
+- retrouver le dossier Prisma généré dans le stage build ;
+- recopier son contenu dans le virtual store pnpm du package runtime ;
+- vérifier pendant le build que `.prisma/client/default.js` existe bien.
+
+Une migration future vers le générateur `prisma-client` avec un `output` explicite supprimera cette dépendance au layout interne de `node_modules`.
