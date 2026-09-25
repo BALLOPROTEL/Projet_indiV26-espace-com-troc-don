@@ -19,7 +19,7 @@ Dockerfile :
 Caractéristiques :
 
 - build multi-stage ;
-- base explicitement versionnée : `node:24.20.0-alpine3.22` ;
+- base explicitement versionnée : `node:24.20.0-alpine3.24` ;
 - pnpm explicitement versionné : `10.24.0` ;
 - installation avec lockfile gelé ;
 - génération Prisma ;
@@ -29,7 +29,7 @@ Caractéristiques :
 - port applicatif 3000 ;
 - exécution avec l'utilisateur non-root `node`.
 
-Le tag de base est explicitement versionné. Il reste néanmoins un tag de registre et non un digest cryptographiquement épinglé ; la traçabilité de l'image applicative est assurée par le tag de commit et les labels OCI.
+Le tag de base est explicitement versionné. Le premier essai avec `node:24.20.0-alpine3.22` a échoué car ce tag exact n'est pas publié par l'image officielle Node ; il a été corrigé vers `node:24.20.0-alpine3.24`, disponible officiellement. Il reste néanmoins un tag de registre et non un digest cryptographiquement épinglé ; la traçabilité de l'image applicative est assurée par le tag de commit et les labels OCI.
 
 ## 2. Contexte Docker
 
