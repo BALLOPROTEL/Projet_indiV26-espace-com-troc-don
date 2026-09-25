@@ -51,12 +51,17 @@ jobs:
           test -f docs/05-lot1-base-technique.md
           test -f docs/06-lot2-keycloak-rbac.md
           test -f docs/07-lot3-listings-moderation.md
+          test -f docs/08-lot4-quality-gates.md
           test -f package.json
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
           test -f compose.yaml
           test -f apps/api/package.json
           test -f apps/api/prisma/schema.prisma
+          test -f apps/api/eslint.config.mjs
+          test -f apps/api/jest.config.cjs
+          test -f apps/api/jest.integration.config.cjs
+          test -f apps/api/jest.e2e.config.cjs
           test -f infra/keycloak/projet-indiv26-realm.json
           test -f scripts/keycloak-smoke.sh
           test -f scripts/lot3-smoke.sh
@@ -97,11 +102,32 @@ jobs:
       - name: Apply Prisma migrations
         run: pnpm db:deploy
 
+      - name: Lint API
+        run: pnpm api:lint
+
       - name: Typecheck API
         run: pnpm api:typecheck
 
-      - name: Test API
+      - name: Unit tests
         run: pnpm api:test
+
+      - name: PostgreSQL integration tests
+        run: pnpm api:test:integration
+
+      - name: HTTP acceptance E2E tests
+        run: pnpm api:test:e2e
+
+      - name: Coverage gate
+        run: pnpm api:test:coverage
+
+      - name: Upload API coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage-${{ github.sha }}
+          path: coverage/api
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Build API
         run: pnpm api:build
