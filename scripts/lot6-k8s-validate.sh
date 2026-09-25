@@ -6,6 +6,29 @@ K8S_DIR="${ROOT_DIR}/infra/k8s/minikube"
 NAMESPACE="projet-indiv26"
 MANIFEST_ONLY=false
 
+RENDERED=""
+API_PF_LOG=""
+API_PF_PID=""
+INGRESS_PF_LOG=""
+INGRESS_PF_PID=""
+
+cleanup() {
+  if [ -n "${API_PF_PID}" ]; then
+    kill "${API_PF_PID}" >/dev/null 2>&1 || true
+    wait "${API_PF_PID}" 2>/dev/null || true
+  fi
+
+  if [ -n "${INGRESS_PF_PID}" ]; then
+    kill "${INGRESS_PF_PID}" >/dev/null 2>&1 || true
+    wait "${INGRESS_PF_PID}" 2>/dev/null || true
+  fi
+
+  [ -z "${RENDERED}" ] || rm -f "${RENDERED}"
+  [ -z "${API_PF_LOG}" ] || rm -f "${API_PF_LOG}"
+  [ -z "${INGRESS_PF_LOG}" ] || rm -f "${INGRESS_PF_LOG}"
+}
+trap cleanup EXIT INT TERM
+
 if [ "${1:-}" = "--manifest-only" ]; then
   MANIFEST_ONLY=true
 fi
@@ -18,8 +41,6 @@ command -v kubectl >/dev/null 2>&1 || {
 echo "=== LOT 6 - Kubernetes validation ==="
 
 RENDERED="$(mktemp)"
-trap 'rm -f "${RENDERED}"' EXIT
-
 kubectl kustomize "${K8S_DIR}" > "${RENDERED}"
 
 grep -q "kind: Deployment" "${RENDERED}"
@@ -52,7 +73,7 @@ if [ "${MANIFEST_ONLY}" = true ]; then
   exit 0
 fi
 
-for cmd in minikube curl; do
+for cmd in curl; do
   command -v "${cmd}" >/dev/null 2>&1 || {
     echo "[FAIL] Missing command for live validation: ${cmd}"
     exit 1
@@ -92,63 +113,89 @@ TLS_SECRET_TYPE="$(kubectl -n "${NAMESPACE}" get secret api-tls -o jsonpath='{.t
 
 echo "[OK] Runtime Secret and TLS Secret exist in the cluster."
 
-PF_LOG="$(mktemp)"
-kubectl -n "${NAMESPACE}" port-forward service/api 3002:80 >"${PF_LOG}" 2>&1 &
-PF_PID=$!
+API_PF_LOG="$(mktemp)"
+kubectl -n "${NAMESPACE}" port-forward service/api 3002:80 >"${API_PF_LOG}" 2>&1 &
+API_PF_PID=$!
 
-cleanup() {
-  kill "${PF_PID}" >/dev/null 2>&1 || true
-  wait "${PF_PID}" 2>/dev/null || true
-  rm -f "${PF_LOG}"
-}
-trap cleanup EXIT
-
-for _ in $(seq 1 30); do
-  if curl -fsS http://127.0.0.1:3002/api/health/live >/dev/null 2>&1; then
+SERVICE_OK=false
+for attempt in $(seq 1 30); do
+  if curl --connect-timeout 2 --max-time 5 -fsS     http://127.0.0.1:3002/api/health/live >/dev/null 2>&1; then
+    SERVICE_OK=true
     break
   fi
+  echo "[WAIT] Service API port-forward: attempt ${attempt}/30"
   sleep 1
 done
 
-curl -fsS http://127.0.0.1:3002/api/health/live >/dev/null
-curl -fsS http://127.0.0.1:3002/api/health/ready >/dev/null
+if [ "${SERVICE_OK}" != "true" ]; then
+  echo "[FAIL] API Service port-forward did not become reachable."
+  cat "${API_PF_LOG}" || true
+  exit 1
+fi
+
+curl --connect-timeout 2 --max-time 5 -fsS   http://127.0.0.1:3002/api/health/live >/dev/null
+curl --connect-timeout 2 --max-time 5 -fsS   http://127.0.0.1:3002/api/health/ready >/dev/null
 
 echo "[OK] Service API: liveness HTTP 200 and readiness HTTP 200."
 
-MINIKUBE_IP="$(minikube ip)"
+kill "${API_PF_PID}" >/dev/null 2>&1 || true
+wait "${API_PF_PID}" 2>/dev/null || true
+API_PF_PID=""
+
+echo "[INFO] Validating NGINX Ingress + TLS through a local controller port-forward..."
+
+kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=120s
+
+INGRESS_PF_LOG="$(mktemp)"
+kubectl -n ingress-nginx port-forward service/ingress-nginx-controller 8443:443 >"${INGRESS_PF_LOG}" 2>&1 &
+INGRESS_PF_PID=$!
 
 INGRESS_OK=false
-for _ in $(seq 1 30); do
-  if curl -kfsS \
-    --resolve "api.projet-indiv26.local:443:${MINIKUBE_IP}" \
-    "https://api.projet-indiv26.local/api/health/live" >/dev/null 2>&1; then
+for attempt in $(seq 1 30); do
+  if curl --connect-timeout 2 --max-time 5 -kfsS     --resolve "api.projet-indiv26.local:8443:127.0.0.1"     "https://api.projet-indiv26.local:8443/api/health/live" >/dev/null 2>&1; then
     INGRESS_OK=true
     break
   fi
+  echo "[WAIT] HTTPS Ingress: attempt ${attempt}/30"
   sleep 2
 done
 
 if [ "${INGRESS_OK}" != "true" ]; then
-  echo "[FAIL] HTTPS Ingress did not answer within the expected window."
+  echo "[FAIL] HTTPS Ingress did not answer through the ingress-nginx controller."
+  echo "--- ingress port-forward log ---"
+  cat "${INGRESS_PF_LOG}" || true
+  echo "--- application ingress ---"
   kubectl -n "${NAMESPACE}" describe ingress api || true
+  echo "--- ingress controller pods ---"
+  kubectl -n ingress-nginx get pods -o wide || true
   exit 1
 fi
 
 echo "[OK] NGINX Ingress + TLS: HTTPS liveness HTTP 200."
 
+kill "${INGRESS_PF_PID}" >/dev/null 2>&1 || true
+wait "${INGRESS_PF_PID}" 2>/dev/null || true
+INGRESS_PF_PID=""
+
+echo "[INFO] Waiting for HPA metrics from metrics-server..."
+
 METRICS_OK=false
-for _ in $(seq 1 24); do
+for attempt in $(seq 1 24); do
   TARGETS="$(kubectl -n "${NAMESPACE}" get hpa api --no-headers 2>/dev/null | awk '{print $3}')"
   if [ -n "${TARGETS}" ] && [[ "${TARGETS}" != *"<unknown>"* ]]; then
     METRICS_OK=true
+    echo "[OK] HPA metrics available: ${TARGETS}"
     break
   fi
+  echo "[WAIT] HPA metrics: attempt ${attempt}/24"
   sleep 5
 done
 
 if [ "${METRICS_OK}" != "true" ]; then
   echo "[FAIL] HPA metrics are still unknown."
-  kubectl -n "${NAMESPACE}" get hpa api
+  kubectl -n "${NAMESPACE}" get hpa api || true
+  kubectl top pods -n "${NAMESPACE}" || true
+  kubectl -n kube-system get pods -l k8s-app=metrics-server -o wide || true
   exit 1
 fi
 
