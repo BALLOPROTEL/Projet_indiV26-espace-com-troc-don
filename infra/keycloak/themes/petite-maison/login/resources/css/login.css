@@ -1,0 +1,189 @@
+:root {
+  --pm-paper: #f2eadc;
+  --pm-paper-light: #fbf7ef;
+  --pm-ink: #27211b;
+  --pm-ink-soft: #655a50;
+  --pm-wine: #7a3441;
+  --pm-wine-deep: #5c2631;
+  --pm-moss: #586247;
+  --pm-line: #cdbfa9;
+  --pm-brass: #aa8754;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body.login-pf,
+body {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(255,255,255,.8), transparent 30rem),
+    radial-gradient(circle at 86% 78%, rgba(122,52,65,.08), transparent 28rem),
+    linear-gradient(135deg, #f4eddf 0%, #ede1cf 100%) !important;
+  color: var(--pm-ink) !important;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+.login-pf-page,
+.pf-v5-c-login {
+  background: transparent !important;
+}
+
+#kc-header,
+.pf-v5-c-login__main-header {
+  color: var(--pm-ink) !important;
+}
+
+#kc-header-wrapper {
+  position: relative;
+  max-width: 760px;
+  margin: 0 auto 32px;
+  padding-top: 78px;
+  color: var(--pm-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: clamp(2rem, 4vw, 3.3rem) !important;
+  font-weight: 500 !important;
+  letter-spacing: -.035em !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  text-transform: none !important;
+}
+
+#kc-header-wrapper::before {
+  content: "PM";
+  display: grid;
+  width: 58px;
+  height: 62px;
+  margin: 0 auto 18px;
+  place-items: center;
+  border: 1px solid var(--pm-wine-deep);
+  border-radius: 50% 48% 52% 46% / 53% 46% 54% 47%;
+  background: var(--pm-wine);
+  color: #fffaf2;
+  box-shadow: 5px 5px 0 rgba(122,52,65,.12);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+  letter-spacing: .06em;
+  transform: rotate(-3deg);
+}
+
+#kc-header-wrapper::after {
+  content: "TROC · DON · SECONDE HISTOIRE";
+  display: block;
+  margin-top: 13px;
+  color: var(--pm-wine);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+
+.card-pf,
+.pf-v5-c-login__main,
+#kc-content {
+  border: 1px solid var(--pm-line) !important;
+  border-radius: 2px !important;
+  background: rgba(251,247,239,.96) !important;
+  box-shadow: 14px 16px 0 rgba(88,98,71,.09), 0 26px 70px rgba(78,58,38,.12) !important;
+}
+
+.pf-v5-c-login__main {
+  max-width: 520px !important;
+  margin: 0 auto !important;
+}
+
+#kc-content {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+#kc-page-title,
+.pf-v5-c-title,
+h1,
+h2 {
+  color: var(--pm-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-weight: 500 !important;
+  letter-spacing: -.025em !important;
+}
+
+#kc-page-title {
+  font-size: 2rem !important;
+}
+
+.pf-v5-c-form__label-text,
+label {
+  color: var(--pm-ink) !important;
+  font-size: .8rem !important;
+  font-weight: 750 !important;
+}
+
+.pf-v5-c-form-control,
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+  min-height: 48px !important;
+  border: 1px solid #a99578 !important;
+  border-radius: 0 !important;
+  background: #fffaf2 !important;
+  color: var(--pm-ink) !important;
+  box-shadow: none !important;
+}
+
+.pf-v5-c-form-control:focus-within,
+input:focus {
+  border-color: var(--pm-wine) !important;
+  box-shadow: 0 0 0 2px rgba(122,52,65,.16) !important;
+  outline: none !important;
+}
+
+.pf-v5-c-button.pf-m-primary,
+#kc-login {
+  min-height: 48px !important;
+  border: 1px solid var(--pm-wine-deep) !important;
+  border-radius: 2px !important;
+  background: var(--pm-wine) !important;
+  color: #fffaf2 !important;
+  font-weight: 760 !important;
+  box-shadow: 4px 4px 0 rgba(122,52,65,.13) !important;
+  transition: background .15s ease, transform .15s ease !important;
+}
+
+.pf-v5-c-button.pf-m-primary:hover,
+#kc-login:hover {
+  background: var(--pm-wine-deep) !important;
+  transform: translate(-1px,-1px);
+}
+
+a {
+  color: var(--pm-wine) !important;
+}
+
+a:hover {
+  color: var(--pm-wine-deep) !important;
+}
+
+#kc-info,
+#kc-form-options,
+.pf-v5-c-login__main-footer,
+.instruction {
+  color: var(--pm-ink-soft) !important;
+}
+
+.alert-error,
+.pf-v5-c-alert.pf-m-danger {
+  border-left-color: var(--pm-wine) !important;
+  background: rgba(122,52,65,.08) !important;
+}
+
+@media (max-width: 640px) {
+  #kc-header-wrapper {
+    padding-top: 38px;
+    font-size: 2rem !important;
+  }
+
+  .pf-v5-c-login__main {
+    width: calc(100% - 28px) !important;
+  }
+}
