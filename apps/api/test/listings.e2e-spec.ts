@@ -122,6 +122,10 @@ describe('Listings HTTP acceptance E2E', () => {
     ).toBe(false);
 
     await request(app.getHttpServer())
+      .get(`/api/listings/${listingId}`)
+      .expect(404);
+
+    await request(app.getHttpServer())
       .get('/api/moderation/listings?status=PENDING')
       .set('Authorization', 'Bearer user-token')
       .expect(403);
@@ -153,6 +157,13 @@ describe('Listings HTTP acceptance E2E', () => {
         (listing: { id: string }) => listing.id === listingId,
       ),
     ).toBe(true);
+
+    const publicDetail = await request(app.getHttpServer())
+      .get(`/api/listings/${listingId}`)
+      .expect(200);
+
+    expect(publicDetail.body.id).toBe(listingId);
+    expect(publicDetail.body.status).toBe('APPROVED');
   });
 
   it('rejects invalid request bodies before business logic', async () => {
