@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+coverage/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+
+# Logs
+*.log
+logs/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Tests / tooling
+playwright-report/
+test-results/
+.nyc_output/
+
+# Prisma / local databases
+*.db
+*.db-journal
+
+# Kubernetes / local clusters
+.minikube/
+.kube/
+
+# Misc
+tmp/
+temp/
