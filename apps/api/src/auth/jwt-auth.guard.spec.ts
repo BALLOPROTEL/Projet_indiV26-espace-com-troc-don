@@ -2,6 +2,7 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
+import { AuthenticatedRequest } from './auth.types';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { TokenVerifierService } from './token-verifier.service';
 
@@ -13,7 +14,7 @@ describe('JwtAuthGuard', () => {
   const guard = new JwtAuthGuard(verifier);
 
   const contextWithAuthorization = (authorization?: string) => {
-    const request = {
+    const request: AuthenticatedRequest = {
       headers: {
         authorization,
       },
