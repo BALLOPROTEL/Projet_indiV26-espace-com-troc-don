@@ -24,7 +24,7 @@ for attempt in $(seq 1 120); do
     break
   fi
 
-  if [ "${attempt}" -eq 60 ]; then
+  if [ "${attempt}" -eq 120 ]; then
     echo "[FAIL] Keycloak was not ready after 240 seconds"
     exit 1
   fi
@@ -35,20 +35,33 @@ done
 get_token() {
   local username="$1"
   local password="$2"
+  local token_body
+  local http_status
 
-  curl -fsS     -X POST "${TOKEN_ENDPOINT}"     -H "Content-Type: application/x-www-form-urlencoded"     -d "grant_type=password"     -d "client_id=${CLIENT_ID}"     --data-urlencode "username=${username}"     --data-urlencode "password=${password}" |
-    node -e '
-      let input = "";
-      process.stdin.on("data", (chunk) => (input += chunk));
-      process.stdin.on("end", () => {
-        const payload = JSON.parse(input);
-        if (!payload.access_token) {
-          console.error("Token endpoint did not return an access_token");
-          process.exit(1);
-        }
-        process.stdout.write(payload.access_token);
-      });
-    '
+  token_body="$(mktemp)"
+
+  http_status="$(curl -sS     -o "${token_body}"     -w "%{http_code}"     -X POST "${TOKEN_ENDPOINT}"     -H "Content-Type: application/x-www-form-urlencoded"     -d "grant_type=password"     -d "client_id=${CLIENT_ID}"     --data-urlencode "username=${username}"     --data-urlencode "password=${password}")"
+
+  if [ "${http_status}" != "200" ]; then
+    echo "[FAIL] Token request for ${username}: HTTP ${http_status}" >&2
+    cat "${token_body}" >&2
+    echo >&2
+    rm -f "${token_body}"
+    return 1
+  fi
+
+  node -e '
+    const fs = require("fs");
+    const input = fs.readFileSync(process.argv[1], "utf8");
+    const payload = JSON.parse(input);
+    if (!payload.access_token) {
+      console.error("Token endpoint did not return an access_token");
+      process.exit(1);
+    }
+    process.stdout.write(payload.access_token);
+  ' "${token_body}"
+
+  rm -f "${token_body}"
 }
 
 status_without_token() {
