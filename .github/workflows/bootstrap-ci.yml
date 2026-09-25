@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   repository-structure:
@@ -52,10 +53,13 @@ jobs:
           test -f docs/06-lot2-keycloak-rbac.md
           test -f docs/07-lot3-listings-moderation.md
           test -f docs/08-lot4-quality-gates.md
+          test -f docs/09-lot5-supply-chain.md
           test -f package.json
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
           test -f compose.yaml
+          test -f .dockerignore
+          test -f apps/api/Dockerfile
           test -f apps/api/package.json
           test -f apps/api/prisma/schema.prisma
           test -f apps/api/eslint.config.mjs
@@ -65,6 +69,7 @@ jobs:
           test -f infra/keycloak/projet-indiv26-realm.json
           test -f scripts/keycloak-smoke.sh
           test -f scripts/lot3-smoke.sh
+          test -f scripts/lot5-image-smoke.sh
           test -d apps/web
           test -d infra/k8s
           test -d tests/load
@@ -131,3 +136,94 @@ jobs:
 
       - name: Build API
         run: pnpm api:build
+
+      - name: Audit production dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p reports/security
+          audit_status=0
+          pnpm audit --prod --audit-level=high --json > reports/security/pnpm-audit.json || audit_status=$?
+          if [ "${audit_status}" -ne 0 ]; then
+            echo "Production dependency audit failed with exit code ${audit_status}."
+            cat reports/security/pnpm-audit.json
+            exit "${audit_status}"
+          fi
+          echo "Production dependency audit: PASS"
+
+      - name: Prepare image metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          owner_lower="$(printf '%s' "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          short_sha="${GITHUB_SHA::12}"
+          image_name="ghcr.io/${owner_lower}/projet-indiv26-api"
+          image_ref="${image_name}:sha-${short_sha}"
+          echo "IMAGE_NAME=${image_name}" >> "${GITHUB_ENV}"
+          echo "IMAGE_REF=${image_ref}" >> "${GITHUB_ENV}"
+          echo "SHORT_SHA=${short_sha}" >> "${GITHUB_ENV}"
+
+      - name: Build API container image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --pull \
+            --file apps/api/Dockerfile \
+            --tag "${IMAGE_REF}" \
+            --label "org.opencontainers.image.source=https://github.com/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --label "org.opencontainers.image.version=sha-${SHORT_SHA}" \
+            .
+
+      - name: Smoke test API container image
+        shell: bash
+        run: bash scripts/lot5-image-smoke.sh "${IMAGE_REF}"
+
+      - name: Trivy image report
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_REF }}
+          format: json
+          output: reports/security/trivy-image.json
+          severity: HIGH,CRITICAL
+          vuln-type: os,library
+          ignore-unfixed: false
+          exit-code: '0'
+
+      - name: Trivy HIGH/CRITICAL gate
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_REF }}
+          format: table
+          severity: HIGH,CRITICAL
+          vuln-type: os,library
+          ignore-unfixed: false
+          exit-code: '1'
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports-${{ github.sha }}
+          path: reports/security
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Login to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish immutable image to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker push "${IMAGE_REF}"
+          docker tag "${IMAGE_REF}" "${IMAGE_NAME}:latest"
+          docker push "${IMAGE_NAME}:latest"
+          echo "Published ${IMAGE_REF}"
+          echo "Published ${IMAGE_NAME}:latest"
