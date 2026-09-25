@@ -24,7 +24,7 @@ Caractéristiques :
 - installation avec lockfile gelé ;
 - génération Prisma ;
 - build NestJS ;
-- déploiement des dépendances de production avec `pnpm deploy --prod` ;
+- déploiement des dépendances de production avec `pnpm deploy --prod --legacy` ;
 - runtime `NODE_ENV=production` ;
 - port applicatif 3000 ;
 - exécution avec l'utilisateur non-root `node`.
@@ -227,3 +227,20 @@ Le lot est validé lorsque :
 - merge dans `main` ;
 - CI post-merge verte ;
 - image publiée dans GHCR avec un tag lié au commit.
+
+
+## Incident pnpm 10 — `deploy`
+
+Le premier build Docker avec pnpm 10.24.0 a échoué sur :
+
+`ERR_PNPM_DEPLOY_NONINJECTED_WORKSPACE`
+
+Depuis pnpm 10, `pnpm deploy` attend par défaut `inject-workspace-packages=true`.
+
+Le projet ne dépend actuellement d'aucun package interne workspace pour l'API. Pour ne pas modifier globalement la stratégie d'installation du monorepo uniquement pour le packaging Docker, le Dockerfile utilise explicitement :
+
+```bash
+pnpm --filter api deploy --prod --legacy /runtime/api
+```
+
+Cette option limite le comportement legacy à la phase de création du runtime Docker.
