@@ -12,6 +12,20 @@ async function bootstrap(): Promise<void> {
 
   app.setGlobalPrefix('api');
   app.enableShutdownHooks();
+
+  const webOrigins = (
+    process.env.WEB_ORIGIN ??
+    'http://localhost:3001,http://127.0.0.1:3001'
+  )
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  app.enableCors({
+    origin: webOrigins,
+    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
