@@ -1,0 +1,15 @@
+{
+  "name": "projet-individuel26",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.24.0",
+  "scripts": {
+    "api:dev": "pnpm --filter api start:dev",
+    "api:build": "pnpm --filter api build",
+    "api:typecheck": "pnpm --filter api typecheck",
+    "api:test": "pnpm --filter api test",
+    "db:generate": "pnpm --filter api prisma:generate",
+    "db:migrate": "pnpm --filter api prisma:migrate:dev",
+    "db:deploy": "pnpm --filter api prisma:migrate:deploy"
+  }
+}

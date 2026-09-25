@@ -13,11 +13,30 @@ jobs:
   repository-structure:
     name: Validate repository structure
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: projet_indiv26
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d projet_indiv26"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=public
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate LOT 0 baseline
+      - name: Validate repository baseline
         shell: bash
         run: |
           set -euo pipefail
@@ -27,11 +46,17 @@ jobs:
           test -f docs/00-cadrage-technique.md
           test -f docs/01-architecture.md
           test -f docs/02-quality-gates.md
-          test -d apps/api
+          test -f docs/05-lot1-base-technique.md
+          test -f package.json
+          test -f pnpm-workspace.yaml
+          test -f pnpm-lock.yaml
+          test -f compose.yaml
+          test -f apps/api/package.json
+          test -f apps/api/prisma/schema.prisma
           test -d apps/web
           test -d infra/k8s
           test -d tests/load
-          echo "LOT 0 repository baseline: OK"
+          echo "Repository baseline: OK"
 
       - name: Ensure no tracked dotenv secrets
         shell: bash
@@ -42,3 +67,34 @@ jobs:
             exit 1
           fi
           echo "No tracked dotenv secret files detected."
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.24.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Apply Prisma migrations
+        run: pnpm db:deploy
+
+      - name: Typecheck API
+        run: pnpm api:typecheck
+
+      - name: Test API
+        run: pnpm api:test
+
+      - name: Build API
+        run: pnpm api:build
