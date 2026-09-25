@@ -129,6 +129,7 @@ export function HomeExperience() {
               <ListingCard
                 key={listing.id}
                 listing={listing}
+                href={`/annonces/${listing.id}`}
               />
             ))}
           </div>
