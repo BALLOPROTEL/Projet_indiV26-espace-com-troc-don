@@ -103,6 +103,25 @@ Le frontend utilise :
 
 Le client CLI utilisé pour les smoke tests LOT 2 reste séparé.
 
+## 4bis. Thème Keycloak
+
+Le redirect vers Keycloak est volontaire : les identifiants restent gérés par l'Identity Provider.
+
+Pour éviter l'apparence technique du thème par défaut, un thème `petite-maison` est versionné dans :
+
+`infra/keycloak/themes/petite-maison`
+
+Le thème :
+- reprend l'identité ivoire / bordeaux / vert mousse du frontend ;
+- affiche le branding `La Petite Maison de l’Épouvante` ;
+- force le français comme locale du realm ;
+- personnalise les champs et le bouton de connexion ;
+- conserve les templates Keycloak standards via héritage `keycloak.v2`.
+
+Le thème est monté dans le conteneur local via Docker Compose et sélectionné par `loginTheme: petite-maison`.
+
+Cette approche conserve la séparation de sécurité OIDC : le frontend ne collecte jamais le mot de passe utilisateur.
+
 ## 5. CORS API
 
 L'API accepte explicitement les origines configurées via :
