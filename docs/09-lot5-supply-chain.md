@@ -63,7 +63,42 @@ Le rapport JSON est conservé sous :
 
 Quality Gate : aucun finding de dépendance de production au niveau qui fait échouer l'audit HIGH/CRITICAL.
 
-## 4. Build local
+## 4. Remédiation CVE-2026-40345
+
+Le premier audit LOT 5 a détecté :
+
+- advisory : `GHSA-ggr8-5vv4-36mx` / `CVE-2026-40345` ;
+- package : `deepmerge-ts` ;
+- sévérité : HIGH ;
+- version vulnérable : `< 8.0.0` ;
+- chemin observé : Prisma / `@prisma/config`.
+
+La version Prisma stable utilisée dans le projet ne permet pas encore d'obtenir naturellement une version corrigée de `deepmerge-ts`. Le workspace impose donc temporairement :
+
+```json
+{
+  "pnpm": {
+    "overrides": {
+      "deepmerge-ts": "8.0.1"
+    }
+  }
+}
+```
+
+Cette remédiation est explicite, versionnée et doit être supprimée dès qu'une version Prisma stable embarque nativement `deepmerge-ts >= 8.0.0`.
+
+Après modification du lockfile, les contrôles obligatoires sont :
+
+```bash
+pnpm db:generate
+pnpm db:deploy
+pnpm api:quality
+pnpm api:audit:prod
+```
+
+Aucune baisse du seuil d'audit n'est utilisée.
+
+## 5. Build local
 
 ```bash
 pnpm api:image:build
@@ -73,7 +108,7 @@ Image :
 
 `projet-indiv26-api:lot5-local`
 
-## 5. Smoke test de l'image
+## 6. Smoke test de l'image
 
 ```bash
 pnpm api:image:smoke
@@ -87,7 +122,7 @@ Le script vérifie :
 
 Le smoke n'exige pas une base disponible car le liveness vérifie le processus applicatif, pas la readiness PostgreSQL.
 
-## 6. Scan Trivy
+## 7. Scan Trivy
 
 La CI utilise l'action officielle :
 
@@ -113,7 +148,7 @@ Quality Gate : **0 HIGH/CRITICAL non acceptée**.
 
 Aucune exception automatique n'est configurée dans le LOT 5. Si une exception devait devenir nécessaire, elle devrait être documentée, justifiée et rattachée à une issue de remédiation.
 
-## 7. Artifact de sécurité
+## 8. Artifact de sécurité
 
 Même en cas d'échec d'un scan, la CI tente de publier :
 
@@ -126,7 +161,7 @@ Contenu attendu :
 
 Rétention : **30 jours**.
 
-## 8. Traçabilité de l'image
+## 9. Traçabilité de l'image
 
 La CI calcule :
 
@@ -140,7 +175,7 @@ Labels OCI intégrés :
 
 Le label `revision` contient le SHA Git complet.
 
-## 9. Publication GHCR
+## 10. Publication GHCR
 
 Sur Pull Request :
 
@@ -158,7 +193,7 @@ Sur `main` après merge et CI verte :
 
 Aucun mot de passe GHCR personnel n'est versionné.
 
-## 10. Validation locale
+## 11. Validation locale
 
 ```bash
 pnpm api:audit:prod
