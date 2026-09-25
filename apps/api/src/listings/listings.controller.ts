@@ -63,6 +63,14 @@ export class ListingsController {
     );
   }
 
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Consulter une annonce approuvée publiquement',
+  })
+  findPublicById(@Param('id') id: string) {
+    return this.listings.findPublicById(id);
+  }
+
   @Patch(':id')
   @ApiBearerAuth()
   @ApiOperation({
