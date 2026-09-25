@@ -107,6 +107,12 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 
+if ! grep -q "Forwarding from" "${PF_LOG}" 2>/dev/null; then
+  cat "${PF_LOG}"
+  echo "[FAIL] PostgreSQL port-forward did not become ready."
+  exit 1
+fi
+
 DATABASE_URL="postgresql://app:${POSTGRES_PASSWORD}@127.0.0.1:${PG_FORWARD_PORT}/projet_indiv26?schema=public" pnpm db:deploy
 cleanup_pf
 trap - EXIT
