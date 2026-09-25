@@ -1,4 +1,5 @@
 ARG NODE_IMAGE=node:24.20.0-alpine3.24
+ARG ALPINE_IMAGE=alpine:3.24.1
 
 FROM ${NODE_IMAGE} AS build
 
@@ -31,19 +32,29 @@ RUN pnpm db:generate \
   && cp -a "${GENERATED_PRISMA_CLIENT}/." "${RUNTIME_PACKAGE_NODE_MODULES}/.prisma/client/" \
   && test -f "${RUNTIME_PACKAGE_NODE_MODULES}/.prisma/client/default.js"
 
-FROM ${NODE_IMAGE} AS runtime
+FROM ${ALPINE_IMAGE} AS runtime
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache \
+      ca-certificates \
+      dumb-init \
+      libstdc++ \
+      openssl \
+  && addgroup -g 1000 -S node \
+  && adduser -u 1000 -S -G node -h /home/node node \
+  && mkdir -p /app \
+  && chown node:node /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
 WORKDIR /app
 
+COPY --from=build /usr/local/bin/node /usr/local/bin/node
 COPY --from=build --chown=node:node /runtime/api/ ./
 
 USER node
 
 EXPOSE 3000
 
+ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/main.js"]
