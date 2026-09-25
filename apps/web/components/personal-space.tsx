@@ -33,7 +33,7 @@ export function PersonalSpace() {
   } = useAuth();
 
   const [listings, setListings] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<ListingInput>(blankForm);
   const [editing, setEditing] = useState<Listing | null>(null);
   const [editForm, setEditForm] =
@@ -66,10 +66,39 @@ export function PersonalSpace() {
   }, [authenticated, getToken]);
 
   useEffect(() => {
-    if (ready && authenticated) {
-      void loadMine();
+    if (!ready || !authenticated) {
+      return;
     }
-  }, [ready, authenticated, loadMine]);
+
+    let active = true;
+
+    void getToken()
+      .then((token) => listingsApi.mine(token))
+      .then((data) => {
+        if (active) {
+          setListings(data);
+          setError(null);
+        }
+      })
+      .catch((reason: unknown) => {
+        if (active) {
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : 'Impossible de charger vos annonces.',
+          );
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [ready, authenticated, getToken]);
 
   async function createListing(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
