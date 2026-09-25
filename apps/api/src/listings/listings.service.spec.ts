@@ -16,6 +16,7 @@ describe('ListingsService', () => {
   const listingApi = {
     create: jest.fn(),
     findMany: jest.fn(),
+    findFirst: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
   };
@@ -68,6 +69,32 @@ describe('ListingsService', () => {
       where: { status: ListingStatus.APPROVED },
       orderBy: { createdAt: 'desc' },
     });
+  });
+
+  it('returns one APPROVED listing publicly by id', async () => {
+    const approvedListing = {
+      ...pendingListing,
+      status: ListingStatus.APPROVED,
+    };
+    listingApi.findFirst.mockResolvedValue(approvedListing);
+
+    const result = await service.findPublicById('listing-1');
+
+    expect(result).toEqual(approvedListing);
+    expect(listingApi.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'listing-1',
+        status: ListingStatus.APPROVED,
+      },
+    });
+  });
+
+  it('returns 404 for a listing that is not publicly approved', async () => {
+    listingApi.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.findPublicById('listing-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('returns only the authenticated owner listings', async () => {

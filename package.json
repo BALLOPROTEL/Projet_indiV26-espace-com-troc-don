@@ -22,7 +22,13 @@
     "k8s:render": "kubectl kustomize infra/k8s/minikube",
     "k8s:validate:manifests": "bash scripts/lot6-k8s-validate.sh --manifest-only",
     "k8s:up": "bash scripts/lot6-minikube-up.sh",
-    "k8s:validate": "bash scripts/lot6-k8s-validate.sh"
+    "k8s:validate": "bash scripts/lot6-k8s-validate.sh",
+    "web:dev": "pnpm --filter web dev",
+    "web:build": "pnpm --filter web build",
+    "web:lint": "pnpm --filter web lint",
+    "web:typecheck": "pnpm --filter web typecheck",
+    "web:test": "pnpm --filter web test",
+    "web:quality": "pnpm --filter web quality"
   },
   "pnpm": {
     "overrides": {

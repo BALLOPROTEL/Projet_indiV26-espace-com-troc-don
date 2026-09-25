@@ -29,6 +29,7 @@ services:
       - "127.0.0.1:8081:8080"
     volumes:
       - ./infra/keycloak/projet-indiv26-realm.json:/opt/keycloak/data/import/projet-indiv26-realm.json:ro
+      - ./infra/keycloak/themes/petite-maison:/opt/keycloak/themes/petite-maison:ro
     mem_limit: 1g
 
 volumes:
