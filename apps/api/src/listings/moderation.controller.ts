@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
   Query,
@@ -40,12 +42,14 @@ export class ModerationController {
   }
 
   @Post(':id/approve')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Approuver une annonce PENDING' })
   approve(@Param('id') id: string) {
     return this.listings.approve(id);
   }
 
   @Post(':id/reject')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Rejeter une annonce PENDING' })
   reject(
     @Param('id') id: string,
