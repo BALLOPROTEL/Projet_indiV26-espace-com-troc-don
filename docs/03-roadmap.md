@@ -42,7 +42,14 @@ Règle de pilotage :
 - une PR ouverte fait passer l'item en **Review** ;
 - **Done** exige la Definition of Done et les preuves attendues.
 
-## État initial
+## État actuel
 
-- LOT 0 : **In Progress**
-- LOT 1 à LOT 10 : **Backlog**
+- LOT 0 : **Done**
+- LOT 1 : **Done**
+- LOT 2 : **Done**
+- LOT 3 : **Done**
+- LOT 4 : **Done**
+- LOT 5 : **Done**
+- LOT 6 : **Done**
+- LOT 6B : **In Progress**
+- LOT 7 à LOT 10 : **Backlog**
