@@ -60,19 +60,19 @@ Voir [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Roadmap
 
-- LOT 0 — Initialisation du projet
-- LOT 1 — Base technique
-- LOT 2 — Identité et RBAC
-- LOT 3 — Verticale métier troc/don
-- LOT 4 — Qualité et tests
-- LOT 5 — Supply chain / Docker / scans
-- LOT 6 — Kubernetes
-- LOT 7 — Observabilité
-- LOT 8 — Charge et expérimentations
-- LOT 9 — Audit sécurité et remédiation
-- LOT 10 — Consolidation des preuves et soutenance
+- [EPIC LOT 0 — Initialisation #19](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/19)
+- LOT 1 — Base technique : [#9](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/9)
+- LOT 2 — Identité et RBAC : [#10](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/10)
+- LOT 3 — Verticale métier troc/don : [#11](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/11)
+- LOT 4 — Qualité et tests : [#12](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/12)
+- LOT 5 — Supply chain / Docker / scans : [#13](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/13)
+- LOT 6 — Kubernetes : [#14](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/14)
+- LOT 7 — Observabilité : [#15](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/15)
+- LOT 8 — Charge et expérimentations : [#16](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/16)
+- LOT 9 — Audit sécurité et remédiation : [#17](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/17)
+- LOT 10 — Consolidation des preuves et soutenance : [#18](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/18)
 
-Le backlog GitHub constitue la source de vérité pour l'avancement.
+Voir la vue détaillée dans [docs/03-roadmap.md](docs/03-roadmap.md).
 
 ## Structure cible
 
@@ -96,4 +96,16 @@ Le backlog GitHub constitue la source de vérité pour l'avancement.
 
 **LOT 0 — Initialisation : EN COURS**
 
-La structure, les conventions, la documentation de cadrage, les issues et la CI de bootstrap sont initialisées avant le développement métier.
+Déjà réalisé :
+- structure du dépôt ;
+- cadrage, architecture et Quality Gates ;
+- conventions Git et templates ;
+- baseline sécurité ;
+- backlog LOT 1 → LOT 10 ;
+- CI de bootstrap : **verte**.
+
+Restent avant le GO LOT 1 :
+- GitHub Project / Kanban ;
+- protection de `main` ;
+- environnement local de développement ;
+- revue finale du gate LOT 0.
