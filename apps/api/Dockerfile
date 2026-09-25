@@ -21,7 +21,7 @@ COPY apps/api apps/api
 
 RUN pnpm db:generate \
   && pnpm api:build \
-  && pnpm --filter api deploy --prod /runtime/api
+  && pnpm --filter api deploy --prod --legacy /runtime/api
 
 FROM ${NODE_IMAGE} AS runtime
 
