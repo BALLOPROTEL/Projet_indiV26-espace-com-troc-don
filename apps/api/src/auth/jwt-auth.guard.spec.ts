@@ -4,12 +4,12 @@ import {
 } from '@nestjs/common';
 import { AuthenticatedRequest } from './auth.types';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { TokenVerifierService } from './token-verifier.service';
+import { TokenVerifier } from './token-verifier.port';
 
 describe('JwtAuthGuard', () => {
-  const verifier = {
+  const verifier: TokenVerifier = {
     verify: jest.fn(),
-  } as unknown as TokenVerifierService;
+  };
 
   const guard = new JwtAuthGuard(verifier);
 
