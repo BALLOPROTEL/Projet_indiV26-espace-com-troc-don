@@ -4,7 +4,7 @@
 
 Objectif initial : **≥ 80 % de couverture de lignes sur le backend métier**.
 
-Preuve : rapport de couverture produit par la CI.
+Preuve : rapport de couverture produit par la CI et conservé comme artifact GitHub Actions pendant 30 jours. Depuis le LOT 4, Jest bloque la CI si le backend métier descend sous 80 % de lignes ou de statements.
 
 ## M2 — Qualité statique
 
@@ -13,7 +13,7 @@ Objectif :
 - typecheck : 0 erreur ;
 - 0 anomalie bloquante/critique dans l'outil d'analyse statique retenu.
 
-Preuve : logs et rapport CI.
+Preuve : ESLint et TypeScript sont exécutés comme étapes bloquantes de la CI ; leurs logs GitHub Actions constituent la preuve d'exécution.
 
 ## M3 — Vulnérabilités
 
