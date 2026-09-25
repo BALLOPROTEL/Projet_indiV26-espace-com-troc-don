@@ -49,6 +49,7 @@ jobs:
           test -f docs/05-lot1-base-technique.md
           test -f package.json
           test -f pnpm-workspace.yaml
+          test -f pnpm-lock.yaml
           test -f compose.yaml
           test -f apps/api/package.json
           test -f apps/api/prisma/schema.prisma
@@ -77,9 +78,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
         run: pnpm db:generate
