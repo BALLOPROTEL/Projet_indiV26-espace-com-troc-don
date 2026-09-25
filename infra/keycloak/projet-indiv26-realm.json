@@ -1,0 +1,111 @@
+{
+  "realm": "projet-indiv26",
+  "enabled": true,
+  "displayName": "Projet Individuel 26",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "rememberMe": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "USER",
+        "description": "Standard authenticated user"
+      },
+      {
+        "name": "MODERATOR",
+        "description": "Content moderator"
+      },
+      {
+        "name": "ADMIN",
+        "description": "Application administrator"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "api",
+      "name": "Projet individuel API",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "cli",
+      "name": "LOT 2 local smoke-test client",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "demo-user",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "demo-user@example.invalid",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "demo-user-local",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "USER"
+      ]
+    },
+    {
+      "username": "demo-moderator",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "demo-moderator@example.invalid",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "demo-moderator-local",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "MODERATOR"
+      ]
+    },
+    {
+      "username": "demo-admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "demo-admin@example.invalid",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "demo-admin-local",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ADMIN"
+      ]
+    }
+  ]
+}
