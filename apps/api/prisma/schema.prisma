@@ -1,0 +1,11 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// LOT 1 establishes the database baseline.
+// Domain models (Listing, moderation fields, etc.) are introduced in LOT 3.
