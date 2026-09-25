@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app_local_change_me
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - projet_indiv26_pgdata:/var/lib/postgresql/data
     healthcheck:
