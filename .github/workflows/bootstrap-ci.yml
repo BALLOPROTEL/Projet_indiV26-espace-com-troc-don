@@ -54,6 +54,7 @@ jobs:
           test -f docs/07-lot3-listings-moderation.md
           test -f docs/08-lot4-quality-gates.md
           test -f docs/09-lot5-supply-chain.md
+          test -f docs/10-lot6-kubernetes.md
           test -f package.json
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
@@ -70,6 +71,9 @@ jobs:
           test -f scripts/keycloak-smoke.sh
           test -f scripts/lot3-smoke.sh
           test -f scripts/lot5-image-smoke.sh
+          test -f scripts/lot6-minikube-up.sh
+          test -f scripts/lot6-k8s-validate.sh
+          test -f infra/k8s/minikube/kustomization.yaml
           test -d apps/web
           test -d infra/k8s
           test -d tests/load
@@ -84,6 +88,10 @@ jobs:
             exit 1
           fi
           echo "No tracked dotenv secret files detected."
+
+      - name: Validate Kubernetes manifests
+        shell: bash
+        run: bash scripts/lot6-k8s-validate.sh --manifest-only
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
