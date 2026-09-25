@@ -19,7 +19,7 @@ Preuve : ESLint et TypeScript sont exécutés comme étapes bloquantes de la CI 
 
 Objectif : **0 vulnérabilité Critical/High non acceptée** sur les dépendances et l'image livrée.
 
-Preuve : rapports d'audit et Trivy.
+Preuve : depuis le LOT 5, la CI exécute un audit des dépendances de production et un scan Trivy de l'image. Le gate HIGH/CRITICAL est bloquant et les rapports JSON sont conservés comme artifact GitHub Actions pendant 30 jours.
 
 ## M4 — Performance
 
