@@ -44,6 +44,21 @@ export class ListingsService {
     });
   }
 
+  async findPublicById(id: string): Promise<Listing> {
+    const listing = await this.prisma.listing.findFirst({
+      where: {
+        id,
+        status: ListingStatus.APPROVED,
+      },
+    });
+
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+
+    return listing;
+  }
+
   findMine(ownerId: string): Promise<Listing[]> {
     return this.prisma.listing.findMany({
       where: {
