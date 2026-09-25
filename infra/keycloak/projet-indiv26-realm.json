@@ -1,7 +1,7 @@
 {
   "realm": "projet-indiv26",
   "enabled": true,
-  "displayName": "Projet Individuel 26",
+  "displayName": "La Petite Maison de l’Épouvante",
   "registrationAllowed": false,
   "resetPasswordAllowed": false,
   "rememberMe": false,
@@ -154,5 +154,12 @@
       "lastName": "Admin",
       "requiredActions": []
     }
-  ]
+  ],
+  "displayNameHtml": "La Petite Maison de l’Épouvante",
+  "loginTheme": "petite-maison",
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "fr"
+  ],
+  "defaultLocale": "fr"
 }
