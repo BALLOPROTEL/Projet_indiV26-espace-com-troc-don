@@ -263,15 +263,7 @@ export function PersonalSpace() {
       </div>
 
       {editing ? (
-        <div
-          className="dialog-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.currentTarget === event.target) {
-              setEditing(null);
-            }
-          }}
-        >
+        <div className="dialog-backdrop">
           <section
             className="edit-dialog"
             role="dialog"
