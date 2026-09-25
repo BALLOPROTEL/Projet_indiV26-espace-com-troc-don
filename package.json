@@ -18,7 +18,11 @@
     "api:quality": "pnpm api:lint && pnpm api:typecheck && pnpm api:test && pnpm api:test:integration && pnpm api:test:e2e && pnpm api:test:coverage && pnpm api:build",
     "api:audit:prod": "pnpm audit --prod --audit-level=high",
     "api:image:build": "docker build --pull -f apps/api/Dockerfile -t projet-indiv26-api:lot5-local .",
-    "api:image:smoke": "bash scripts/lot5-image-smoke.sh projet-indiv26-api:lot5-local"
+    "api:image:smoke": "bash scripts/lot5-image-smoke.sh projet-indiv26-api:lot5-local",
+    "k8s:render": "kubectl kustomize infra/k8s/minikube",
+    "k8s:validate:manifests": "bash scripts/lot6-k8s-validate.sh --manifest-only",
+    "k8s:up": "bash scripts/lot6-minikube-up.sh",
+    "k8s:validate": "bash scripts/lot6-k8s-validate.sh"
   },
   "pnpm": {
     "overrides": {
