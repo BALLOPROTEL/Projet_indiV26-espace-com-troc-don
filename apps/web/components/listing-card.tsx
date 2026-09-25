@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   formatListingDate,
   operationLabel,
@@ -8,7 +9,7 @@ import type { Listing } from '../lib/types';
 type Props = {
   listing: Listing;
   showStatus?: boolean;
-  footer?: React.ReactNode;
+  footer?: ReactNode;
 };
 
 export function ListingCard({
