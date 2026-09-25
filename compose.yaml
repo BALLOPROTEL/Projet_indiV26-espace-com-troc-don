@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: projet-indiv26-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: projet_indiv26
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app_local_change_me
+    ports:
+      - "5432:5432"
+    volumes:
+      - projet_indiv26_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d projet_indiv26"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  projet_indiv26_pgdata:
