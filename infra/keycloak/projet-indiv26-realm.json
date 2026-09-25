@@ -73,7 +73,10 @@
       ],
       "realmRoles": [
         "USER"
-      ]
+      ],
+      "firstName": "Demo",
+      "lastName": "User",
+      "requiredActions": []
     },
     {
       "username": "demo-moderator",
@@ -89,7 +92,10 @@
       ],
       "realmRoles": [
         "MODERATOR"
-      ]
+      ],
+      "firstName": "Demo",
+      "lastName": "Moderator",
+      "requiredActions": []
     },
     {
       "username": "demo-admin",
@@ -105,7 +111,10 @@
       ],
       "realmRoles": [
         "ADMIN"
-      ]
+      ],
+      "firstName": "Demo",
+      "lastName": "Admin",
+      "requiredActions": []
     }
   ]
 }
