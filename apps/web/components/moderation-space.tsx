@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  useCallback,
   useEffect,
   useState,
 } from 'react';
@@ -23,37 +22,44 @@ export function ModerationSpace() {
   const canModerate = hasAnyRole('MODERATOR', 'ADMIN');
   const [queue, setQueue] = useState<Listing[]>([]);
   const [reasons, setReasons] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadQueue = useCallback(async () => {
-    if (!authenticated || !canModerate) {
+  useEffect(() => {
+    if (!ready || !authenticated || !canModerate) {
       return;
     }
 
-    setLoading(true);
+    let active = true;
 
-    try {
-      const token = await getToken();
-      setQueue(await listingsApi.moderation(token));
-      setError(null);
-    } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : 'Impossible de charger la réserve.',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [authenticated, canModerate, getToken]);
+    void getToken()
+      .then((token) => listingsApi.moderation(token))
+      .then((data) => {
+        if (active) {
+          setQueue(data);
+          setError(null);
+        }
+      })
+      .catch((reason: unknown) => {
+        if (active) {
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : 'Impossible de charger la réserve.',
+          );
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
 
-  useEffect(() => {
-    if (ready) {
-      void loadQueue();
-    }
-  }, [ready, loadQueue]);
+    return () => {
+      active = false;
+    };
+  }, [ready, authenticated, canModerate, getToken]);
 
   async function approve(listing: Listing) {
     setBusyId(listing.id);
