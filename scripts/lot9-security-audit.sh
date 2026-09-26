@@ -50,9 +50,7 @@ if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$'; then
 fi
 
 echo "[CHECK] No tracked private keys or common live-token patterns"
-if git grep -nE --   '-----BEGIN ([A-Z0-9 ]+ )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{20,}'   -- . \
-  ':!docs/14-lot9-security-audit.md' \
-  ':!scripts/lot9-security-audit.sh'; then
+if git grep -nE   -e '-----BEGIN ([A-Z0-9 ]+ )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{20,}'   -- .   ':!docs/14-lot9-security-audit.md'   ':!scripts/lot9-security-audit.sh'; then
   echo "[FAIL] Potential tracked secret material detected."
   exit 1
 fi
@@ -103,7 +101,10 @@ assert "smoke-test" in cli["name"]
 roles = {role["name"] for role in realm["roles"]["realm"]}
 assert {"USER", "MODERATOR", "ADMIN"}.issubset(roles)
 
-print("[OK] Keycloak app clients hardened; Direct Grant remains isolated to local smoke client.")
+print(
+    "[OK] Keycloak app clients hardened; "
+    "Direct Grant remains isolated to local smoke client."
+)
 PY
 
 echo "[CHECK] GitHub Actions are pinned to immutable SHAs"
@@ -114,7 +115,11 @@ from pathlib import Path
 workflow = Path(".github/workflows/bootstrap-ci.yml").read_text(
     encoding="utf-8"
 )
-uses = re.findall(r"^\s*uses:\s*([^\s#]+)", workflow, flags=re.MULTILINE)
+uses = re.findall(
+    r"^\s*uses:\s*([^\s#]+)",
+    workflow,
+    flags=re.MULTILINE,
+)
 
 if not uses:
     raise SystemExit("[FAIL] No GitHub Actions references found.")
@@ -132,35 +137,53 @@ for ref in uses:
 
 if bad:
     raise SystemExit(
-        "[FAIL] Non-immutable GitHub Action refs: " + ", ".join(bad)
+        "[FAIL] Non-immutable GitHub Action refs: "
+        + ", ".join(bad)
     )
 
-print(f"[OK] {len(uses)} action references use immutable commit SHAs.")
+print(
+    f"[OK] {len(uses)} action references use immutable commit SHAs."
+)
 PY
 
 echo "[CHECK] API / Web hardening controls"
-grep -q "X-Content-Type-Options" apps/api/src/security-headers.middleware.ts
-grep -q "X-Frame-Options" apps/api/src/security-headers.middleware.ts
-grep -q "X-Powered-By" apps/api/src/security-headers.middleware.ts
-grep -q "Content-Security-Policy" apps/web/next.config.ts
-grep -q "Permissions-Policy" apps/web/next.config.ts
+grep -q "X-Content-Type-Options"   apps/api/src/security-headers.middleware.ts
+grep -q "X-Frame-Options"   apps/api/src/security-headers.middleware.ts
+grep -q "X-Powered-By"   apps/api/src/security-headers.middleware.ts
+grep -q "Content-Security-Policy"   apps/web/next.config.ts
+grep -q "Permissions-Policy"   apps/web/next.config.ts
 grep -q "SWAGGER_ENABLED" apps/api/src/main.ts
-grep -q 'SWAGGER_ENABLED: "false"' infra/k8s/minikube/api-configmap.yaml
+grep -q 'SWAGGER_ENABLED: "false"'   infra/k8s/minikube/api-configmap.yaml
 grep -q "Valid metrics bearer token is required"   apps/api/src/observability/metrics-access.service.ts
 
 echo "[CHECK] Kubernetes hardening / network exposure"
 RENDERED="$(mktemp)"
 kubectl kustomize infra/k8s/minikube > "${RENDERED}"
 
-grep -q 'secretName: api-tls' "${RENDERED}"
-grep -q 'ssl-redirect: "true"' "${RENDERED}"
-grep -q 'type: ClusterIP' "${RENDERED}"
-grep -q 'automountServiceAccountToken: false' "${RENDERED}"
-grep -q 'runAsNonRoot: true' "${RENDERED}"
-grep -q 'readOnlyRootFilesystem: true' "${RENDERED}"
-grep -q 'allowPrivilegeEscalation: false' "${RENDERED}"
-grep -q 'credentials_file: /etc/prometheus/secrets/metrics-token'   "${RENDERED}"
-grep -q 'key: METRICS_TOKEN' "${RENDERED}"
+grep -q 'secretName: api-tls'   infra/k8s/minikube/api-ingress.yaml
+grep -q 'ssl-redirect: "true"'   infra/k8s/minikube/api-ingress.yaml
+
+for service in api postgres prometheus grafana; do
+  grep -q 'type: ClusterIP'     "infra/k8s/minikube/${service}-service.yaml"
+done
+
+grep -q 'automountServiceAccountToken: false'   infra/k8s/minikube/api-deployment.yaml
+grep -q 'runAsNonRoot: true'   infra/k8s/minikube/api-deployment.yaml
+grep -q 'readOnlyRootFilesystem: true'   infra/k8s/minikube/api-deployment.yaml
+grep -q 'allowPrivilegeEscalation: false'   infra/k8s/minikube/api-deployment.yaml
+grep -q 'drop:' infra/k8s/minikube/api-deployment.yaml
+grep -q 'ALL' infra/k8s/minikube/api-deployment.yaml
+
+grep -q   'credentials_file: /etc/prometheus/secrets/metrics-token'   infra/k8s/minikube/prometheus-configmap.yaml
+grep -q 'key: METRICS_TOKEN'   infra/k8s/minikube/prometheus-deployment.yaml
+
+INGRESS_COUNT="$(
+  grep -Rl '^kind: Ingress$' infra/k8s/minikube     | wc -l     | tr -d ' '
+)"
+if [ "${INGRESS_COUNT}" != "1" ]; then
+  echo "[FAIL] Expected exactly one Ingress (API), found ${INGRESS_COUNT}."
+  exit 1
+fi
 
 echo "[CHECK] Prometheus RBAC remains namespace-scoped"
 python3 - <<'PY'
