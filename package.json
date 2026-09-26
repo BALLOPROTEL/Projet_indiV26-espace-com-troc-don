@@ -30,7 +30,8 @@
     "web:test": "pnpm --filter web test",
     "web:quality": "pnpm --filter web quality",
     "obs:validate:manifests": "bash scripts/lot7-observability-validate.sh --manifest-only",
-    "obs:validate": "bash scripts/lot7-observability-validate.sh"
+    "obs:validate": "bash scripts/lot7-observability-validate.sh",
+    "obs:up": "bash scripts/lot7-minikube-up.sh"
   },
   "pnpm": {
     "overrides": {
