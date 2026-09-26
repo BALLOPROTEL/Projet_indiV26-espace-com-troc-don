@@ -60,7 +60,7 @@ services:
       retries: 20
 
   minio-init:
-    image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+    image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z
     container_name: projet-indiv26-minio-init
     depends_on:
       minio:
