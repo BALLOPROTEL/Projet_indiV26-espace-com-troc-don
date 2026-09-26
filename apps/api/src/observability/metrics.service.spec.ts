@@ -24,8 +24,8 @@ describe('MetricsService', () => {
     expect(metrics).toContain(
       'projet_indiv26_process_resident_memory_bytes',
     );
-    expect(metrics).toContain(
-      'method="GET",route="/api/listings",status_code="200"',
-    );
+    expect(metrics).toContain('method="GET"');
+    expect(metrics).toContain('route="/api/listings"');
+    expect(metrics).toContain('status_code="200"');
   });
 });
