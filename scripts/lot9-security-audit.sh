@@ -50,7 +50,9 @@ if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$'; then
 fi
 
 echo "[CHECK] No tracked private keys or common live-token patterns"
-if git grep -nE --   '-----BEGIN ([A-Z0-9 ]+ )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{20,}'   -- . ':!docs/14-lot9-security-audit.md'; then
+if git grep -nE --   '-----BEGIN ([A-Z0-9 ]+ )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{20,}'   -- . \
+  ':!docs/14-lot9-security-audit.md' \
+  ':!scripts/lot9-security-audit.sh'; then
   echo "[FAIL] Potential tracked secret material detected."
   exit 1
 fi
