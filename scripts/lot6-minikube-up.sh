@@ -70,6 +70,27 @@ kubectl -n "${NAMESPACE}" create secret generic api-secrets \
 
 echo "[OK] API Secret applied without storing credentials in Git."
 
+if kubectl -n "${NAMESPACE}" get secret object-storage-credentials >/dev/null 2>&1; then
+  MINIO_ROOT_USER="$(kubectl -n "${NAMESPACE}" get secret object-storage-credentials -o jsonpath='{.data.MINIO_ROOT_USER}' | base64 -d)"
+  MINIO_ROOT_PASSWORD="$(kubectl -n "${NAMESPACE}" get secret object-storage-credentials -o jsonpath='{.data.MINIO_ROOT_PASSWORD}' | base64 -d)"
+  S3_ACCESS_KEY="$(kubectl -n "${NAMESPACE}" get secret object-storage-credentials -o jsonpath='{.data.S3_ACCESS_KEY}' | base64 -d)"
+  S3_SECRET_KEY="$(kubectl -n "${NAMESPACE}" get secret object-storage-credentials -o jsonpath='{.data.S3_SECRET_KEY}' | base64 -d)"
+  echo "[OK] Existing object-storage credentials reused."
+else
+  MINIO_ROOT_USER="minio-root"
+  MINIO_ROOT_PASSWORD="$(openssl rand -hex 24)"
+  S3_ACCESS_KEY="marketplace-api"
+  S3_SECRET_KEY="$(openssl rand -hex 24)"
+
+  kubectl -n "${NAMESPACE}" create secret generic object-storage-credentials \
+    --from-literal=MINIO_ROOT_USER="${MINIO_ROOT_USER}" \
+    --from-literal=MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD}" \
+    --from-literal=S3_ACCESS_KEY="${S3_ACCESS_KEY}" \
+    --from-literal=S3_SECRET_KEY="${S3_SECRET_KEY}"
+
+  echo "[OK] Object-storage credentials created outside Git."
+fi
+
 if ! kubectl -n "${NAMESPACE}" get secret api-tls >/dev/null 2>&1; then
   TLS_DIR="$(mktemp -d)"
 
@@ -95,6 +116,28 @@ kubectl apply -f "${K8S_DIR}/postgres-deployment.yaml"
 kubectl apply -f "${K8S_DIR}/postgres-service.yaml"
 
 kubectl -n "${NAMESPACE}" rollout status deployment/postgres --timeout=180s
+
+echo "[INFO] Deploying private MinIO object storage..."
+kubectl apply -f "${K8S_DIR}/minio-pvc.yaml"
+kubectl apply -f "${K8S_DIR}/minio-deployment.yaml"
+kubectl apply -f "${K8S_DIR}/minio-service.yaml"
+kubectl apply -f "${K8S_DIR}/minio-bootstrap-configmap.yaml"
+
+kubectl -n "${NAMESPACE}" rollout status deployment/minio --timeout=180s
+
+echo "[INFO] Bootstrapping private listing-images bucket and application user..."
+kubectl -n "${NAMESPACE}" delete job minio-bootstrap --ignore-not-found=true >/dev/null
+kubectl apply -f "${K8S_DIR}/minio-bootstrap-job.yaml"
+
+if ! kubectl -n "${NAMESPACE}" wait \
+  --for=condition=complete job/minio-bootstrap \
+  --timeout=180s; then
+  kubectl -n "${NAMESPACE}" logs job/minio-bootstrap --tail=200 || true
+  echo "[FAIL] MinIO bootstrap job did not complete."
+  exit 1
+fi
+
+kubectl -n "${NAMESPACE}" logs job/minio-bootstrap --tail=50
 
 echo "[INFO] Applying Prisma migrations through a temporary PostgreSQL port-forward..."
 PF_LOG="$(mktemp)"
