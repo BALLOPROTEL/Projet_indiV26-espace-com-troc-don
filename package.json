@@ -33,7 +33,9 @@
     "obs:validate": "bash scripts/lot7-observability-validate.sh",
     "obs:up": "bash scripts/lot7-minikube-up.sh",
     "load:validate": "bash scripts/lot8-load-validate.sh",
-    "load:run": "bash scripts/lot8-load-run.sh"
+    "load:run": "bash scripts/lot8-load-run.sh",
+    "security:audit:static": "bash scripts/lot9-security-audit.sh --static",
+    "security:audit": "bash scripts/lot9-security-audit.sh"
   },
   "pnpm": {
     "overrides": {
