@@ -28,7 +28,9 @@
     "web:lint": "pnpm --filter web lint",
     "web:typecheck": "pnpm --filter web typecheck",
     "web:test": "pnpm --filter web test",
-    "web:quality": "pnpm --filter web quality"
+    "web:quality": "pnpm --filter web quality",
+    "obs:validate:manifests": "bash scripts/lot7-observability-validate.sh --manifest-only",
+    "obs:validate": "bash scripts/lot7-observability-validate.sh"
   },
   "pnpm": {
     "overrides": {
