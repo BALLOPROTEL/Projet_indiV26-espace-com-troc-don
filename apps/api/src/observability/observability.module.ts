@@ -26,9 +26,12 @@ import { RequestLoggingMiddleware } from './request-logging.middleware';
 export class ObservabilityModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer
-      .apply(SecurityHeadersMiddleware, RequestLoggingMiddleware)
+      .apply(
+        SecurityHeadersMiddleware,
+        RequestLoggingMiddleware,
+      )
       .forRoutes({
-      path: '{*splat}',
+        path: '{*splat}',
         method: RequestMethod.ALL,
       });
   }
