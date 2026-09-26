@@ -58,6 +58,7 @@ jobs:
           test -f docs/11-lot6b-frontend.md
           test -f docs/12-lot7-observability.md
           test -f docs/13-lot8-performance.md
+          test -f docs/14-lot9-security-audit.md
           test -f package.json
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
@@ -86,6 +87,7 @@ jobs:
           test -f scripts/lot7-minikube-up.sh
           test -f scripts/lot8-load-run.sh
           test -f scripts/lot8-load-validate.sh
+          test -f scripts/lot9-security-audit.sh
           test -f tests/load/lot8-api-hpa.jmx
           test -f tests/load/Dockerfile.jmeter
           test -f tests/load/summarize_jtl.py
@@ -118,6 +120,10 @@ jobs:
       - name: Validate LOT 8 load-test artifacts
         shell: bash
         run: bash scripts/lot8-load-validate.sh
+
+      - name: Validate LOT 9 security controls
+        shell: bash
+        run: bash scripts/lot9-security-audit.sh --static
 
       - name: Setup pnpm
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
