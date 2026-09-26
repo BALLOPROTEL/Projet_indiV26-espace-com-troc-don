@@ -7,6 +7,7 @@ NAMESPACE="projet-indiv26"
 MANIFEST_ONLY=false
 
 RENDERED=""
+KUBECTL_SHIM_DIR=""
 API_PF_LOG=""
 API_PF_PID=""
 INGRESS_PF_LOG=""
@@ -24,6 +25,7 @@ cleanup() {
   fi
 
   [ -z "${RENDERED}" ] || rm -f "${RENDERED}"
+  [ -z "${KUBECTL_SHIM_DIR}" ] || rm -rf "${KUBECTL_SHIM_DIR}"
   [ -z "${API_PF_LOG}" ] || rm -f "${API_PF_LOG}"
   [ -z "${INGRESS_PF_LOG}" ] || rm -f "${INGRESS_PF_LOG}"
 }
@@ -33,10 +35,21 @@ if [ "${1:-}" = "--manifest-only" ]; then
   MANIFEST_ONLY=true
 fi
 
-command -v kubectl >/dev/null 2>&1 || {
-  echo "[FAIL] kubectl is required."
-  exit 1
-}
+if ! command -v kubectl >/dev/null 2>&1; then
+  if command -v minikube >/dev/null 2>&1; then
+    KUBECTL_SHIM_DIR="$(mktemp -d)"
+    cat > "${KUBECTL_SHIM_DIR}/kubectl" <<'EOF'
+#!/usr/bin/env bash
+exec minikube kubectl -- "$@"
+EOF
+    chmod +x "${KUBECTL_SHIM_DIR}/kubectl"
+    export PATH="${KUBECTL_SHIM_DIR}:${PATH}"
+    echo "[INFO] kubectl not found; using 'minikube kubectl --' fallback."
+  else
+    echo "[FAIL] kubectl or minikube is required."
+    exit 1
+  fi
+fi
 
 echo "=== LOT 6 - Kubernetes validation ==="
 
