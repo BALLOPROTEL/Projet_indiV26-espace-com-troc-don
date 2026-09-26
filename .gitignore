@@ -29,6 +29,9 @@ logs/
 Thumbs.db
 
 # Tests / tooling
+__pycache__/
+*.py[cod]
+reports/load/
 playwright-report/
 test-results/
 .nyc_output/

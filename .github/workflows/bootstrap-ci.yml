@@ -57,6 +57,7 @@ jobs:
           test -f docs/10-lot6-kubernetes.md
           test -f docs/11-lot6b-frontend.md
           test -f docs/12-lot7-observability.md
+          test -f docs/13-lot8-performance.md
           test -f package.json
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
@@ -83,6 +84,13 @@ jobs:
           test -f scripts/lot6-k8s-validate.sh
           test -f scripts/lot7-observability-validate.sh
           test -f scripts/lot7-minikube-up.sh
+          test -f scripts/lot8-load-run.sh
+          test -f scripts/lot8-load-validate.sh
+          test -f tests/load/lot8-api-hpa.jmx
+          test -f tests/load/Dockerfile.jmeter
+          test -f tests/load/summarize_jtl.py
+          test -f tests/load/build_report.py
+          test -f tests/load/keycloak-experimentation.md
           test -f infra/k8s/minikube/kustomization.yaml
           test -d apps/web
           test -d infra/k8s
@@ -106,6 +114,10 @@ jobs:
       - name: Validate Observability manifests
         shell: bash
         run: bash scripts/lot7-observability-validate.sh --manifest-only
+
+      - name: Validate LOT 8 load-test artifacts
+        shell: bash
+        run: bash scripts/lot8-load-validate.sh
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4

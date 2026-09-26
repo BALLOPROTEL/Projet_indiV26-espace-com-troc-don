@@ -1,0 +1,20 @@
+FROM eclipse-temurin:17-jre-alpine
+
+ARG JMETER_VERSION=5.6.3
+
+RUN apk add --no-cache ca-certificates curl tar \
+  && curl -fsSL "https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz" \
+    | tar -xz -C /opt \
+  && ln -s "/opt/apache-jmeter-${JMETER_VERSION}" /opt/jmeter \
+  && addgroup -S -g 10001 jmeter \
+  && adduser -S -D -H -u 10001 -G jmeter jmeter \
+  && mkdir -p /opt/load /results \
+  && chown -R 10001:10001 /opt/load /results
+
+COPY --chown=10001:10001 tests/load/lot8-api-hpa.jmx /opt/load/plan.jmx
+
+USER 10001:10001
+WORKDIR /results
+
+ENTRYPOINT ["/opt/jmeter/bin/jmeter"]
+CMD ["-v"]
