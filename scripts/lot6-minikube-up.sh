@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 K8S_DIR="${ROOT_DIR}/infra/k8s/minikube"
 NAMESPACE="projet-indiv26"
 IMAGE="projet-indiv26-api:lot6-local"
+BOOTSTRAP_IMAGE="projet-indiv26-minio-bootstrap:lot9b-local"
 PG_FORWARD_PORT="${PG_FORWARD_PORT:-5434}"
 
 for cmd in docker minikube kubectl openssl base64 pnpm curl; do
@@ -30,8 +31,15 @@ minikube addons enable metrics-server >/dev/null
 echo "[INFO] Building API image for Minikube..."
 docker build --pull -f apps/api/Dockerfile -t "${IMAGE}" .
 
-echo "[INFO] Loading API image into Minikube..."
+echo "[INFO] Building MinIO bootstrap image..."
+docker build --pull \
+  -f infra/minio/Dockerfile.mc-bootstrap \
+  -t "${BOOTSTRAP_IMAGE}" \
+  .
+
+echo "[INFO] Loading application images into Minikube..."
 minikube image load "${IMAGE}"
+minikube image load "${BOOTSTRAP_IMAGE}"
 
 echo "[INFO] Creating namespace..."
 kubectl apply -f "${K8S_DIR}/namespace.yaml"
