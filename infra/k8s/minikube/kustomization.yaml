@@ -5,6 +5,11 @@ resources:
   - postgres-pvc.yaml
   - postgres-deployment.yaml
   - postgres-service.yaml
+  - minio-pvc.yaml
+  - minio-deployment.yaml
+  - minio-service.yaml
+  - minio-bootstrap-configmap.yaml
+  - minio-bootstrap-job.yaml
   - api-configmap.yaml
   - api-deployment.yaml
   - api-service.yaml
