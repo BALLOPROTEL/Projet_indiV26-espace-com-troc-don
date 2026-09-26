@@ -65,7 +65,7 @@ if grep -R -qE 'image:[[:space:]]+(quay\.io/)?minio/mc:' compose.yaml infra/k8s/
 fi
 
 if grep -qE '"\$MINIO_ROOT_USER"|"\$MINIO_ROOT_PASSWORD"|"\$S3_ACCESS_KEY"|"\$S3_SECRET_KEY"' compose.yaml; then
-  echo "[FAIL] Unescaped Compose bootstrap variable detected; use $VAR inside command blocks."
+  echo "[FAIL] Unescaped Compose bootstrap variable detected; defer variables to the container."
   exit 1
 fi
 
