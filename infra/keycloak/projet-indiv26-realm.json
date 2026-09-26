@@ -161,5 +161,13 @@
   "supportedLocales": [
     "fr"
   ],
-  "defaultLocale": "fr"
+  "defaultLocale": "fr",
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "minimumQuickLoginWaitSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "maxDeltaTimeSeconds": 43200
 }
