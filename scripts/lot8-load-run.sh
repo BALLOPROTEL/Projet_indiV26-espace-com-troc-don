@@ -126,24 +126,31 @@ spec:
         - name: jmeter
           image: ${IMAGE}
           imagePullPolicy: Never
-          args:
-            - -n
-            - -t
-            - /opt/load/plan.jmx
-            - -Jhost=api.projet-indiv26.svc.cluster.local
-            - -Jport=80
-            - -Jprotocol=http
-            - -Jpath=/api/listings
-            - -Jthreads=${threads}
-            - -Jramp_seconds=${ramp}
-            - -Jduration_seconds=${duration}
-            - -Jjmeter.save.saveservice.output_format=csv
-            - -Jjmeter.save.saveservice.print_field_names=true
-            - -Jjmeter.save.saveservice.autoflush=true
-            - -l
-            - /results/results.jtl
-            - -j
-            - /results/jmeter.log
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set +e
+              /opt/jmeter/bin/jmeter \
+                -n \
+                -t /opt/load/plan.jmx \
+                -Jhost=api.projet-indiv26.svc.cluster.local \
+                -Jport=80 \
+                -Jprotocol=http \
+                -Jpath=/api/listings \
+                -Jthreads=${threads} \
+                -Jramp_seconds=${ramp} \
+                -Jduration_seconds=${duration} \
+                -Jjmeter.save.saveservice.output_format=csv \
+                -Jjmeter.save.saveservice.print_field_names=true \
+                -Jjmeter.save.saveservice.autoflush=true \
+                -l /results/results.jtl \
+                -j /results/jmeter.log
+              status=$?
+              echo "$status" > /results/exit-code
+              touch /results/done
+              sleep 600
+              exit "$status"
           resources:
             requests:
               cpu: 200m
@@ -173,8 +180,8 @@ EOF
   rm -f "${TEMP_JOB_FILE}"
   TEMP_JOB_FILE=""
 
-  if ! kubectl -n "${NAMESPACE}" wait     --for=condition=complete "job/${job}"     --timeout="$((duration + 180))s"; then
-    echo "[FAIL] JMeter job ${job} did not complete."
+  if ! kubectl -n "${NAMESPACE}" wait     --for=condition=Ready pod     -l "job-name=${job}"     --timeout=120s; then
+    echo "[FAIL] JMeter pod for ${job} did not become Ready."
     kubectl -n "${NAMESPACE}" describe "job/${job}" || true
     kubectl -n "${NAMESPACE}" logs       -l "job-name=${job}" --tail=200 || true
     exit 1
@@ -183,6 +190,31 @@ EOF
   local pod
   pod="$(kubectl -n "${NAMESPACE}" get pods     -l "job-name=${job}"     -o jsonpath='{.items[0].metadata.name}')"
 
+  local max_wait
+  max_wait=$((duration + 180))
+  local finished=false
+
+  for attempt in $(seq 1 "${max_wait}"); do
+    if kubectl -n "${NAMESPACE}" exec "${pod}" --       test -f /results/done >/dev/null 2>&1; then
+      finished=true
+      break
+    fi
+
+    if [ $((attempt % 10)) -eq 0 ]; then
+      echo "[WAIT] JMeter ${phase}: ${attempt}/${max_wait}s"
+    fi
+    sleep 1
+  done
+
+  if [ "${finished}" != "true" ]; then
+    echo "[FAIL] JMeter phase ${phase} did not finish within ${max_wait}s."
+    kubectl -n "${NAMESPACE}" logs "${pod}" --tail=200 || true
+    exit 1
+  fi
+
+  local jmeter_status
+  jmeter_status="$(kubectl -n "${NAMESPACE}" exec "${pod}" --     cat /results/exit-code)"
+
   kubectl -n "${NAMESPACE}" logs "${pod}"     > "${REPORT_DIR}/${phase}-console.log"
 
   kubectl -n "${NAMESPACE}" cp     "${pod}:/results/results.jtl"     "${REPORT_DIR}/${phase}-results.jtl"
@@ -190,6 +222,13 @@ EOF
   kubectl -n "${NAMESPACE}" cp     "${pod}:/results/jmeter.log"     "${REPORT_DIR}/${phase}-jmeter.log"
 
   python3 tests/load/summarize_jtl.py     "${REPORT_DIR}/${phase}-results.jtl"     --scenario "${phase}"     --output "${REPORT_DIR}/${phase}-summary.json"
+
+  if [ "${jmeter_status}" != "0" ]; then
+    echo "[FAIL] JMeter phase ${phase} exited with status ${jmeter_status}."
+    tail -n 100 "${REPORT_DIR}/${phase}-jmeter.log" || true
+    kubectl -n "${NAMESPACE}" delete job "${job}"       --ignore-not-found=true >/dev/null
+    exit "${jmeter_status}"
+  fi
 
   kubectl -n "${NAMESPACE}" delete job "${job}"     --ignore-not-found=true >/dev/null
 }
