@@ -1,6 +1,6 @@
 import { LoggerService } from '@nestjs/common';
 
-type LogLevel = 'debug' | 'error' | 'info' | 'verbose' | 'warn';
+type LogLevel =\n  | 'debug'\n  | 'error'\n  | 'fatal'\n  | 'info'\n  | 'verbose'\n  | 'warn';
 
 export class JsonLoggerService implements LoggerService {
   log(message: unknown, ...optionalParams: unknown[]): void {
@@ -39,7 +39,7 @@ export class JsonLoggerService implements LoggerService {
 
     const line = `${JSON.stringify(payload)}\n`;
 
-    if (level === 'error') {
+    if (level === 'error' || level === 'fatal') {
       process.stderr.write(line);
       return;
     }
