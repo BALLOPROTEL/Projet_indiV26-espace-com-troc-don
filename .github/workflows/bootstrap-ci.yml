@@ -34,6 +34,12 @@ jobs:
       DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=public
       KEYCLOAK_ISSUER: http://localhost:8081/realms/projet-indiv26
       KEYCLOAK_AUDIENCE: api
+      S3_ENDPOINT: http://127.0.0.1:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: listing-images
+      S3_ACCESS_KEY: marketplace-api
+      S3_SECRET_KEY: marketplace_storage_local_change_me_2026
+      S3_FORCE_PATH_STYLE: "true"
 
     steps:
       - name: Checkout
@@ -60,6 +66,7 @@ jobs:
           test -f docs/13-lot8-performance.md
           test -f docs/14-lot9-security-audit.md
           test -f docs/15-lot9b-a-marketplace-domain.md
+          test -f docs/16-lot9b-b-object-storage.md
           test -f package.json
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
@@ -72,6 +79,12 @@ jobs:
           test -f apps/api/src/marketplace/marketplace.module.ts
           test -f apps/api/src/marketplace/marketplace-rules.service.ts
           test -f apps/api/src/marketplace/marketplace-rules.service.spec.ts
+          test -f apps/api/src/storage/object-storage.service.ts
+          test -f apps/api/src/storage/storage.module.ts
+          test -f apps/api/src/listings/image-file.validator.ts
+          test -f apps/api/src/listings/listing-images.service.ts
+          test -f apps/api/src/listings/listing-images.controller.ts
+          test -f apps/api/test/object-storage.integration-spec.ts
           test -f apps/api/eslint.config.mjs
           test -f apps/api/jest.config.cjs
           test -f apps/api/jest.integration.config.cjs
@@ -94,6 +107,11 @@ jobs:
           test -f scripts/lot8-load-validate.sh
           test -f scripts/lot9-security-audit.sh
           test -f scripts/lot9-security-live.sh
+          test -f scripts/lot9b-storage-validate.sh
+          test -f infra/minio/listing-images-policy.json
+          test -f infra/k8s/minikube/minio-deployment.yaml
+          test -f infra/k8s/minikube/minio-service.yaml
+          test -f infra/k8s/minikube/minio-bootstrap-job.yaml
           test -f tests/load/lot8-api-hpa.jmx
           test -f tests/load/Dockerfile.jmeter
           test -f tests/load/summarize_jtl.py
@@ -131,6 +149,10 @@ jobs:
         shell: bash
         run: bash scripts/lot9-security-audit.sh --static
 
+      - name: Validate LOT 9B-B storage manifests
+        shell: bash
+        run: bash scripts/lot9b-storage-validate.sh --static
+
       - name: Setup pnpm
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
@@ -155,6 +177,9 @@ jobs:
 
       - name: Apply Prisma migrations
         run: pnpm db:deploy
+
+      - name: Validate LOT 9B-B object storage
+        run: pnpm storage:validate
 
       - name: Lint API
         run: pnpm api:lint
