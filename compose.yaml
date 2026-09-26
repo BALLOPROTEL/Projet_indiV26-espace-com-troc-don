@@ -81,8 +81,10 @@ services:
         mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
         mc mb --ignore-existing local/listing-images
         mc anonymous set none local/listing-images
-        mc admin policy create local listing-images-rw /config/listing-images-policy.json
-        if ! mc admin user info local "$$S3_ACCESS_KEY" >/dev/null 2>&1; then
+        if ! mc admin policy info local listing-images-rw >/dev/null 2>&1; then
+          mc admin policy create local listing-images-rw /config/listing-images-policy.json
+        fi
+        if ! mc admin user info local "$S3_ACCESS_KEY" >/dev/null 2>&1; then
           mc admin user add local "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY"
         fi
         mc admin policy attach local listing-images-rw --user "$$S3_ACCESS_KEY"
