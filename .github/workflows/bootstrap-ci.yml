@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Validate repository baseline
         shell: bash
@@ -58,6 +58,7 @@ jobs:
           test -f docs/11-lot6b-frontend.md
           test -f docs/12-lot7-observability.md
           test -f docs/13-lot8-performance.md
+          test -f docs/14-lot9-security-audit.md
           test -f package.json
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
@@ -86,6 +87,8 @@ jobs:
           test -f scripts/lot7-minikube-up.sh
           test -f scripts/lot8-load-run.sh
           test -f scripts/lot8-load-validate.sh
+          test -f scripts/lot9-security-audit.sh
+          test -f scripts/lot9-security-live.sh
           test -f tests/load/lot8-api-hpa.jmx
           test -f tests/load/Dockerfile.jmeter
           test -f tests/load/summarize_jtl.py
@@ -119,14 +122,18 @@ jobs:
         shell: bash
         run: bash scripts/lot8-load-validate.sh
 
+      - name: Validate LOT 9 security controls
+        shell: bash
+        run: bash scripts/lot9-security-audit.sh --static
+
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 10.24.0
           run_install: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: pnpm
@@ -161,7 +168,7 @@ jobs:
 
       - name: Upload API coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: api-coverage-${{ github.sha }}
           path: coverage/api
@@ -226,7 +233,7 @@ jobs:
         run: bash scripts/lot5-image-smoke.sh "${IMAGE_REF}"
 
       - name: Trivy image report
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE_REF }}
           format: json
@@ -237,7 +244,7 @@ jobs:
           exit-code: '0'
 
       - name: Trivy HIGH/CRITICAL gate
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ env.IMAGE_REF }}
           format: table
@@ -248,7 +255,7 @@ jobs:
 
       - name: Upload security reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: security-reports-${{ github.sha }}
           path: reports/security
@@ -257,7 +264,7 @@ jobs:
 
       - name: Login to GHCR
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

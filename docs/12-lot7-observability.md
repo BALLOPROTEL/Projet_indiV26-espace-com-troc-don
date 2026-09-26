@@ -43,7 +43,12 @@ Endpoint :
 
 ```text
 GET /api/metrics
+Authorization: Bearer <METRICS_TOKEN>
 ```
+
+En développement hors production, l'endpoint peut fonctionner sans token si `METRICS_TOKEN` n'est pas configuré.
+
+Dans le déploiement Minikube, le token est obligatoire, généré aléatoirement et stocké dans le Secret Kubernetes `api-secrets`. Prometheus monte uniquement cette clé dans un fichier dédié.
 
 Métriques métier d'exploitation principales :
 
@@ -80,6 +85,12 @@ Le scraping est réalisé directement sur les pods, chemin :
 
 ```text
 /api/metrics
+```
+
+Prometheus utilise un Bearer token lu depuis :
+
+```text
+/etc/prometheus/secrets/metrics-token
 ```
 
 Cette approche permet également de visualiser le nombre de pods API réellement observés via :
@@ -173,11 +184,12 @@ La validation live contrôle :
 
 1. les rollouts API / Prometheus / Grafana ;
 2. l'endpoint `/api/metrics` ;
-3. les métriques HTTP et process ;
-4. la présence d'un log avec le `request_id` injecté ;
-5. une target Prometheus `api-pods` UP ;
-6. la santé Grafana ;
-7. le dashboard provisionné.
+3. le refus HTTP 401 sur `/api/metrics` sans token ;
+4. les métriques HTTP et process avec le Bearer token interne ;
+5. la présence d'un log avec le `request_id` injecté ;
+6. une target Prometheus `api-pods` UP ;
+7. la santé Grafana ;
+8. le dashboard provisionné.
 
 ## 7. Limites assumées
 

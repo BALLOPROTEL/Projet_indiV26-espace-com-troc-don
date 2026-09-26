@@ -12,6 +12,9 @@ async function bootstrap(): Promise<void> {
     logger: new JsonLoggerService(),
   });
   const port = Number(process.env.PORT ?? 3000);
+  const swaggerEnabled =
+    process.env.SWAGGER_ENABLED ??
+    (process.env.NODE_ENV === 'production' ? 'false' : 'true');
 
   app.setGlobalPrefix('api');
   app.enableShutdownHooks();
@@ -37,25 +40,27 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Projet individuel 26 API')
-    .setDescription(
-      'API du POC communautaire de troc/don et de modération.',
-    )
-    .setVersion('0.3.0')
-    .addBearerAuth({
-      type: 'http',
-      scheme: 'bearer',
-      bearerFormat: 'JWT',
-    })
-    .build();
+  if (swaggerEnabled === 'true') {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Projet individuel 26 API')
+      .setDescription(
+        'API du POC communautaire de troc/don et de modération.',
+      )
+      .setVersion('0.4.0')
+      .addBearerAuth({
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+      })
+      .build();
 
-  const openApiDocument = SwaggerModule.createDocument(
-    app,
-    swaggerConfig,
-  );
+    const openApiDocument = SwaggerModule.createDocument(
+      app,
+      swaggerConfig,
+    );
 
-  SwaggerModule.setup('docs', app, openApiDocument);
+    SwaggerModule.setup('docs', app, openApiDocument);
+  }
 
   await app.listen(port, '0.0.0.0');
 }

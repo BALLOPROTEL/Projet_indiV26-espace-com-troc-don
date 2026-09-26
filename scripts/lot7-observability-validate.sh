@@ -60,6 +60,7 @@ grep -q "name: prometheus" "${RENDERED}"
 grep -q "name: grafana" "${RENDERED}"
 grep -q "kind: RoleBinding" "${RENDERED}"
 grep -q "metrics_path: /api/metrics" "${RENDERED}"
+grep -q "credentials_file: /etc/prometheus/secrets/metrics-token" "${RENDERED}"
 grep -q "LOT 7 — API Observabilité" "${RENDERED}"
 grep -q "readOnlyRootFilesystem: true" "${RENDERED}"
 
@@ -101,12 +102,30 @@ fi
 
 curl -fsS   -H "x-request-id: lot7-validation"   http://127.0.0.1:3002/api/health/live >/dev/null
 
-METRICS="$(curl -fsS http://127.0.0.1:3002/api/metrics)"
+METRICS_TOKEN="$(kubectl -n "${NAMESPACE}" get secret api-secrets \
+  -o jsonpath='{.data.METRICS_TOKEN}' | base64 -d)"
+
+if [ -z "${METRICS_TOKEN}" ]; then
+  echo "[FAIL] METRICS_TOKEN is missing from api-secrets."
+  exit 1
+fi
+
+UNAUTH_METRICS_STATUS="$(curl -sS -o /dev/null -w '%{http_code}' \
+  http://127.0.0.1:3002/api/metrics)"
+
+if [ "${UNAUTH_METRICS_STATUS}" != "401" ]; then
+  echo "[FAIL] Unauthenticated metrics endpoint returned HTTP ${UNAUTH_METRICS_STATUS}; expected 401."
+  exit 1
+fi
+
+METRICS="$(curl -fsS \
+  -H "Authorization: Bearer ${METRICS_TOKEN}" \
+  http://127.0.0.1:3002/api/metrics)"
 printf '%s' "${METRICS}" | grep -q "projet_indiv26_http_requests_total"
 printf '%s' "${METRICS}" | grep -q "projet_indiv26_http_request_duration_seconds_bucket"
 printf '%s' "${METRICS}" | grep -q "projet_indiv26_process_resident_memory_bytes"
 
-echo "[OK] API exposes HTTP, latency and process metrics."
+echo "[OK] API metrics require authentication and expose HTTP, latency and process metrics."
 
 LOG_OK=false
 for attempt in $(seq 1 10); do
