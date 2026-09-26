@@ -1,6 +1,7 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 
 type ResponseLike = {
+  removeHeader: (name: string) => void;
   setHeader: (name: string, value: string) => void;
 };
 
@@ -11,6 +12,7 @@ export class SecurityHeadersMiddleware implements NestMiddleware {
     response: ResponseLike,
     next: () => void,
   ): void {
+    response.removeHeader('X-Powered-By');
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('X-Frame-Options', 'DENY');
     response.setHeader(
