@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning
+  namespace: projet-indiv26
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: projet-indiv26
+data:
+  datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090
+        isDefault: true
+        editable: false
+
+  dashboard-provider.yaml: |
+    apiVersion: 1
+    providers:
+      - name: Projet individuel 26
+        orgId: 1
+        folder: Projet individuel 26
+        type: file
+        disableDeletion: true
+        editable: false
+        updateIntervalSeconds: 30
+        options:
+          path: /etc/grafana/dashboards
+
+  lot7-dashboard.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": false,
+      "graphTooltip": 1,
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Pods API observés",
+          "id": 1,
+          "gridPos": {"h": 5, "w": 4, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(up{job=\"api-pods\"})",
+              "legendFormat": "pods",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "Erreurs HTTP 5xx / min",
+          "id": 2,
+          "gridPos": {"h": 5, "w": 5, "x": 4, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(increase(projet_indiv26_http_requests_total{status_code=~\"5..\"}[1m]))",
+              "legendFormat": "5xx",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "Mémoire process API",
+          "id": 3,
+          "gridPos": {"h": 5, "w": 5, "x": 9, "y": 0},
+          "fieldConfig": {
+            "defaults": {"unit": "bytes"},
+            "overrides": []
+          },
+          "targets": [
+            {
+              "expr": "sum(projet_indiv26_process_resident_memory_bytes{job=\"api-pods\"})",
+              "legendFormat": "RSS",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "CPU process API",
+          "id": 4,
+          "gridPos": {"h": 5, "w": 5, "x": 14, "y": 0},
+          "fieldConfig": {
+            "defaults": {"unit": "percentunit"},
+            "overrides": []
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(projet_indiv26_process_cpu_seconds_total{job=\"api-pods\"}[1m]))",
+              "legendFormat": "CPU",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Requêtes HTTP / seconde",
+          "id": 5,
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5},
+          "targets": [
+            {
+              "expr": "sum(rate(projet_indiv26_http_requests_total[1m]))",
+              "legendFormat": "req/s",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Latence HTTP p95",
+          "id": 6,
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5},
+          "fieldConfig": {
+            "defaults": {"unit": "s"},
+            "overrides": []
+          },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum by (le) (rate(projet_indiv26_http_request_duration_seconds_bucket[5m])))",
+              "legendFormat": "p95",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Réponses HTTP par statut",
+          "id": 7,
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 13},
+          "targets": [
+            {
+              "expr": "sum by (status_code) (rate(projet_indiv26_http_requests_total[1m]))",
+              "legendFormat": "HTTP {{status_code}}",
+              "refId": "A"
+            }
+          ]
+        }
+      ],
+      "refresh": "5s",
+      "schemaVersion": 39,
+      "tags": ["lot7", "observability", "api"],
+      "templating": {"list": []},
+      "time": {"from": "now-15m", "to": "now"},
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "LOT 7 — API Observabilité",
+      "uid": "lot7-api-observability",
+      "version": 1
+    }

@@ -52,4 +52,5 @@ Règle de pilotage :
 - LOT 5 : **Done**
 - LOT 6 : **Done**
 - LOT 6B : **Done**
-- LOT 7 à LOT 10 : **Backlog**
+- LOT 7 : **In Progress**
+- LOT 8 à LOT 10 : **Backlog**

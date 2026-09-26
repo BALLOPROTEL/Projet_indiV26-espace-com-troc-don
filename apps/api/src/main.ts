@@ -5,9 +5,12 @@ import {
   SwaggerModule,
 } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { JsonLoggerService } from './observability/json-logger.service';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: new JsonLoggerService(),
+  });
   const port = Number(process.env.PORT ?? 3000);
 
   app.setGlobalPrefix('api');
