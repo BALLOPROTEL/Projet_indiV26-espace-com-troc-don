@@ -1,4 +1,5 @@
 import {
+  ListingAvailabilityStatus,
   ListingOperationType,
   ListingStatus,
 } from '@prisma/client';
@@ -42,6 +43,9 @@ describe('ListingsService PostgreSQL integration', () => {
     });
 
     expect(created.status).toBe(ListingStatus.PENDING);
+    expect(created.availabilityStatus).toBe(
+      ListingAvailabilityStatus.AVAILABLE,
+    );
     expect(created.ownerId).toBe(ownerId);
 
     const mine = await service.findMine(ownerId);
