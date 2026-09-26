@@ -1,6 +1,12 @@
 import { LoggerService } from '@nestjs/common';
 
-type LogLevel =\n  | 'debug'\n  | 'error'\n  | 'fatal'\n  | 'info'\n  | 'verbose'\n  | 'warn';
+type LogLevel =
+  | 'debug'
+  | 'error'
+  | 'fatal'
+  | 'info'
+  | 'verbose'
+  | 'warn';
 
 export class JsonLoggerService implements LoggerService {
   log(message: unknown, ...optionalParams: unknown[]): void {
@@ -23,6 +29,10 @@ export class JsonLoggerService implements LoggerService {
     this.write('verbose', message, optionalParams);
   }
 
+  fatal(message: unknown, ...optionalParams: unknown[]): void {
+    this.write('fatal', message, optionalParams);
+  }
+
   private write(
     level: LogLevel,
     message: unknown,
@@ -33,7 +43,11 @@ export class JsonLoggerService implements LoggerService {
       level,
       message: this.serialize(message),
       ...(optionalParams.length > 0
-        ? { details: optionalParams.map((item) => this.serialize(item)) }
+        ? {
+            details: optionalParams.map((item) =>
+              this.serialize(item),
+            ),
+          }
         : {}),
     };
 
