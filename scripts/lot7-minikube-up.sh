@@ -4,6 +4,28 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 K8S_DIR="${ROOT_DIR}/infra/k8s/minikube"
 NAMESPACE="projet-indiv26"
+KUBECTL_SHIM_DIR=""
+
+cleanup() {
+  [ -z "${KUBECTL_SHIM_DIR}" ] || rm -rf "${KUBECTL_SHIM_DIR}"
+}
+trap cleanup EXIT INT TERM
+
+if ! command -v kubectl >/dev/null 2>&1; then
+  if ! command -v minikube >/dev/null 2>&1; then
+    echo "[FAIL] kubectl is unavailable and minikube fallback is not installed."
+    exit 1
+  fi
+
+  KUBECTL_SHIM_DIR="$(mktemp -d)"
+  cat > "${KUBECTL_SHIM_DIR}/kubectl" <<'EOF'
+#!/usr/bin/env bash
+exec minikube kubectl -- "$@"
+EOF
+  chmod +x "${KUBECTL_SHIM_DIR}/kubectl"
+  export PATH="${KUBECTL_SHIM_DIR}:${PATH}"
+  echo "[INFO] kubectl not found; using 'minikube kubectl --' fallback."
+fi
 
 cd "${ROOT_DIR}"
 
