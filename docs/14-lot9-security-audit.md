@@ -275,6 +275,20 @@ Audit complet local :
 pnpm security:audit
 ```
 
+Validation runtime après redéploiement Minikube :
+
+```bash
+pnpm security:live
+```
+
+La validation runtime prouve notamment :
+- Swagger production → 404 ;
+- métriques sans token → 401 ;
+- métriques avec token → 200 ;
+- Prometheus continue de scraper l'API ;
+- headers de sécurité API présents ;
+- `X-Powered-By` absent.
+
 L'audit complet relance :
 
 - API quality ;
