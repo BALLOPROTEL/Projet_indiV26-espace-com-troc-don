@@ -253,6 +253,7 @@ pnpm api:quality
 pnpm web:quality
 pnpm api:audit:prod
 pnpm obs:validate:manifests
+pnpm storage:validate:manifests
 pnpm load:validate
 
 echo
