@@ -60,7 +60,10 @@ services:
       retries: 20
 
   minio-init:
-    image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z
+    build:
+      context: .
+      dockerfile: infra/minio/Dockerfile.mc-bootstrap
+    image: projet-indiv26-minio-bootstrap:lot9b-local
     container_name: projet-indiv26-minio-init
     depends_on:
       minio:
