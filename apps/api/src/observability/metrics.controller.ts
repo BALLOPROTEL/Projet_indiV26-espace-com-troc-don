@@ -1,11 +1,15 @@
-import { Controller, Get, Header } from '@nestjs/common';
+import { Controller, Get, Header, Headers } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { MetricsAccessService } from './metrics-access.service';
 import { MetricsService } from './metrics.service';
 
 @ApiTags('observability')
 @Controller('metrics')
 export class MetricsController {
-  constructor(private readonly metricsService: MetricsService) {}
+  constructor(
+    private readonly metricsService: MetricsService,
+    private readonly metricsAccess: MetricsAccessService,
+  ) {}
 
   @Get()
   @Header(
@@ -15,7 +19,10 @@ export class MetricsController {
   @ApiOperation({
     summary: 'Exposer les métriques Prometheus de l’API',
   })
-  metrics(): Promise<string> {
+  metrics(
+    @Headers('authorization') authorization?: string,
+  ): Promise<string> {
+    this.metricsAccess.assertAuthorized(authorization);
     return this.metricsService.metrics();
   }
 }
