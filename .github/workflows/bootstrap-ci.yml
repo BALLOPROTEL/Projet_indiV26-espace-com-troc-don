@@ -88,6 +88,7 @@ jobs:
           test -f scripts/lot8-load-run.sh
           test -f scripts/lot8-load-validate.sh
           test -f scripts/lot9-security-audit.sh
+          test -f scripts/lot9-security-live.sh
           test -f tests/load/lot8-api-hpa.jmx
           test -f tests/load/Dockerfile.jmeter
           test -f tests/load/summarize_jtl.py
