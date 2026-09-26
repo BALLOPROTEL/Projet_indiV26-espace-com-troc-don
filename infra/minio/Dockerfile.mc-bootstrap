@@ -1,0 +1,19 @@
+FROM alpine:3.24.1
+
+ARG MC_VERSION=RELEASE.2025-04-16T18-13-26Z
+ARG MC_SHA256=ac90da87a35641be5a0ac75d49de5161ddb47d629b5ba01261b0ae9e00aea15f
+
+RUN apk add --no-cache ca-certificates curl \
+  && curl -fsSL \
+    "https://dl.min.io/client/mc/release/linux-amd64/archive/mc.${MC_VERSION}" \
+    -o /usr/local/bin/mc \
+  && echo "${MC_SHA256}  /usr/local/bin/mc" | sha256sum -c - \
+  && chmod 0755 /usr/local/bin/mc \
+  && addgroup -S -g 10001 bootstrap \
+  && adduser -S -D -H -u 10001 -G bootstrap bootstrap
+
+ENV MC_CONFIG_DIR=/tmp/.mc
+
+USER 10001:10001
+
+ENTRYPOINT ["/bin/sh", "-c"]
