@@ -52,6 +52,14 @@ assert "s3:*" not in serialized
 print("[OK] Bucket policy JSON is valid and least-privilege.")
 PY
 
+grep -q 'image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z' compose.yaml
+grep -q 'image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z' infra/k8s/minikube/minio-bootstrap-job.yaml
+
+if grep -R -qE 'image:[[:space:]]+minio/mc:' compose.yaml infra/k8s/minikube; then
+  echo "[FAIL] Docker Hub minio/mc reference detected; use quay.io/minio/mc."
+  exit 1
+fi
+
 if command -v docker >/dev/null 2>&1; then
   docker compose config >/dev/null
   echo "[OK] Docker Compose with MinIO renders successfully."
