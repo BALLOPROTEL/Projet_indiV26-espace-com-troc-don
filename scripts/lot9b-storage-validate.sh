@@ -100,8 +100,8 @@ for cmd in docker curl pnpm; do
   }
 done
 
-echo "[INFO] Starting MinIO and bucket bootstrap..."
-docker compose up -d minio minio-init
+echo "[INFO] Starting PostgreSQL, MinIO and bucket bootstrap..."
+docker compose up -d postgres minio minio-init
 
 BOOTSTRAP_OK=false
 for attempt in $(seq 1 60); do
@@ -144,6 +144,9 @@ if [ "${ANON_STATUS}" != "403" ]; then
 fi
 
 echo "[OK] MinIO healthy and listing-images bucket rejects anonymous access."
+
+echo "[INFO] Applying Prisma migrations before storage integration..."
+pnpm db:deploy
 
 S3_ENDPOINT=http://127.0.0.1:9000 S3_REGION=us-east-1 S3_BUCKET=listing-images S3_ACCESS_KEY=marketplace-api S3_SECRET_KEY=marketplace_storage_local_change_me_2026 S3_FORCE_PATH_STYLE=true pnpm --filter api exec jest   --config jest.integration.config.cjs   --runInBand   test/object-storage.integration-spec.ts
 
