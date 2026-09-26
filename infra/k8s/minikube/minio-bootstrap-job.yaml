@@ -24,7 +24,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: mc
-          image: minio/mc:RELEASE.2025-04-16T18-13-26Z
+          image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z
           imagePullPolicy: IfNotPresent
           env:
             - name: MC_CONFIG_DIR
