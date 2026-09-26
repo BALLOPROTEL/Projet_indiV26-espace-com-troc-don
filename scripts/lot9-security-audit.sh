@@ -163,7 +163,7 @@ kubectl kustomize infra/k8s/minikube > "${RENDERED}"
 grep -q 'secretName: api-tls'   infra/k8s/minikube/api-ingress.yaml
 grep -q 'ssl-redirect: "true"'   infra/k8s/minikube/api-ingress.yaml
 
-for service in api postgres prometheus grafana; do
+for service in api postgres prometheus grafana minio; do
   grep -q 'type: ClusterIP'     "infra/k8s/minikube/${service}-service.yaml"
 done
 
@@ -176,6 +176,33 @@ grep -q 'ALL' infra/k8s/minikube/api-deployment.yaml
 
 grep -q   'credentials_file: /etc/prometheus/secrets/metrics-token'   infra/k8s/minikube/prometheus-configmap.yaml
 grep -q 'key: METRICS_TOKEN'   infra/k8s/minikube/prometheus-deployment.yaml
+grep -q 'name: S3_ACCESS_KEY' infra/k8s/minikube/api-deployment.yaml
+grep -q 'name: S3_SECRET_KEY' infra/k8s/minikube/api-deployment.yaml
+
+if grep -q 'MINIO_ROOT_' infra/k8s/minikube/api-deployment.yaml; then
+  echo "[FAIL] API deployment must not receive MinIO root credentials."
+  exit 1
+fi
+
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+policy = json.loads(
+    Path("infra/minio/listing-images-policy.json").read_text(
+        encoding="utf-8"
+    )
+)
+serialized = json.dumps(policy)
+
+assert "s3:GetObject" in serialized
+assert "s3:PutObject" in serialized
+assert "s3:DeleteObject" in serialized
+assert "s3:ListBucket" in serialized
+assert "s3:*" not in serialized
+assert "arn:aws:s3:::listing-images" in serialized
+print("[OK] Object-storage app policy is bucket-scoped and non-admin.")
+PY
 
 INGRESS_COUNT="$(
   grep -Rl '^kind: Ingress$' infra/k8s/minikube     | wc -l     | tr -d ' '
