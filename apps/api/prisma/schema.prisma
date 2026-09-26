@@ -18,17 +18,124 @@ enum ListingStatus {
   REJECTED
 }
 
+enum ListingAvailabilityStatus {
+  AVAILABLE
+  RESERVED
+  COMPLETED
+}
+
+enum ProposalType {
+  DONATION_REQUEST
+  TRADE_OFFER
+}
+
+enum ProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum MarketplaceTransactionStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 model Listing {
-  id               String               @id @default(cuid())
-  ownerId          String
-  title            String               @db.VarChar(120)
-  description      String               @db.VarChar(2000)
-  operationType    ListingOperationType
-  status           ListingStatus        @default(PENDING)
-  moderationReason String?              @db.VarChar(500)
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  id                 String                    @id @default(cuid())
+  ownerId            String
+  title              String                    @db.VarChar(120)
+  description        String                    @db.VarChar(2000)
+  operationType      ListingOperationType
+  status             ListingStatus             @default(PENDING)
+  availabilityStatus ListingAvailabilityStatus @default(AVAILABLE)
+  moderationReason   String?                   @db.VarChar(500)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  images              ListingImage[]
+  tradeWishes         ListingTradeWish[]
+  receivedProposals   Proposal[]                @relation("ProposalTarget")
+  offeredInProposals  Proposal[]                @relation("ProposalOffer")
+  targetTransactions  MarketplaceTransaction[]  @relation("TransactionTarget")
+  offeredTransactions MarketplaceTransaction[]  @relation("TransactionOffer")
 
   @@index([ownerId, createdAt])
   @@index([status, createdAt])
+  @@index([status, availabilityStatus, createdAt])
+}
+
+model ListingImage {
+  id        String   @id @default(cuid())
+  listingId String
+  objectKey String   @unique @db.VarChar(500)
+  mimeType  String   @db.VarChar(100)
+  sizeBytes Int
+  position  Int
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, position])
+  @@index([listingId])
+}
+
+model ListingTradeWish {
+  id        String   @id @default(cuid())
+  listingId String
+  label     String   @db.VarChar(120)
+  position  Int
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, position])
+  @@index([listingId])
+}
+
+model Proposal {
+  id               String         @id @default(cuid())
+  targetListingId  String
+  requesterId      String
+  type             ProposalType
+  offeredListingId String?
+  message          String?        @db.VarChar(1000)
+  status           ProposalStatus @default(PENDING)
+  resolvedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  targetListing  Listing  @relation("ProposalTarget", fields: [targetListingId], references: [id], onDelete: Restrict)
+  offeredListing Listing? @relation("ProposalOffer", fields: [offeredListingId], references: [id], onDelete: Restrict)
+  transaction    MarketplaceTransaction?
+
+  @@index([targetListingId, status, createdAt])
+  @@index([requesterId, createdAt])
+  @@index([offeredListingId, status])
+}
+
+model MarketplaceTransaction {
+  id                   String                       @id @default(cuid())
+  proposalId           String                       @unique
+  targetListingId      String
+  offeredListingId     String?
+  ownerId              String
+  requesterId          String
+  status               MarketplaceTransactionStatus @default(IN_PROGRESS)
+  ownerConfirmedAt     DateTime?
+  requesterConfirmedAt DateTime?
+  completedAt          DateTime?
+  cancelledAt          DateTime?
+  createdAt            DateTime                     @default(now())
+  updatedAt            DateTime                     @updatedAt
+
+  proposal       Proposal @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  targetListing  Listing  @relation("TransactionTarget", fields: [targetListingId], references: [id], onDelete: Restrict)
+  offeredListing Listing? @relation("TransactionOffer", fields: [offeredListingId], references: [id], onDelete: Restrict)
+
+  @@index([ownerId, status, createdAt])
+  @@index([requesterId, status, createdAt])
+  @@index([targetListingId, status])
+  @@index([offeredListingId, status])
 }
