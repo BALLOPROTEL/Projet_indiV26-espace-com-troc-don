@@ -65,11 +65,20 @@ spec:
               mountPath: /etc/prometheus/prometheus.yml
               subPath: prometheus.yml
               readOnly: true
+            - name: metrics-auth
+              mountPath: /etc/prometheus/secrets
+              readOnly: true
             - name: data
               mountPath: /prometheus
       volumes:
         - name: config
           configMap:
             name: prometheus-config
+        - name: metrics-auth
+          secret:
+            secretName: api-secrets
+            items:
+              - key: METRICS_TOKEN
+                path: metrics-token
         - name: data
           emptyDir: {}
