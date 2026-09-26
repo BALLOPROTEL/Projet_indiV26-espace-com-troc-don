@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   Listing,
+  ListingAvailabilityStatus,
   ListingOperationType,
   ListingStatus,
 } from '@prisma/client';
@@ -34,6 +35,7 @@ describe('ListingsService', () => {
     description: 'Un lot de romans fantastiques en bon état.',
     operationType: ListingOperationType.TRADE,
     status: ListingStatus.PENDING,
+    availabilityStatus: ListingAvailabilityStatus.AVAILABLE,
     moderationReason: null,
     createdAt: new Date('2026-09-25T12:00:00Z'),
     updatedAt: new Date('2026-09-25T12:00:00Z'),

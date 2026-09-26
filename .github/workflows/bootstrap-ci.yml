@@ -59,6 +59,7 @@ jobs:
           test -f docs/12-lot7-observability.md
           test -f docs/13-lot8-performance.md
           test -f docs/14-lot9-security-audit.md
+          test -f docs/15-lot9b-a-marketplace-domain.md
           test -f package.json
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
@@ -67,6 +68,10 @@ jobs:
           test -f apps/api/Dockerfile
           test -f apps/api/package.json
           test -f apps/api/prisma/schema.prisma
+          test -f apps/api/prisma/migrations/20260926_210000_add_marketplace_workflow/migration.sql
+          test -f apps/api/src/marketplace/marketplace.module.ts
+          test -f apps/api/src/marketplace/marketplace-rules.service.ts
+          test -f apps/api/src/marketplace/marketplace-rules.service.spec.ts
           test -f apps/api/eslint.config.mjs
           test -f apps/api/jest.config.cjs
           test -f apps/api/jest.integration.config.cjs
@@ -144,6 +149,9 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm db:generate
+
+      - name: Validate LOT 9B-A marketplace domain
+        run: pnpm marketplace:validate
 
       - name: Apply Prisma migrations
         run: pnpm db:deploy
