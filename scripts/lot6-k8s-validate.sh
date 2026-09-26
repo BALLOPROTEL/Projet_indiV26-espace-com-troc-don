@@ -48,6 +48,9 @@ grep -q "kind: Service" "${RENDERED}"
 grep -q "kind: ConfigMap" "${RENDERED}"
 grep -q "kind: Ingress" "${RENDERED}"
 grep -q "kind: HorizontalPodAutoscaler" "${RENDERED}"
+grep -q "name: minio" "${RENDERED}"
+grep -q "name: minio-bootstrap" "${RENDERED}"
+grep -q 'S3_ENDPOINT: "http://minio:9000"' "${RENDERED}"
 grep -q "runAsNonRoot: true" "${RENDERED}"
 grep -q "allowPrivilegeEscalation: false" "${RENDERED}"
 grep -q "readOnlyRootFilesystem: true" "${RENDERED}"
@@ -81,6 +84,8 @@ for cmd in curl; do
 done
 
 kubectl -n "${NAMESPACE}" rollout status deployment/postgres --timeout=120s
+kubectl -n "${NAMESPACE}" rollout status deployment/minio --timeout=120s
+kubectl -n "${NAMESPACE}" wait --for=condition=complete job/minio-bootstrap --timeout=120s
 kubectl -n "${NAMESPACE}" rollout status deployment/api --timeout=120s
 
 RUN_AS_NON_ROOT="$(kubectl -n "${NAMESPACE}" get deployment api -o jsonpath='{.spec.template.spec.securityContext.runAsNonRoot}')"
@@ -106,12 +111,14 @@ TARGET_CPU="$(kubectl -n "${NAMESPACE}" get hpa api -o jsonpath='{.spec.metrics[
 echo "[OK] HPA: min=1 max=4 target CPU=60%."
 
 API_SECRET_TYPE="$(kubectl -n "${NAMESPACE}" get secret api-secrets -o jsonpath='{.type}')"
+OBJECT_STORAGE_SECRET_TYPE="$(kubectl -n "${NAMESPACE}" get secret object-storage-credentials -o jsonpath='{.type}')"
 TLS_SECRET_TYPE="$(kubectl -n "${NAMESPACE}" get secret api-tls -o jsonpath='{.type}')"
 
 [ "${API_SECRET_TYPE}" = "Opaque" ]
+[ "${OBJECT_STORAGE_SECRET_TYPE}" = "Opaque" ]
 [ "${TLS_SECRET_TYPE}" = "kubernetes.io/tls" ]
 
-echo "[OK] Runtime Secret and TLS Secret exist in the cluster."
+echo "[OK] API, object-storage and TLS Secrets exist in the cluster."
 
 API_PF_LOG="$(mktemp)"
 kubectl -n "${NAMESPACE}" port-forward service/api 3002:80 >"${API_PF_LOG}" 2>&1 &
