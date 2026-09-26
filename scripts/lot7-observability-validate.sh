@@ -7,6 +7,7 @@ NAMESPACE="projet-indiv26"
 MANIFEST_ONLY=false
 
 RENDERED=""
+KUBECTL_SHIM_DIR=""
 API_PF_PID=""
 PROM_PF_PID=""
 GRAFANA_PF_PID=""
@@ -25,6 +26,8 @@ cleanup() {
   for file in "${RENDERED}" "${API_PF_LOG}" "${PROM_PF_LOG}" "${GRAFANA_PF_LOG}"; do
     [ -z "${file}" ] || rm -f "${file}"
   done
+
+  [ -z "${KUBECTL_SHIM_DIR}" ] || rm -rf "${KUBECTL_SHIM_DIR}"
 }
 trap cleanup EXIT INT TERM
 
@@ -32,10 +35,21 @@ if [ "${1:-}" = "--manifest-only" ]; then
   MANIFEST_ONLY=true
 fi
 
-command -v kubectl >/dev/null 2>&1 || {
-  echo "[FAIL] kubectl is required."
-  exit 1
-}
+if ! command -v kubectl >/dev/null 2>&1; then
+  if ! command -v minikube >/dev/null 2>&1; then
+    echo "[FAIL] kubectl is unavailable and minikube fallback is not installed."
+    exit 1
+  fi
+
+  KUBECTL_SHIM_DIR="$(mktemp -d)"
+  cat > "${KUBECTL_SHIM_DIR}/kubectl" <<'EOF'
+#!/usr/bin/env bash
+exec minikube kubectl -- "$@"
+EOF
+  chmod +x "${KUBECTL_SHIM_DIR}/kubectl"
+  export PATH="${KUBECTL_SHIM_DIR}:${PATH}"
+  echo "[INFO] kubectl not found; using 'minikube kubectl --' fallback."
+fi
 
 echo "=== LOT 7 - Observability validation ==="
 
