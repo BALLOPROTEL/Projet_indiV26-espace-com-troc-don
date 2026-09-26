@@ -18,14 +18,14 @@ spec:
       restartPolicy: OnFailure
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
+        runAsUser: 10001
+        runAsGroup: 10001
         seccompProfile:
           type: RuntimeDefault
       containers:
         - name: mc
-          image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z
-          imagePullPolicy: IfNotPresent
+          image: projet-indiv26-minio-bootstrap:lot9b-local
+          imagePullPolicy: Never
           env:
             - name: MC_CONFIG_DIR
               value: /tmp/.mc
