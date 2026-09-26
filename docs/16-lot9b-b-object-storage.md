@@ -166,6 +166,10 @@ Ports locaux :
 
 Les ports sont liés à localhost uniquement.
 
+Le bootstrap ne dépend plus d'une image de registre `minio/mc`.
+
+Le dépôt construit localement `projet-indiv26-minio-bootstrap:lot9b-local` depuis `infra/minio/Dockerfile.mc-bootstrap`. Cette petite image télécharge le binaire officiel MinIO Client `RELEASE.2025-04-16T18-13-26Z` puis vérifie son SHA-256 avant installation.
+
 Le bootstrap :
 - crée le bucket `listing-images` ;
 - force l'accès anonyme à `none` ;
@@ -253,6 +257,7 @@ pnpm storage:validate
 ~~~
 
 Cette commande :
+- construit l'image bootstrap `mc` locale et vérifiée ;
 - démarre MinIO ;
 - exécute le bootstrap ;
 - vérifie le health endpoint ;
