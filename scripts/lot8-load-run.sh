@@ -146,11 +146,11 @@ spec:
                 -Jjmeter.save.saveservice.autoflush=true \
                 -l /results/results.jtl \
                 -j /results/jmeter.log
-              status=$?
-              echo "$status" > /results/exit-code
+              status=\$?
+              echo "\$status" > /results/exit-code
               touch /results/done
               sleep 600
-              exit "$status"
+              exit "\$status"
           resources:
             requests:
               cpu: 200m
