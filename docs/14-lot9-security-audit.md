@@ -83,6 +83,7 @@ Les contrôles suivants étaient déjà présents avant les remédiations LOT 9 
 | SEC-09 | Aucun rate limiting distribué n'est appliqué à l'API publique. | Moyenne | Moyen | **Moyenne** | **Risque résiduel documenté** : HPA + resource limits protègent partiellement la disponibilité ; Keycloak protège les échecs d'auth. En production, ajouter rate limiting Ingress/API partagé. | Moyenne |
 | SEC-10 | Le pod PostgreSQL n'applique pas le même niveau de filesystem read-only / non-root forcé que l'API. | Faible | Moyen | **Faible** | **Accepté dans Minikube** : l'image officielle gère son initialisation et le volume persistant. En cible réelle, préférer PostgreSQL managé ou StatefulSet durci et validé. | Faible |
 | SEC-11 | Le workflow principal conserve `packages: write` car il publie GHCR après un push sur `main`. | Faible | Moyen | **Faible** | **Risque résiduel documenté** : publication conditionnée au push `main`, main protégée, actions pinnées par SHA. En cible entreprise, séparer validation et publication en jobs/workflows distincts. | Faible |
+| SEC-12 | Les images tierces (PostgreSQL, Keycloak, Prometheus, Grafana) sont épinglées par version mais pas par digest, et ne sont pas toutes scannées par cette CI. | Faible | Moyen | **Faible** | **Risque résiduel documenté** : versions explicites, environnement local, API scannée par Trivy. En production, pinner les digests et scanner toutes les images de la stack. | Faible |
 
 ---
 
@@ -300,6 +301,7 @@ Les risques résiduels sont explicitement limités au contexte de laboratoire :
 - rate limiting distribué non implémenté ;
 - fixtures de credentials locales ;
 - Direct Grant uniquement pour le smoke client ;
-- durcissement PostgreSQL dépendant d'une cible de déploiement réelle.
+- durcissement PostgreSQL dépendant d'une cible de déploiement réelle ;
+- pinning par digest et scan systématique des images tierces.
 
 Ces points ne doivent pas être présentés comme satisfaits en production : ils constituent la liste de durcissement à appliquer lors d'une industrialisation.
