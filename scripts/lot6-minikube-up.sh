@@ -50,8 +50,22 @@ fi
 
 DATABASE_URL="postgresql://app:${POSTGRES_PASSWORD}@postgres:5432/projet_indiv26?schema=public"
 
+METRICS_TOKEN=""
+if kubectl -n "${NAMESPACE}" get secret api-secrets >/dev/null 2>&1; then
+  METRICS_TOKEN="$(kubectl -n "${NAMESPACE}" get secret api-secrets \
+    -o jsonpath='{.data.METRICS_TOKEN}' 2>/dev/null | base64 -d || true)"
+fi
+
+if [ -z "${METRICS_TOKEN}" ]; then
+  METRICS_TOKEN="$(openssl rand -hex 32)"
+  echo "[OK] New internal metrics token generated."
+else
+  echo "[OK] Existing internal metrics token reused."
+fi
+
 kubectl -n "${NAMESPACE}" create secret generic api-secrets \
   --from-literal=DATABASE_URL="${DATABASE_URL}" \
+  --from-literal=METRICS_TOKEN="${METRICS_TOKEN}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 echo "[OK] API Secret applied without storing credentials in Git."
