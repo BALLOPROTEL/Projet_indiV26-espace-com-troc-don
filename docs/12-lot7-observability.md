@@ -114,7 +114,20 @@ Il contient :
 - latence p95 ;
 - réponses HTTP par code.
 
-## 5. Accès local
+## 5. Déploiement et accès local
+
+Déploiement reproductible :
+
+```bash
+pnpm obs:up
+```
+
+Cette commande :
+- rejoue le socle Minikube du LOT 6 ;
+- reconstruit l'image API ;
+- force le redémarrage de l'API afin d'utiliser l'image instrumentée ;
+- déploie Prometheus ;
+- déploie Grafana et son dashboard.
 
 Après déploiement :
 
