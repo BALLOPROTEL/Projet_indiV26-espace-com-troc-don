@@ -82,6 +82,7 @@ jobs:
           test -f scripts/lot6-minikube-up.sh
           test -f scripts/lot6-k8s-validate.sh
           test -f scripts/lot7-observability-validate.sh
+          test -f scripts/lot7-minikube-up.sh
           test -f infra/k8s/minikube/kustomization.yaml
           test -d apps/web
           test -d infra/k8s
