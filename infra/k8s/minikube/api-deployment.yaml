@@ -41,6 +41,8 @@ spec:
                 name: api-config
             - secretRef:
                 name: api-secrets
+            - secretRef:
+                name: object-storage-credentials
           ports:
             - name: http
               containerPort: 3000
