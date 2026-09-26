@@ -20,7 +20,7 @@ cd "${ROOT_DIR}"
 
 echo "=== LOT 9B-B - object storage validation ==="
 
-for file in   infra/minio/listing-images-policy.json   infra/k8s/minikube/minio-pvc.yaml   infra/k8s/minikube/minio-deployment.yaml   infra/k8s/minikube/minio-service.yaml   infra/k8s/minikube/minio-bootstrap-configmap.yaml   infra/k8s/minikube/minio-bootstrap-job.yaml   apps/api/src/storage/object-storage.service.ts   apps/api/src/storage/storage.module.ts   apps/api/src/listings/image-file.validator.ts   apps/api/src/listings/listing-images.service.ts   apps/api/src/listings/listing-images.controller.ts   apps/api/test/object-storage.integration-spec.ts; do
+for file in   infra/minio/Dockerfile.mc-bootstrap   infra/minio/listing-images-policy.json   infra/k8s/minikube/minio-pvc.yaml   infra/k8s/minikube/minio-deployment.yaml   infra/k8s/minikube/minio-service.yaml   infra/k8s/minikube/minio-bootstrap-configmap.yaml   infra/k8s/minikube/minio-bootstrap-job.yaml   apps/api/src/storage/object-storage.service.ts   apps/api/src/storage/storage.module.ts   apps/api/src/listings/image-file.validator.ts   apps/api/src/listings/listing-images.service.ts   apps/api/src/listings/listing-images.controller.ts   apps/api/test/object-storage.integration-spec.ts; do
   test -f "${file}" || {
     echo "[FAIL] Missing LOT 9B-B artifact: ${file}"
     exit 1
@@ -52,11 +52,20 @@ assert "s3:*" not in serialized
 print("[OK] Bucket policy JSON is valid and least-privilege.")
 PY
 
-grep -q 'image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z' compose.yaml
-grep -q 'image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z' infra/k8s/minikube/minio-bootstrap-job.yaml
+grep -q 'MC_VERSION=RELEASE.2025-04-16T18-13-26Z' infra/minio/Dockerfile.mc-bootstrap
+grep -q 'MC_SHA256=ac90da87a35641be5a0ac75d49de5161ddb47d629b5ba01261b0ae9e00aea15f' infra/minio/Dockerfile.mc-bootstrap
+grep -q 'dockerfile: infra/minio/Dockerfile.mc-bootstrap' compose.yaml
+grep -q 'image: projet-indiv26-minio-bootstrap:lot9b-local' compose.yaml
+grep -q 'image: projet-indiv26-minio-bootstrap:lot9b-local' infra/k8s/minikube/minio-bootstrap-job.yaml
+grep -q 'imagePullPolicy: Never' infra/k8s/minikube/minio-bootstrap-job.yaml
 
-if grep -R -qE 'image:[[:space:]]+minio/mc:' compose.yaml infra/k8s/minikube; then
-  echo "[FAIL] Docker Hub minio/mc reference detected; use quay.io/minio/mc."
+if grep -R -qE 'image:[[:space:]]+(quay\.io/)?minio/mc:' compose.yaml infra/k8s/minikube; then
+  echo "[FAIL] External minio/mc container image reference detected."
+  exit 1
+fi
+
+if grep -qE '"\$MINIO_ROOT_USER"|"\$MINIO_ROOT_PASSWORD"|"\$S3_ACCESS_KEY"|"\$S3_SECRET_KEY"' compose.yaml; then
+  echo "[FAIL] Unescaped Compose bootstrap variable detected; use $VAR inside command blocks."
   exit 1
 fi
 
@@ -107,6 +116,9 @@ for cmd in docker curl pnpm; do
     exit 1
   }
 done
+
+echo "[INFO] Building pinned MinIO bootstrap image..."
+docker compose build --pull minio-init
 
 echo "[INFO] Starting PostgreSQL, MinIO and bucket bootstrap..."
 docker compose up -d postgres minio minio-init
