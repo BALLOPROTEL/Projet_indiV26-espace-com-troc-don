@@ -238,3 +238,71 @@ Ils ne permettent donc pas de déterminer :
 - un dimensionnement cloud.
 
 Le résultat attendu du LOT 8 est une **expérimentation reproductible et interprétable**, pas un chiffre marketing.
+
+
+## 11. Résultat mesuré — exécution du 26 septembre 2026
+
+Environnement :
+- Minikube local ;
+- HPA API : cible CPU 60 % ;
+- min replicas : 1 ;
+- max replicas : 4 ;
+- endpoint : `GET /api/listings`.
+
+### Baseline
+
+Paramètres :
+- 5 threads ;
+- ramp-up 5 s ;
+- durée 30 s.
+
+Résultats :
+- samples : **3 771** ;
+- débit : **126,782 req/s** ;
+- taux d'erreur : **0 %** ;
+- p50 : **30 ms** ;
+- p95 : **83 ms** ;
+- p99 : **172 ms** ;
+- max : **535 ms**.
+
+Observation importante :
+
+La baseline a déjà provoqué un passage du HPA à **2 replicas**. Elle doit donc être interprétée comme une référence de faible charge locale, mais pas comme une mesure durable strictement mono-replica.
+
+### Stress HPA
+
+Paramètres :
+- 80 threads ;
+- ramp-up 10 s ;
+- durée 120 s.
+
+Résultats :
+- samples : **15 659** ;
+- débit : **133,387 req/s** ;
+- taux d'erreur : **0 %** ;
+- p50 : **464 ms** ;
+- p95 : **965 ms** ;
+- p99 : **1 547 ms** ;
+- max : **8 138 ms**.
+
+### Réaction du HPA
+
+Maximum observé :
+- current replicas : **4** ;
+- desired replicas : **4**.
+
+Le HPA a donc atteint le plafond configuré de 4 replicas pendant le stress.
+
+### Interprétation
+
+Le passage de 126,782 req/s à 133,387 req/s montre que le débit global n'augmente que modérément alors que la latence se dégrade fortement sous stress.
+
+La montée du p95 de 83 ms à 965 ms et du p99 de 172 ms à 1 547 ms montre qu'une saturation locale apparaît malgré le scaling horizontal.
+
+Le taux d'erreur restant à 0 % indique que le service continue de répondre correctement pendant l'expérience, mais avec une dégradation nette des temps de réponse.
+
+Cette expérience démontre donc :
+- le fonctionnement réel du HPA ;
+- la capacité du service à absorber la charge sans erreurs HTTP dans ce bac à sable ;
+- l'existence d'une limite de performance locale avant erreur applicative ;
+- la nécessité de ne pas extrapoler ces chiffres à un environnement de production.
