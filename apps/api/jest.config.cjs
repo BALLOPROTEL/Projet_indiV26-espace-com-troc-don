@@ -13,6 +13,8 @@ module.exports = {
   },
   collectCoverageFrom: [
     'src/listings/listings.service.ts',
+    'src/listings/listing-images.service.ts',
+    'src/listings/image-file.validator.ts',
   ],
   coverageDirectory: '../../coverage/api',
   coverageReporters: [
@@ -23,6 +25,14 @@ module.exports = {
   ],
   coverageThreshold: {
     './src/listings/listings.service.ts': {
+      lines: 80,
+      statements: 80,
+    },
+    './src/listings/listing-images.service.ts': {
+      lines: 80,
+      statements: 80,
+    },
+    './src/listings/image-file.validator.ts': {
       lines: 80,
       statements: 80,
     },

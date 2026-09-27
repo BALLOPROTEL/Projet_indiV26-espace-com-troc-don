@@ -7,6 +7,7 @@ NAMESPACE="projet-indiv26"
 MANIFEST_ONLY=false
 
 RENDERED=""
+KUBECTL_SHIM_DIR=""
 API_PF_LOG=""
 API_PF_PID=""
 INGRESS_PF_LOG=""
@@ -24,6 +25,7 @@ cleanup() {
   fi
 
   [ -z "${RENDERED}" ] || rm -f "${RENDERED}"
+  [ -z "${KUBECTL_SHIM_DIR}" ] || rm -rf "${KUBECTL_SHIM_DIR}"
   [ -z "${API_PF_LOG}" ] || rm -f "${API_PF_LOG}"
   [ -z "${INGRESS_PF_LOG}" ] || rm -f "${INGRESS_PF_LOG}"
 }
@@ -33,10 +35,21 @@ if [ "${1:-}" = "--manifest-only" ]; then
   MANIFEST_ONLY=true
 fi
 
-command -v kubectl >/dev/null 2>&1 || {
-  echo "[FAIL] kubectl is required."
-  exit 1
-}
+if ! command -v kubectl >/dev/null 2>&1; then
+  if command -v minikube >/dev/null 2>&1; then
+    KUBECTL_SHIM_DIR="$(mktemp -d)"
+    cat > "${KUBECTL_SHIM_DIR}/kubectl" <<'EOF'
+#!/usr/bin/env bash
+exec minikube kubectl -- "$@"
+EOF
+    chmod +x "${KUBECTL_SHIM_DIR}/kubectl"
+    export PATH="${KUBECTL_SHIM_DIR}:${PATH}"
+    echo "[INFO] kubectl not found; using 'minikube kubectl --' fallback."
+  else
+    echo "[FAIL] kubectl or minikube is required."
+    exit 1
+  fi
+fi
 
 echo "=== LOT 6 - Kubernetes validation ==="
 
@@ -48,6 +61,9 @@ grep -q "kind: Service" "${RENDERED}"
 grep -q "kind: ConfigMap" "${RENDERED}"
 grep -q "kind: Ingress" "${RENDERED}"
 grep -q "kind: HorizontalPodAutoscaler" "${RENDERED}"
+grep -q "name: minio" "${RENDERED}"
+grep -q "name: minio-bootstrap" "${RENDERED}"
+grep -Eq 'S3_ENDPOINT:[[:space:]]*"?http://minio:9000"?' "${RENDERED}"
 grep -q "runAsNonRoot: true" "${RENDERED}"
 grep -q "allowPrivilegeEscalation: false" "${RENDERED}"
 grep -q "readOnlyRootFilesystem: true" "${RENDERED}"
@@ -81,6 +97,8 @@ for cmd in curl; do
 done
 
 kubectl -n "${NAMESPACE}" rollout status deployment/postgres --timeout=120s
+kubectl -n "${NAMESPACE}" rollout status deployment/minio --timeout=120s
+kubectl -n "${NAMESPACE}" wait --for=condition=complete job/minio-bootstrap --timeout=120s
 kubectl -n "${NAMESPACE}" rollout status deployment/api --timeout=120s
 
 RUN_AS_NON_ROOT="$(kubectl -n "${NAMESPACE}" get deployment api -o jsonpath='{.spec.template.spec.securityContext.runAsNonRoot}')"
@@ -106,12 +124,14 @@ TARGET_CPU="$(kubectl -n "${NAMESPACE}" get hpa api -o jsonpath='{.spec.metrics[
 echo "[OK] HPA: min=1 max=4 target CPU=60%."
 
 API_SECRET_TYPE="$(kubectl -n "${NAMESPACE}" get secret api-secrets -o jsonpath='{.type}')"
+OBJECT_STORAGE_SECRET_TYPE="$(kubectl -n "${NAMESPACE}" get secret object-storage-credentials -o jsonpath='{.type}')"
 TLS_SECRET_TYPE="$(kubectl -n "${NAMESPACE}" get secret api-tls -o jsonpath='{.type}')"
 
 [ "${API_SECRET_TYPE}" = "Opaque" ]
+[ "${OBJECT_STORAGE_SECRET_TYPE}" = "Opaque" ]
 [ "${TLS_SECRET_TYPE}" = "kubernetes.io/tls" ]
 
-echo "[OK] Runtime Secret and TLS Secret exist in the cluster."
+echo "[OK] API, object-storage and TLS Secrets exist in the cluster."
 
 API_PF_LOG="$(mktemp)"
 kubectl -n "${NAMESPACE}" port-forward service/api 3002:80 >"${API_PF_LOG}" 2>&1 &

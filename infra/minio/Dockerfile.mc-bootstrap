@@ -1,0 +1,28 @@
+FROM alpine:3.24.1
+
+ARG TARGETARCH
+ARG MC_VERSION=RELEASE.2025-08-13T08-35-41Z
+ARG MC_SHA256_AMD64=01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891
+ARG MC_SHA256_ARM64=14c8c9616cfce4636add161304353244e8de383b2e2752c0e9dad01d4c27c12c
+
+RUN set -eux; \
+  apk add --no-cache ca-certificates curl; \
+  arch="${TARGETARCH:-amd64}"; \
+  case "${arch}" in \
+    amd64) sha="${MC_SHA256_AMD64}" ;; \
+    arm64) sha="${MC_SHA256_ARM64}" ;; \
+    *) echo "Unsupported architecture: ${arch}" >&2; exit 1 ;; \
+  esac; \
+  curl -fsSL \
+    "https://github.com/minio/mc/releases/download/${MC_VERSION}/mc.linux-${arch}.${MC_VERSION}" \
+    -o /usr/local/bin/mc; \
+  echo "${sha}  /usr/local/bin/mc" | sha256sum -c -; \
+  chmod 0755 /usr/local/bin/mc; \
+  addgroup -S -g 10001 bootstrap; \
+  adduser -S -D -H -u 10001 -G bootstrap bootstrap
+
+ENV MC_CONFIG_DIR=/tmp/.mc
+
+USER 10001:10001
+
+ENTRYPOINT ["/bin/sh", "-c"]

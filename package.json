@@ -37,7 +37,10 @@
     "security:audit:static": "bash scripts/lot9-security-audit.sh --static",
     "security:audit": "bash scripts/lot9-security-audit.sh",
     "security:live": "bash scripts/lot9-security-live.sh",
-    "marketplace:validate": "pnpm db:generate && pnpm --filter api exec prisma validate && pnpm --filter api exec jest --runInBand src/marketplace/marketplace-rules.service.spec.ts"
+    "marketplace:validate": "pnpm db:generate && pnpm --filter api exec prisma validate && pnpm --filter api exec jest --runInBand src/marketplace/marketplace-rules.service.spec.ts",
+    "storage:up": "docker compose up -d minio minio-init",
+    "storage:validate:manifests": "bash scripts/lot9b-storage-validate.sh --static",
+    "storage:validate": "bash scripts/lot9b-storage-validate.sh"
   },
   "pnpm": {
     "overrides": {

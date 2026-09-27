@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   ValidationPipe,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
@@ -13,14 +14,18 @@ import {
   TokenVerifier,
 } from '../src/auth/token-verifier.port';
 import { RolesGuard } from '../src/auth/roles.guard';
+import { ListingImagesController } from '../src/listings/listing-images.controller';
+import { ListingImagesService } from '../src/listings/listing-images.service';
 import { ListingsController } from '../src/listings/listings.controller';
 import { ListingsService } from '../src/listings/listings.service';
 import { ModerationController } from '../src/listings/moderation.controller';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { ObjectStorageService } from '../src/storage/object-storage.service';
 
 describe('Listings HTTP acceptance E2E', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  let storage: ObjectStorageService;
 
   const verifier: TokenVerifier = {
     verify: jest.fn(async (token: string) => {
@@ -46,10 +51,36 @@ describe('Listings HTTP acceptance E2E', () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      controllers: [ListingsController, ModerationController],
+      controllers: [
+        ListingsController,
+        ListingImagesController,
+        ModerationController,
+      ],
       providers: [
         PrismaService,
         ListingsService,
+        ListingImagesService,
+        ObjectStorageService,
+        {
+          provide: ConfigService,
+          useValue: new ConfigService({
+            S3_ENDPOINT:
+              process.env.S3_ENDPOINT ??
+              'http://127.0.0.1:9000',
+            S3_REGION:
+              process.env.S3_REGION ?? 'us-east-1',
+            S3_BUCKET:
+              process.env.S3_BUCKET ?? 'listing-images',
+            S3_ACCESS_KEY:
+              process.env.S3_ACCESS_KEY ??
+              'marketplace-api',
+            S3_SECRET_KEY:
+              process.env.S3_SECRET_KEY ??
+              'marketplace_storage_local_change_me_2026',
+            S3_FORCE_PATH_STYLE:
+              process.env.S3_FORCE_PATH_STYLE ?? 'true',
+          }),
+        },
         JwtAuthGuard,
         RolesGuard,
         Reflector,
@@ -73,6 +104,27 @@ describe('Listings HTTP acceptance E2E', () => {
     await app.init();
 
     prisma = app.get(PrismaService);
+    storage = app.get(ObjectStorageService);
+    await storage.assertReady();
+
+    const staleImages = await prisma.listingImage.findMany({
+      where: {
+        listing: {
+          ownerId: {
+            startsWith: 'lot4-e2e-',
+          },
+        },
+      },
+      select: {
+        objectKey: true,
+      },
+    });
+
+    if (staleImages.length > 0) {
+      await storage.deleteObjects(
+        staleImages.map((image) => image.objectKey),
+      );
+    }
 
     await prisma.listing.deleteMany({
       where: {
@@ -84,6 +136,25 @@ describe('Listings HTTP acceptance E2E', () => {
   });
 
   afterAll(async () => {
+    const images = await prisma.listingImage.findMany({
+      where: {
+        listing: {
+          ownerId: {
+            startsWith: 'lot4-e2e-',
+          },
+        },
+      },
+      select: {
+        objectKey: true,
+      },
+    });
+
+    if (images.length > 0) {
+      await storage.deleteObjects(
+        images.map((image) => image.objectKey),
+      );
+    }
+
     await prisma.listing.deleteMany({
       where: {
         ownerId: {
@@ -164,6 +235,138 @@ describe('Listings HTTP acceptance E2E', () => {
 
     expect(publicDetail.body.id).toBe(listingId);
     expect(publicDetail.body.status).toBe('APPROVED');
+  });
+
+  it('uploads 5 images through multipart and exposes them only after approval', async () => {
+    const createdResponse = await request(app.getHttpServer())
+      .post('/api/listings')
+      .set('Authorization', 'Bearer user-token')
+      .send({
+        title: 'LOT 9B-B image listing',
+        description:
+          'Annonce utilisée pour valider le vrai upload multipart vers MinIO.',
+        operationType: 'DONATION',
+      })
+      .expect(201);
+
+    const listingId = createdResponse.body.id as string;
+    const signature = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+
+    let upload = request(app.getHttpServer())
+      .put(`/api/listings/${listingId}/images`)
+      .set('Authorization', 'Bearer user-token');
+
+    for (let index = 0; index < 5; index += 1) {
+      upload = upload.attach(
+        'images',
+        Buffer.concat([
+          signature,
+          Buffer.from(`e2e-image-${index}`),
+        ]),
+        {
+          filename: `image-${index}.png`,
+          contentType: 'image/png',
+        },
+      );
+    }
+
+    const uploadResponse = await upload.expect(200);
+
+    expect(uploadResponse.body).toHaveLength(5);
+    expect(
+      uploadResponse.body.every(
+        (image: Record<string, unknown>) =>
+          !('objectKey' in image),
+      ),
+    ).toBe(true);
+
+    await request(app.getHttpServer())
+      .get(`/api/listings/${listingId}/images`)
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .post(
+        `/api/moderation/listings/${listingId}/approve`,
+      )
+      .set('Authorization', 'Bearer moderator-token')
+      .expect(200);
+
+    const publicImages = await request(app.getHttpServer())
+      .get(`/api/listings/${listingId}/images`)
+      .expect(200);
+
+    expect(publicImages.body).toHaveLength(5);
+
+    const firstImageId = publicImages.body[0].id as string;
+
+    const contentResponse = await request(app.getHttpServer())
+      .get(
+        `/api/listings/${listingId}/images/${firstImageId}/content`,
+      )
+      .expect('Content-Type', /image\/png/)
+      .expect(200);
+
+    expect(Buffer.isBuffer(contentResponse.body)).toBe(true);
+    expect(contentResponse.body.subarray(0, 8)).toEqual(
+      signature,
+    );
+  });
+
+  it('rejects fewer than 5 images and binary/MIME spoofing', async () => {
+    const createdResponse = await request(app.getHttpServer())
+      .post('/api/listings')
+      .set('Authorization', 'Bearer user-token')
+      .send({
+        title: 'LOT 9B-B invalid image listing',
+        description:
+          'Annonce utilisée pour vérifier le rejet des lots et fichiers invalides.',
+        operationType: 'DONATION',
+      })
+      .expect(201);
+
+    const listingId = createdResponse.body.id as string;
+    const signature = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+
+    let tooFew = request(app.getHttpServer())
+      .put(`/api/listings/${listingId}/images`)
+      .set('Authorization', 'Bearer user-token');
+
+    for (let index = 0; index < 4; index += 1) {
+      tooFew = tooFew.attach(
+        'images',
+        Buffer.concat([
+          signature,
+          Buffer.from(`short-${index}`),
+        ]),
+        {
+          filename: `short-${index}.png`,
+          contentType: 'image/png',
+        },
+      );
+    }
+
+    await tooFew.expect(400);
+
+    let spoofed = request(app.getHttpServer())
+      .put(`/api/listings/${listingId}/images`)
+      .set('Authorization', 'Bearer user-token');
+
+    for (let index = 0; index < 5; index += 1) {
+      spoofed = spoofed.attach(
+        'images',
+        Buffer.from(`not-an-image-${index}`),
+        {
+          filename: `fake-${index}.png`,
+          contentType: 'image/png',
+        },
+      );
+    }
+
+    await spoofed.expect(400);
   });
 
   it('rejects invalid request bodies before business logic', async () => {

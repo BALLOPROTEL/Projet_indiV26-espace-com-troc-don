@@ -13,7 +13,10 @@ Le POC applique les principes suivants :
 - TLS au niveau de l'Ingress ou de la cible de déploiement ;
 - principe du moindre privilège pour les conteneurs et comptes techniques ;
 - métriques protégées par un token interne dans le déploiement Kubernetes ;
-- Swagger désactivé par défaut en production.
+- Swagger désactivé par défaut en production ;
+- stockage objet privé S3-compatible pour les images ;
+- credentials S3 applicatifs séparés des credentials root MinIO ;
+- validation taille, MIME et signature binaire des images avant stockage.
 
 ## Credentials de démonstration locale
 

@@ -8,3 +8,7 @@ data:
   SWAGGER_ENABLED: "false"
   KEYCLOAK_ISSUER: "https://auth.projet-indiv26.invalid/realms/projet-indiv26"
   KEYCLOAK_AUDIENCE: "api"
+  S3_ENDPOINT: "http://minio:9000"
+  S3_REGION: "us-east-1"
+  S3_BUCKET: "listing-images"
+  S3_FORCE_PATH_STYLE: "true"

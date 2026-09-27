@@ -29,7 +29,8 @@ Epic : [#19](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/i
 | LOT 7 | [#15](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/15) | Observabilité |
 | LOT 8 | [#16](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/16) | JMeter et expérimentations |
 | LOT 9 | [#17](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/17) | Audit sécurité et remédiation |
-| LOT 9B | [#35](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/35) | Parcours métier réel : images, don, troc et transactions |\n| LOT 10 | [#18](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/18) | Preuves, soutenance, vidéo |
+| LOT 9B | [#35](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/35) | Parcours métier réel : images, don, troc et transactions |
+| LOT 10 | [#18](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/18) | Preuves, soutenance, vidéo |
 
 ## Workflow Kanban prévu
 
@@ -55,4 +56,7 @@ Règle de pilotage :
 - LOT 7 : **Done**
 - LOT 8 : **Done**
 - LOT 9 : **Done**
-- LOT 9B-A : **Done**\n- LOT 9B-B à LOT 9B-F : **Backlog**\n- LOT 10 : **Backlog**
+- LOT 9B-A : **Done**
+- LOT 9B-B : **In Progress**
+- LOT 9B-C à LOT 9B-F : **Backlog**
+- LOT 10 : **Backlog**
