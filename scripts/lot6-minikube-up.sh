@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 K8S_DIR="${ROOT_DIR}/infra/k8s/minikube"
 NAMESPACE="projet-indiv26"
 IMAGE="projet-indiv26-api:lot6-local"
+MINIO_IMAGE="projet-indiv26-minio:lot9b-local"
 BOOTSTRAP_IMAGE="projet-indiv26-minio-bootstrap:lot9b-local"
 PG_FORWARD_PORT="${PG_FORWARD_PORT:-5434}"
 
@@ -31,6 +32,12 @@ minikube addons enable metrics-server >/dev/null
 echo "[INFO] Building API image for Minikube..."
 docker build --pull -f apps/api/Dockerfile -t "${IMAGE}" .
 
+echo "[INFO] Building MinIO server image..."
+docker build --pull \
+  -f infra/minio/Dockerfile.server \
+  -t "${MINIO_IMAGE}" \
+  .
+
 echo "[INFO] Building MinIO bootstrap image..."
 docker build --pull \
   -f infra/minio/Dockerfile.mc-bootstrap \
@@ -39,6 +46,7 @@ docker build --pull \
 
 echo "[INFO] Loading application images into Minikube..."
 minikube image load "${IMAGE}"
+minikube image load "${MINIO_IMAGE}"
 minikube image load "${BOOTSTRAP_IMAGE}"
 
 echo "[INFO] Creating namespace..."

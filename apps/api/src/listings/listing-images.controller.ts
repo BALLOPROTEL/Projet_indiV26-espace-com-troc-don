@@ -6,6 +6,7 @@ import {
   Put,
   Req,
   Res,
+  StreamableFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -113,17 +114,15 @@ export class ListingImagesController {
       imageId,
     );
 
-    response.setHeader('Content-Type', image.contentType);
-    response.setHeader(
-      'Content-Length',
-      image.contentLength ?? image.body.length,
-    );
     response.setHeader(
       'Cache-Control',
       'public, max-age=300, immutable',
     );
 
-    return image.body;
+    return new StreamableFile(image.body, {
+      type: image.contentType,
+      length: image.contentLength ?? image.body.length,
+    });
   }
 
   private requireSubject(
