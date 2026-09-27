@@ -112,7 +112,7 @@ export class ObjectStorageService {
     const { client, config } = this.getClient();
 
     try {
-      await client.send(
+      const output = await client.send(
         new DeleteObjectsCommand({
           Bucket: config.bucket,
           Delete: {
@@ -121,6 +121,12 @@ export class ObjectStorageService {
           },
         }),
       );
+
+      if (output.Errors?.length) {
+        throw new Error(
+          `DeleteObjects reported ${output.Errors.length} failure(s)`,
+        );
+      }
     } catch {
       throw new ServiceUnavailableException(
         'Unable to delete images',

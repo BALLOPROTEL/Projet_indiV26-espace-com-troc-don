@@ -19,6 +19,7 @@ describe('ListingImagesService', () => {
     findUnique: jest.fn(),
     findFirst: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
   };
   const listingImageApi = {
     deleteMany: jest.fn(),
@@ -27,6 +28,7 @@ describe('ListingImagesService', () => {
   const prisma = {
     listing: listingApi,
     listingImage: listingImageApi,
+    $transaction: jest.fn(),
   } as unknown as PrismaService;
 
   const storage = {
@@ -76,6 +78,14 @@ describe('ListingImagesService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    (prisma.$transaction as jest.Mock).mockImplementation(
+      async (callback: (transaction: PrismaService) => unknown) =>
+        callback(prisma),
+    );
+    listingApi.updateMany.mockResolvedValue({
+      count: 1,
+    });
     (storage.assertReady as jest.Mock).mockResolvedValue(
       undefined,
     );
@@ -221,8 +231,29 @@ describe('ListingImagesService', () => {
     expect(storage.deleteObjects).toHaveBeenCalledTimes(1);
     expect(
       (storage.deleteObjects as jest.Mock).mock.calls[0][0],
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(listingApi.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale concurrent image replacement', async () => {
+    listingApi.findUnique.mockResolvedValue(listing());
+    listingApi.updateMany.mockResolvedValue({
+      count: 0,
+    });
+
+    await expect(
+      service.replaceOwnedImages(
+        'listing-1',
+        'owner-1',
+        [0, 1, 2, 3, 4].map(jpeg),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(listingApi.update).not.toHaveBeenCalled();
+    expect(storage.deleteObjects).toHaveBeenCalledTimes(1);
+    expect(
+      (storage.deleteObjects as jest.Mock).mock.calls[0][0],
+    ).toHaveLength(5);
   });
 
   it('rolls back all new objects when database persistence fails', async () => {

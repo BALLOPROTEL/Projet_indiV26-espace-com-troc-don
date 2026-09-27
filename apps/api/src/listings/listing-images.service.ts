@@ -77,18 +77,18 @@ export class ListingImagesService {
         const objectKey =
           `listings/${listingId}/${randomUUID()}.${entry.detected.extension}`;
 
-        await this.storage.putObject(
-          objectKey,
-          entry.file.buffer,
-          entry.detected.mimeType,
-        );
-
         uploaded.push({
           objectKey,
           mimeType: entry.detected.mimeType,
           sizeBytes: entry.file.buffer.length,
           position,
         });
+
+        await this.storage.putObject(
+          objectKey,
+          entry.file.buffer,
+          entry.detected.mimeType,
+        );
       }
     } catch (error) {
       await this.bestEffortDelete(
@@ -101,26 +101,48 @@ export class ListingImagesService {
     let images: ListingImage[];
 
     try {
-      const updated = await this.prisma.listing.update({
-        where: {
-          id: listingId,
-        },
-        data: {
-          status: ListingStatus.PENDING,
-          moderationReason: null,
-          images: {
-            deleteMany: {},
-            create: uploaded,
-          },
-        },
-        include: {
-          images: {
-            orderBy: {
-              position: 'asc',
+      const updated = await this.prisma.$transaction(
+        async (transaction) => {
+          const claim = await transaction.listing.updateMany({
+            where: {
+              id: listingId,
+              ownerId,
+              updatedAt: listing.updatedAt,
             },
-          },
+            data: {
+              status: ListingStatus.PENDING,
+              moderationReason: null,
+            },
+          });
+
+          if (claim.count !== 1) {
+            throw new ConflictException(
+              'Listing changed while images were uploading; retry',
+            );
+          }
+
+          return transaction.listing.update({
+            where: {
+              id: listingId,
+            },
+            data: {
+              status: ListingStatus.PENDING,
+              moderationReason: null,
+              images: {
+                deleteMany: {},
+                create: uploaded,
+              },
+            },
+            include: {
+              images: {
+                orderBy: {
+                  position: 'asc',
+                },
+              },
+            },
+          });
         },
-      });
+      );
 
       images = updated.images;
     } catch (error) {

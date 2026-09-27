@@ -20,7 +20,7 @@ cd "${ROOT_DIR}"
 
 echo "=== LOT 9B-B - object storage validation ==="
 
-for file in   infra/minio/Dockerfile.mc-bootstrap   infra/minio/listing-images-policy.json   infra/k8s/minikube/minio-pvc.yaml   infra/k8s/minikube/minio-deployment.yaml   infra/k8s/minikube/minio-service.yaml   infra/k8s/minikube/minio-bootstrap-configmap.yaml   infra/k8s/minikube/minio-bootstrap-job.yaml   apps/api/src/storage/object-storage.service.ts   apps/api/src/storage/storage.module.ts   apps/api/src/listings/image-file.validator.ts   apps/api/src/listings/listing-images.service.ts   apps/api/src/listings/listing-images.controller.ts   apps/api/test/object-storage.integration-spec.ts; do
+for file in   infra/minio/Dockerfile.server   infra/minio/Dockerfile.mc-bootstrap   infra/minio/listing-images-policy.json   infra/k8s/minikube/minio-pvc.yaml   infra/k8s/minikube/minio-deployment.yaml   infra/k8s/minikube/minio-service.yaml   infra/k8s/minikube/minio-bootstrap-configmap.yaml   infra/k8s/minikube/minio-bootstrap-job.yaml   apps/api/src/storage/object-storage.service.ts   apps/api/src/storage/storage.module.ts   apps/api/src/listings/image-file.validator.ts   apps/api/src/listings/listing-images.service.ts   apps/api/src/listings/listing-images.controller.ts   apps/api/test/object-storage.integration-spec.ts; do
   test -f "${file}" || {
     echo "[FAIL] Missing LOT 9B-B artifact: ${file}"
     exit 1
@@ -52,8 +52,14 @@ assert "s3:*" not in serialized
 print("[OK] Bucket policy JSON is valid and least-privilege.")
 PY
 
+grep -q 'ARG TARGETARCH' infra/minio/Dockerfile.server
+grep -q 'ARG TARGETARCH' infra/minio/Dockerfile.mc-bootstrap
+grep -q 'MINIO_SHA256_AMD64=53e2a2cb16c5366ea6fbbc479c19ddb4c6a0948273e752f740fb1fbf27bb817c' infra/minio/Dockerfile.server
+grep -q 'MINIO_SHA256_ARM64=6c2f3142c94240206123177f4ba1e360daa5d1e0a4962e90757ef4f92c3ab57c' infra/minio/Dockerfile.server
 grep -q 'MC_VERSION=RELEASE.2025-08-13T08-35-41Z' infra/minio/Dockerfile.mc-bootstrap
-grep -q 'MC_SHA256=01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891' infra/minio/Dockerfile.mc-bootstrap
+grep -q 'MC_SHA256_AMD64=01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891' infra/minio/Dockerfile.mc-bootstrap
+grep -q 'MC_SHA256_ARM64=14c8c9616cfce4636add161304353244e8de383b2e2752c0e9dad01d4c27c12c' infra/minio/Dockerfile.mc-bootstrap
+grep -q 'type: Recreate' infra/k8s/minikube/minio-deployment.yaml
 grep -q 'dockerfile: infra/minio/Dockerfile.mc-bootstrap' compose.yaml
 grep -q 'image: projet-indiv26-minio-bootstrap:lot9b-local' compose.yaml
 grep -q 'image: projet-indiv26-minio-bootstrap:lot9b-local' infra/k8s/minikube/minio-bootstrap-job.yaml
