@@ -52,8 +52,8 @@ assert "s3:*" not in serialized
 print("[OK] Bucket policy JSON is valid and least-privilege.")
 PY
 
-grep -q 'MC_VERSION=RELEASE.2025-04-16T18-13-26Z' infra/minio/Dockerfile.mc-bootstrap
-grep -q 'MC_SHA256=ac90da87a35641be5a0ac75d49de5161ddb47d629b5ba01261b0ae9e00aea15f' infra/minio/Dockerfile.mc-bootstrap
+grep -q 'MC_VERSION=RELEASE.2025-08-13T08-35-41Z' infra/minio/Dockerfile.mc-bootstrap
+grep -q 'MC_SHA256=01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891' infra/minio/Dockerfile.mc-bootstrap
 grep -q 'dockerfile: infra/minio/Dockerfile.mc-bootstrap' compose.yaml
 grep -q 'image: projet-indiv26-minio-bootstrap:lot9b-local' compose.yaml
 grep -q 'image: projet-indiv26-minio-bootstrap:lot9b-local' infra/k8s/minikube/minio-bootstrap-job.yaml
