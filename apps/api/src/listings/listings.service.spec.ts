@@ -414,7 +414,10 @@ describe('ListingsService', () => {
     });
 
     await expect(
-      service.approve('listing-1'),
+      service.approve(
+        'listing-1',
+        pendingListing.updatedAt.toISOString(),
+      ),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
