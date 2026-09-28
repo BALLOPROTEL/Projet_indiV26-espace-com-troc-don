@@ -4,7 +4,6 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useState,
   type FormEvent,
 } from 'react';
@@ -701,23 +700,24 @@ function ListingForm({
 }
 
 function useImagePreviews(files: File[]) {
-  const previews = useMemo(
-    () =>
-      files.map((file) => ({
-        name: file.name,
-        url: URL.createObjectURL(file),
-      })),
-    [files],
-  );
+  const [previews, setPreviews] = useState<
+    Array<{ name: string; url: string }>
+  >([]);
 
-  useEffect(
-    () => () => {
-      for (const preview of previews) {
+  useEffect(() => {
+    const nextPreviews = files.map((file) => ({
+      name: file.name,
+      url: URL.createObjectURL(file),
+    }));
+
+    setPreviews(nextPreviews);
+
+    return () => {
+      for (const preview of nextPreviews) {
         URL.revokeObjectURL(preview.url);
       }
-    },
-    [previews],
-  );
+    };
+  }, [files]);
 
   return previews;
 }
