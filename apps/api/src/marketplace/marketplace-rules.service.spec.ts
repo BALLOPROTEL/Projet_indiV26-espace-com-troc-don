@@ -42,6 +42,12 @@ describe('MarketplaceRulesService', () => {
     ).toEqual(['Nintendo Switch', 'Steam Deck']);
   });
 
+  it('uses locale-independent case folding for duplicate wishes', () => {
+    expect(
+      rules.normalizeTradeWishes(['I', 'i', 'Console']),
+    ).toEqual(['I', 'Console']);
+  });
+
   it('accepts a trade publication with 5 to 8 images and 5 distinct wishes', () => {
     expect(
       rules.validatePublicationAssets(

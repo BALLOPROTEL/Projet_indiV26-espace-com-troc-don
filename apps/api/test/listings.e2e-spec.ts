@@ -19,6 +19,7 @@ import { ListingImagesService } from '../src/listings/listing-images.service';
 import { ListingsController } from '../src/listings/listings.controller';
 import { ListingsService } from '../src/listings/listings.service';
 import { ModerationController } from '../src/listings/moderation.controller';
+import { MarketplaceRulesService } from '../src/marketplace/marketplace-rules.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { ObjectStorageService } from '../src/storage/object-storage.service';
 
@@ -60,6 +61,7 @@ describe('Listings HTTP acceptance E2E', () => {
         PrismaService,
         ListingsService,
         ListingImagesService,
+        MarketplaceRulesService,
         ObjectStorageService,
         {
           provide: ConfigService,
@@ -175,6 +177,13 @@ describe('Listings HTTP acceptance E2E', () => {
         description:
           'Annonce utilisée pour valider automatiquement le parcours métier.',
         operationType: 'TRADE',
+        tradeWishes: [
+          'Console',
+          'Tablette',
+          'Écran',
+          'Clavier',
+          'Casque',
+        ],
       })
       .expect(201);
 
@@ -212,9 +221,43 @@ describe('Listings HTTP acceptance E2E', () => {
       ),
     ).toBe(true);
 
+    const signature = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+    let enrichedUpload = request(app.getHttpServer())
+      .put(`/api/listings/${listingId}/images`)
+      .set('Authorization', 'Bearer user-token');
+
+    for (let index = 0; index < 5; index += 1) {
+      enrichedUpload = enrichedUpload.attach(
+        'images',
+        Buffer.concat([
+          signature,
+          Buffer.from(`publication-image-${index}`),
+        ]),
+        {
+          filename: `publication-${index}.png`,
+          contentType: 'image/png',
+        },
+      );
+    }
+
+    await enrichedUpload.expect(200);
+
+    const reviewedQueue = await request(app.getHttpServer())
+      .get('/api/moderation/listings?status=PENDING')
+      .set('Authorization', 'Bearer moderator-token')
+      .expect(200);
+    const reviewedListing = reviewedQueue.body.find(
+      (listing: { id: string }) => listing.id === listingId,
+    ) as { updatedAt: string };
+
     const approvedResponse = await request(app.getHttpServer())
       .post(`/api/moderation/listings/${listingId}/approve`)
       .set('Authorization', 'Bearer moderator-token')
+      .send({
+        reviewedUpdatedAt: reviewedListing.updatedAt,
+      })
       .expect(200);
 
     expect(approvedResponse.body.status).toBe('APPROVED');
@@ -235,6 +278,11 @@ describe('Listings HTTP acceptance E2E', () => {
 
     expect(publicDetail.body.id).toBe(listingId);
     expect(publicDetail.body.status).toBe('APPROVED');
+    expect(publicDetail.body.images).toHaveLength(5);
+    expect(publicDetail.body.tradeWishes).toHaveLength(5);
+    expect(publicDetail.body.images[0]).not.toHaveProperty(
+      'objectKey',
+    );
   });
 
   it('uploads 5 images through multipart and exposes them only after approval', async () => {
@@ -282,15 +330,42 @@ describe('Listings HTTP acceptance E2E', () => {
       ),
     ).toBe(true);
 
+    const pendingImageId = uploadResponse.body[0].id as string;
+
+    await request(app.getHttpServer())
+      .get(
+        `/api/listings/${listingId}/images/${pendingImageId}/content/authorized`,
+      )
+      .set('Authorization', 'Bearer moderator-token')
+      .expect('Content-Type', /image\/png/)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get(
+        `/api/listings/${listingId}/images/${pendingImageId}/content/authorized`,
+      )
+      .expect(401);
+
     await request(app.getHttpServer())
       .get(`/api/listings/${listingId}/images`)
       .expect(404);
+
+    const imageReviewQueue = await request(app.getHttpServer())
+      .get('/api/moderation/listings?status=PENDING')
+      .set('Authorization', 'Bearer moderator-token')
+      .expect(200);
+    const imageReviewedListing = imageReviewQueue.body.find(
+      (listing: { id: string }) => listing.id === listingId,
+    ) as { updatedAt: string };
 
     await request(app.getHttpServer())
       .post(
         `/api/moderation/listings/${listingId}/approve`,
       )
       .set('Authorization', 'Bearer moderator-token')
+      .send({
+        reviewedUpdatedAt: imageReviewedListing.updatedAt,
+      })
       .expect(200);
 
     const publicImages = await request(app.getHttpServer())
@@ -367,6 +442,47 @@ describe('Listings HTTP acceptance E2E', () => {
     }
 
     await spoofed.expect(400);
+  });
+
+  it('rejects approval of a stale moderation revision', async () => {
+    const createdResponse = await request(app.getHttpServer())
+      .post('/api/listings')
+      .set('Authorization', 'Bearer user-token')
+      .send({
+        title: 'LOT 9B-C stale review',
+        description:
+          'Annonce utilisée pour vérifier la révision réellement relue.',
+        operationType: 'DONATION',
+      })
+      .expect(201);
+
+    const listingId = createdResponse.body.id as string;
+    const reviewedUpdatedAt =
+      createdResponse.body.updatedAt as string;
+
+    await request(app.getHttpServer())
+      .patch(`/api/listings/${listingId}`)
+      .set('Authorization', 'Bearer user-token')
+      .send({
+        description:
+          'Description modifiée après ouverture de la file de modération.',
+      })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post(`/api/moderation/listings/${listingId}/approve`)
+      .set('Authorization', 'Bearer moderator-token')
+      .send({ reviewedUpdatedAt })
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .post(`/api/moderation/listings/${listingId}/reject`)
+      .set('Authorization', 'Bearer moderator-token')
+      .send({
+        reason: 'Révision obsolète',
+        reviewedUpdatedAt,
+      })
+      .expect(409);
   });
 
   it('rejects invalid request bodies before business logic', async () => {

@@ -1,13 +1,24 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
   type FormEvent,
 } from 'react';
 import { listingsApi } from '../lib/api';
 import { canEditListing } from '../lib/presentation';
+import {
+  createBlankListingInput,
+  MAX_IMAGES,
+  MAX_WISHES,
+  MIN_WISHES,
+  normalizedListingInput,
+  padWishes,
+  validatePublicationDraft,
+} from '../lib/publication';
 import type {
   Listing,
   ListingInput,
@@ -16,12 +27,6 @@ import type {
 import { useAuth } from './auth-provider';
 import { EmptyState } from './empty-state';
 import { ListingCard } from './listing-card';
-
-const blankForm: ListingInput = {
-  title: '',
-  description: '',
-  operationType: 'TRADE',
-};
 
 export function PersonalSpace() {
   const {
@@ -34,10 +39,16 @@ export function PersonalSpace() {
 
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<ListingInput>(blankForm);
+  const [form, setForm] = useState<ListingInput>(createBlankListingInput);
+  const [createImages, setCreateImages] = useState<File[]>([]);
+  const [pendingCreateId, setPendingCreateId] =
+    useState<string | null>(null);
+  const [createImageInputKey, setCreateImageInputKey] =
+    useState(0);
   const [editing, setEditing] = useState<Listing | null>(null);
   const [editForm, setEditForm] =
-    useState<ListingInput>(blankForm);
+    useState<ListingInput>(createBlankListingInput);
+  const [editImages, setEditImages] = useState<File[]>([]);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -102,40 +113,94 @@ export function PersonalSpace() {
 
   async function createListing(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaving(true);
     setFeedback(null);
     setError(null);
 
+    const validationError = validatePublicationDraft(
+      form,
+      createImages,
+      0,
+    );
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setSaving(true);
+    let draftId = pendingCreateId;
+
     try {
       const token = await getToken();
-      await listingsApi.create(token, {
-        ...form,
-        title: form.title.trim(),
-        description: form.description.trim(),
-      });
-      setForm(blankForm);
+
+      if (draftId) {
+        await listingsApi.update(
+          token,
+          draftId,
+          normalizedListingInput(form),
+        );
+      } else {
+        const created = await listingsApi.create(
+          token,
+          normalizedListingInput(form),
+        );
+        draftId = created.id;
+        setPendingCreateId(created.id);
+      }
+
+      await listingsApi.replaceImages(
+        token,
+        draftId,
+        createImages,
+      );
+
+      setPendingCreateId(null);
+      setForm(createBlankListingInput());
+      setCreateImages([]);
+      setCreateImageInputKey((current) => current + 1);
       setFeedback(
-        'Annonce déposée. Elle attend maintenant la relecture de la réserve.',
+        'Annonce complète déposée. Elle attend maintenant la relecture de la réserve.',
       );
       await loadMine();
     } catch (reason) {
-      setError(
-        reason instanceof Error
-          ? reason.message
-          : 'Impossible de déposer cette annonce.',
-      );
+      if (draftId) {
+        await loadMine();
+        setError(
+          'La fiche existe déjà mais sa galerie n’a pas été enregistrée complètement. Corrigez si nécessaire puis réessayez : le même brouillon sera réutilisé.',
+        );
+      } else {
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : 'Impossible de déposer cette annonce.',
+        );
+      }
     } finally {
       setSaving(false);
     }
   }
 
   function startEditing(listing: Listing) {
+    const labels = listing.tradeWishes.map((wish) => wish.label);
+
+    if (pendingCreateId === listing.id) {
+      setPendingCreateId(null);
+      setForm(createBlankListingInput());
+      setCreateImages([]);
+      setCreateImageInputKey((current) => current + 1);
+    }
+
     setEditing(listing);
     setEditForm({
       title: listing.title,
       description: listing.description,
       operationType: listing.operationType,
+      tradeWishes:
+        listing.operationType === 'TRADE'
+          ? padWishes(labels)
+          : [],
     });
+    setEditImages([]);
     setFeedback(null);
     setError(null);
   }
@@ -147,28 +212,59 @@ export function PersonalSpace() {
       return;
     }
 
-    setSaving(true);
     setFeedback(null);
     setError(null);
 
+    const validationError = validatePublicationDraft(
+      editForm,
+      editImages,
+      editing.images.length,
+    );
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setSaving(true);
+
     try {
       const token = await getToken();
-      await listingsApi.update(token, editing.id, {
-        ...editForm,
-        title: editForm.title.trim(),
-        description: editForm.description.trim(),
-      });
+
+      if (editImages.length > 0) {
+        await listingsApi.deleteImages(
+          token,
+          editing.id,
+        );
+      }
+
+      await listingsApi.update(
+        token,
+        editing.id,
+        normalizedListingInput(editForm),
+      );
+
+      if (editImages.length > 0) {
+        await listingsApi.replaceImages(
+          token,
+          editing.id,
+          editImages,
+        );
+      }
+
       setEditing(null);
+      setEditImages([]);
       setFeedback(
-        'Modification enregistrée. L’annonce repasse en relecture.',
+        'Modification enregistrée. L’annonce repasse en relecture avec ses éléments enrichis.',
       );
       await loadMine();
     } catch (reason) {
-      setError(
+      const mutationError =
         reason instanceof Error
           ? reason.message
-          : 'Impossible de modifier cette annonce.',
-      );
+          : 'Impossible de modifier cette annonce.';
+      await loadMine();
+      setError(mutationError);
     } finally {
       setSaving(false);
     }
@@ -206,8 +302,9 @@ export function PersonalSpace() {
           <h1>Bonjour {username ?? 'vous'}.</h1>
         </div>
         <p>
-          Déposez peu, décrivez bien. La réserve relit chaque
-          proposition avant publication dans le cabinet.
+          Chaque fiche complète comporte 5 à 8 photos. Pour un troc,
+          précisez aussi au moins 5 objets ou familles d’objets qui
+          pourraient vous intéresser.
         </p>
       </section>
 
@@ -218,16 +315,26 @@ export function PersonalSpace() {
             <span className="eyebrow">Nouvelle fiche</span>
             <h2>Proposer un objet</h2>
             <p>
-              Quelques lignes précises valent mieux qu’un long
-              catalogue.
+              Décrivez l’objet, ajoutez sa galerie et précisez vos
+              souhaits si vous proposez un troc.
             </p>
           </div>
 
           <ListingForm
             value={form}
-            submitLabel={saving ? 'Dépôt en cours…' : 'Déposer pour relecture'}
+            images={createImages}
+            existingImageCount={0}
+            imageInputKey={createImageInputKey}
+            submitLabel={
+              saving
+                ? 'Dépôt en cours…'
+                : pendingCreateId
+                  ? 'Réessayer la galerie'
+                  : 'Déposer pour relecture'
+            }
             disabled={saving}
             onChange={setForm}
+            onImagesChange={setCreateImages}
             onSubmit={createListing}
           />
         </section>
@@ -294,7 +401,7 @@ export function PersonalSpace() {
       {editing ? (
         <div className="dialog-backdrop">
           <section
-            className="edit-dialog"
+            className="edit-dialog edit-dialog--wide"
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-listing-title"
@@ -311,16 +418,22 @@ export function PersonalSpace() {
             <h2 id="edit-listing-title">Corriger la fiche</h2>
             <p>
               Une modification remet automatiquement l’annonce en
-              relecture.
+              relecture. Si vous choisissez de nouvelles photos, le
+              lot complet précédent sera remplacé.
             </p>
 
             <ListingForm
               value={editForm}
+              images={editImages}
+              existingImageCount={editing.images.length}
               submitLabel={
-                saving ? 'Enregistrement…' : 'Enregistrer la correction'
+                saving
+                  ? 'Enregistrement…'
+                  : 'Enregistrer la correction'
               }
               disabled={saving}
               onChange={setEditForm}
+              onImagesChange={setEditImages}
               onSubmit={saveEdit}
             />
           </section>
@@ -332,19 +445,67 @@ export function PersonalSpace() {
 
 function ListingForm({
   value,
+  images,
+  existingImageCount,
+  imageInputKey,
   submitLabel,
   disabled,
   onChange,
+  onImagesChange,
   onSubmit,
 }: {
   value: ListingInput;
+  images: File[];
+  existingImageCount: number;
+  imageInputKey?: string | number;
   submitLabel: string;
   disabled: boolean;
   onChange: (value: ListingInput) => void;
+  onImagesChange: (images: File[]) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   function changeOperation(operationType: ListingOperationType) {
-    onChange({ ...value, operationType });
+    onChange({
+      ...value,
+      operationType,
+      tradeWishes:
+        operationType === 'TRADE'
+          ? padWishes(value.tradeWishes)
+          : [],
+    });
+  }
+
+  function changeWish(index: number, label: string) {
+    onChange({
+      ...value,
+      tradeWishes: value.tradeWishes.map((wish, wishIndex) =>
+        wishIndex === index ? label : wish,
+      ),
+    });
+  }
+
+  function addWish() {
+    if (value.tradeWishes.length >= MAX_WISHES) {
+      return;
+    }
+
+    onChange({
+      ...value,
+      tradeWishes: [...value.tradeWishes, ''],
+    });
+  }
+
+  function removeWish(index: number) {
+    if (value.tradeWishes.length <= MIN_WISHES) {
+      return;
+    }
+
+    onChange({
+      ...value,
+      tradeWishes: value.tradeWishes.filter(
+        (_, wishIndex) => wishIndex !== index,
+      ),
+    });
   }
 
   return (
@@ -410,7 +571,7 @@ function ListingForm({
           maxLength={2000}
           rows={7}
           value={value.description}
-          placeholder="État, particularités, ce que vous proposez ou recherchez…"
+          placeholder="État, particularités, dimensions, accessoires inclus…"
           onChange={(event) =>
             onChange({
               ...value,
@@ -421,10 +582,150 @@ function ListingForm({
         <small>{value.description.length}/2000</small>
       </label>
 
-      <button className="button button--full" type="submit" disabled={disabled}>
+      {value.operationType === 'TRADE' ? (
+        <fieldset className="wish-editor">
+          <legend>Ce qui pourrait vous intéresser</legend>
+          <p>
+            Indiquez entre 5 et 10 souhaits distincts. Ils seront
+            affichés sur la fiche publique.
+          </p>
+          <div className="wish-editor__list">
+            {value.tradeWishes.map((wish, index) => (
+              <div className="wish-editor__row" key={index}>
+                <label className="field field--compact">
+                  <span>Souhait {index + 1}</span>
+                  <input
+                    required
+                    maxLength={120}
+                    value={wish}
+                    placeholder={
+                      index === 0
+                        ? 'Ex. Nintendo Switch'
+                        : 'Autre objet recherché'
+                    }
+                    onChange={(event) =>
+                      changeWish(index, event.target.value)
+                    }
+                  />
+                </label>
+                {value.tradeWishes.length > MIN_WISHES ? (
+                  <button
+                    className="text-button"
+                    type="button"
+                    onClick={() => removeWish(index)}
+                  >
+                    Retirer
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          {value.tradeWishes.length < MAX_WISHES ? (
+            <button
+              className="button button--quiet button--small"
+              type="button"
+              onClick={addWish}
+            >
+              Ajouter un souhait
+            </button>
+          ) : null}
+        </fieldset>
+      ) : null}
+
+      <fieldset className="image-editor">
+        <legend>Galerie de l’objet</legend>
+        <p>
+          5 à 8 images JPEG, PNG ou WEBP, 5 MiB maximum chacune.
+        </p>
+
+        {existingImageCount > 0 && images.length === 0 ? (
+          <div className="asset-summary">
+            {existingImageCount} image
+            {existingImageCount > 1 ? 's' : ''} déjà enregistrée
+            {existingImageCount > 1 ? 's' : ''}. Choisissez un
+            nouveau lot uniquement pour les remplacer.
+          </div>
+        ) : null}
+
+        <label className="file-picker">
+          <span>Choisir 5 à 8 images</span>
+          <input
+            key={imageInputKey}
+            type="file"
+            multiple
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(event) =>
+              onImagesChange(
+                Array.from(event.target.files ?? []).slice(
+                  0,
+                  MAX_IMAGES,
+                ),
+              )
+            }
+          />
+        </label>
+
+        {images.length > 0 ? (
+          <>
+            <div className="asset-summary">
+              {images.length}/{MAX_IMAGES} image
+              {images.length > 1 ? 's' : ''} sélectionnée
+              {images.length > 1 ? 's' : ''}
+            </div>
+            <div className="upload-gallery">
+              {images.map((file, index) => (
+                <FileImagePreview
+                  key={`${file.name}-${file.size}-${file.lastModified}-${index}`}
+                  file={file}
+                  index={index}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
+      </fieldset>
+
+      <button
+        className="button button--full"
+        type="submit"
+        disabled={disabled}
+      >
         {submitLabel}
       </button>
     </form>
+  );
+}
+
+function FileImagePreview({
+  file,
+  index,
+}: {
+  file: File;
+  index: number;
+}) {
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    const image = imageRef.current;
+
+    if (image) {
+      image.src = url;
+    }
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [file]);
+
+  return (
+    <figure>
+      <img
+        ref={imageRef}
+        alt={`Aperçu ${index + 1} : ${file.name}`}
+      />
+      <figcaption>{index + 1}</figcaption>
+    </figure>
   );
 }
 

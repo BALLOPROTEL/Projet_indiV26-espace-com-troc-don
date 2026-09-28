@@ -19,6 +19,7 @@ import { AppRole } from '../auth/app-role.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { ApproveListingDto } from './dto/approve-listing.dto';
 import { ModerationQueryDto } from './dto/moderation-query.dto';
 import { RejectListingDto } from './dto/reject-listing.dto';
 import { ListingsService } from './listings.service';
@@ -44,8 +45,14 @@ export class ModerationController {
   @Post(':id/approve')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Approuver une annonce PENDING' })
-  approve(@Param('id') id: string) {
-    return this.listings.approve(id);
+  approve(
+    @Param('id') id: string,
+    @Body() input: ApproveListingDto,
+  ) {
+    return this.listings.approve(
+      id,
+      input.reviewedUpdatedAt,
+    );
   }
 
   @Post(':id/reject')

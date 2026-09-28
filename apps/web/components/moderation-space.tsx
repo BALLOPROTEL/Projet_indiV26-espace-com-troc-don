@@ -1,9 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
-import {
-  useEffect,
-  useState,
-} from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { listingsApi } from '../lib/api';
 import type { Listing } from '../lib/types';
 import { useAuth } from './auth-provider';
@@ -67,7 +65,11 @@ export function ModerationSpace() {
 
     try {
       const token = await getToken();
-      await listingsApi.approve(token, listing.id);
+      await listingsApi.approve(
+        token,
+        listing.id,
+        listing.updatedAt,
+      );
       setQueue((current) =>
         current.filter((item) => item.id !== listing.id),
       );
@@ -95,7 +97,12 @@ export function ModerationSpace() {
 
     try {
       const token = await getToken();
-      await listingsApi.reject(token, listing.id, reason);
+      await listingsApi.reject(
+        token,
+        listing.id,
+        reason,
+        listing.updatedAt,
+      );
       setQueue((current) =>
         current.filter((item) => item.id !== listing.id),
       );
@@ -166,8 +173,9 @@ export function ModerationSpace() {
       </div>
 
       <p className="moderation-intro">
-        Ici, on ne juge pas le goût. On vérifie simplement que la
-        fiche est claire, exploitable et prête à rejoindre le cabinet.
+        Ici, on ne juge pas le goût. On vérifie la fiche, ses photos
+        et, pour un troc, les contreparties recherchées avant
+        publication.
       </p>
 
       {error ? (
@@ -198,6 +206,10 @@ export function ModerationSpace() {
               {(index + 1).toString().padStart(2, '0')}
             </span>
             <ListingCard listing={listing} />
+            <ModerationGallery
+              listing={listing}
+              getToken={getToken}
+            />
             <div className="moderation-actions">
               <label className="field field--compact">
                 <span>Motif si refus</span>
@@ -237,5 +249,131 @@ export function ModerationSpace() {
         ))}
       </div>
     </section>
+  );
+}
+
+function ModerationGallery({
+  listing,
+  getToken,
+}: {
+  listing: Listing;
+  getToken: () => Promise<string>;
+}) {
+  const [urls, setUrls] = useState<string[]>([]);
+  const [loadingGallery, setLoadingGallery] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const mountedRef = useRef(true);
+  const urlsRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+      for (const url of urlsRef.current) {
+        URL.revokeObjectURL(url);
+      }
+      urlsRef.current = [];
+    };
+  }, []);
+
+  async function loadGallery() {
+    if (
+      listing.images.length === 0 ||
+      loadingGallery ||
+      urls.length > 0
+    ) {
+      return;
+    }
+
+    setLoadingGallery(true);
+    setFailed(false);
+
+    try {
+      const token = await getToken();
+      const blobs = await Promise.all(
+        listing.images.map((image) =>
+          listingsApi.authorizedImage(
+            token,
+            listing.id,
+            image.id,
+          ),
+        ),
+      );
+      const nextUrls = blobs.map((blob) =>
+        URL.createObjectURL(blob),
+      );
+
+      if (!mountedRef.current) {
+        for (const url of nextUrls) {
+          URL.revokeObjectURL(url);
+        }
+        return;
+      }
+
+      urlsRef.current = nextUrls;
+      setUrls(nextUrls);
+    } catch {
+      if (mountedRef.current) {
+        setFailed(true);
+      }
+    } finally {
+      if (mountedRef.current) {
+        setLoadingGallery(false);
+      }
+    }
+  }
+
+  if (listing.images.length === 0) {
+    return (
+      <div className="notice notice--error">
+        Galerie absente : cette fiche ne peut pas être approuvée.
+      </div>
+    );
+  }
+
+  if (urls.length === 0) {
+    return (
+      <div className="moderation-gallery-gate">
+        <button
+          className="button button--quiet button--small"
+          type="button"
+          disabled={loadingGallery}
+          onClick={() => void loadGallery()}
+        >
+          {loadingGallery
+            ? 'Chargement des photos…'
+            : `Voir les ${listing.images.length} photos`}
+        </button>
+        {failed ? (
+          <span className="quiet-note">
+            Impossible de charger la galerie privée. Réessayez.
+          </span>
+        ) : (
+          <span className="quiet-note">
+            Les photos privées sont chargées uniquement à la demande.
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="moderation-gallery"
+      aria-label={`Galerie privée : ${listing.title}`}
+    >
+      {urls.map((url, index) => (
+        <figure key={url}>
+          <img
+            src={url}
+            alt={`${listing.title} — photo ${index + 1}`}
+          />
+          <figcaption>
+            {(index + 1).toString().padStart(2, '0')}
+          </figcaption>
+        </figure>
+      ))}
+    </div>
   );
 }

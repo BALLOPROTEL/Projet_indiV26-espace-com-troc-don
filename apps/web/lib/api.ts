@@ -1,11 +1,16 @@
 import type {
   Listing,
+  ListingImage,
   ListingInput,
   ListingStatus,
 } from './types';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api';
+
+const API_ORIGIN = API_URL.startsWith('http')
+  ? new URL(API_URL).origin
+  : '';
 
 export class ApiError extends Error {
   constructor(
@@ -24,7 +29,7 @@ async function request<T>(
 ): Promise<T> {
   const headers = new Headers(options.headers);
 
-  if (options.body) {
+  if (options.body && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -61,6 +66,35 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 
+async function requestBlob(
+  path: string,
+  token: string,
+): Promise<Blob> {
+  const response = await fetch(`${API_URL}${path}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      `Impossible de charger l’image (HTTP ${response.status}).`,
+    );
+  }
+
+  return response.blob();
+}
+
+export function listingAssetUrl(path: string): string {
+  if (!API_ORIGIN || !path.startsWith('/')) {
+    return path;
+  }
+
+  return `${API_ORIGIN}${path}`;
+}
+
 export const listingsApi = {
   public: () => request<Listing[]>('/listings'),
 
@@ -94,6 +128,44 @@ export const listingsApi = {
       token,
     ),
 
+  deleteImages: (token: string, id: string) =>
+    request<{ deleted: number }>(
+      `/listings/${id}/images`,
+      { method: 'DELETE' },
+      token,
+    ),
+
+  replaceImages: (
+    token: string,
+    id: string,
+    images: File[],
+  ) => {
+    const body = new FormData();
+
+    for (const image of images) {
+      body.append('images', image);
+    }
+
+    return request<ListingImage[]>(
+      `/listings/${id}/images`,
+      {
+        method: 'PUT',
+        body,
+      },
+      token,
+    );
+  },
+
+  authorizedImage: (
+    token: string,
+    listingId: string,
+    imageId: string,
+  ) =>
+    requestBlob(
+      `/listings/${listingId}/images/${imageId}/content/authorized`,
+      token,
+    ),
+
   moderation: (
     token: string,
     status: ListingStatus = 'PENDING',
@@ -104,19 +176,31 @@ export const listingsApi = {
       token,
     ),
 
-  approve: (token: string, id: string) =>
+  approve: (
+    token: string,
+    id: string,
+    reviewedUpdatedAt: string,
+  ) =>
     request<Listing>(
       `/moderation/listings/${id}/approve`,
-      { method: 'POST' },
+      {
+        method: 'POST',
+        body: JSON.stringify({ reviewedUpdatedAt }),
+      },
       token,
     ),
 
-  reject: (token: string, id: string, reason: string) =>
+  reject: (
+    token: string,
+    id: string,
+    reason: string,
+    reviewedUpdatedAt: string,
+  ) =>
     request<Listing>(
       `/moderation/listings/${id}/reject`,
       {
         method: 'POST',
-        body: JSON.stringify({ reason }),
+        body: JSON.stringify({ reason, reviewedUpdatedAt }),
       },
       token,
     ),

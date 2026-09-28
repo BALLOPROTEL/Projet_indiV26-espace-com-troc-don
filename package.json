@@ -40,7 +40,8 @@
     "marketplace:validate": "pnpm db:generate && pnpm --filter api exec prisma validate && pnpm --filter api exec jest --runInBand src/marketplace/marketplace-rules.service.spec.ts",
     "storage:up": "docker compose up -d minio minio-init",
     "storage:validate:manifests": "bash scripts/lot9b-storage-validate.sh --static",
-    "storage:validate": "bash scripts/lot9b-storage-validate.sh"
+    "storage:validate": "bash scripts/lot9b-storage-validate.sh",
+    "publication:validate": "pnpm db:generate && pnpm --filter api exec jest --runInBand src/marketplace/marketplace-rules.service.spec.ts src/listings/listings.service.spec.ts && pnpm web:test"
   },
   "pnpm": {
     "overrides": {

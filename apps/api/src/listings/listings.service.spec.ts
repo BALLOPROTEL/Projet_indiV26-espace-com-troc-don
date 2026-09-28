@@ -10,6 +10,7 @@ import {
   ListingOperationType,
   ListingStatus,
 } from '@prisma/client';
+import { MarketplaceRulesService } from '../marketplace/marketplace-rules.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListingsService } from './listings.service';
 
@@ -20,13 +21,15 @@ describe('ListingsService', () => {
     findFirst: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
   };
 
   const prisma = {
     listing: listingApi,
   } as unknown as PrismaService;
 
-  const service = new ListingsService(prisma);
+  const rules = new MarketplaceRulesService();
+  const service = new ListingsService(prisma, rules);
 
   const pendingListing: Listing = {
     id: 'listing-1',
@@ -41,54 +44,145 @@ describe('ListingsService', () => {
     updatedAt: new Date('2026-09-25T12:00:00Z'),
   };
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+  const wishes = [
+    'Console',
+    'Tablette',
+    'Écran',
+    'Clavier',
+    'Casque',
+  ];
+
+  const richListing = (
+    overrides: Record<string, unknown> = {},
+  ) => ({
+    ...pendingListing,
+    images: Array.from({ length: 5 }, (_, position) => ({
+      id: `image-${position}`,
+      listingId: pendingListing.id,
+      objectKey: `private/image-${position}.jpg`,
+      mimeType: 'image/jpeg',
+      sizeBytes: 100 + position,
+      position,
+      createdAt: new Date(),
+    })),
+    tradeWishes: wishes.map((label, position) => ({
+      id: `wish-${position}`,
+      listingId: pendingListing.id,
+      label,
+      position,
+      createdAt: new Date(),
+    })),
+    ...overrides,
   });
 
-  it('creates listings as PENDING for the authenticated owner', async () => {
-    listingApi.create.mockResolvedValue(pendingListing);
+  beforeEach(() => {
+    jest.clearAllMocks();
+    listingApi.updateMany.mockResolvedValue({
+      count: 1,
+    });
+  });
 
-    await service.create('owner-1', {
+  it('creates a TRADE listing with normalized wishes as PENDING', async () => {
+    listingApi.create.mockResolvedValue(richListing());
+
+    const result = await service.create('owner-1', {
       title: pendingListing.title,
       description: pendingListing.description,
       operationType: ListingOperationType.TRADE,
+      tradeWishes: wishes,
     });
 
-    expect(listingApi.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        ownerId: 'owner-1',
-        status: ListingStatus.PENDING,
+    expect(result.tradeWishes).toHaveLength(5);
+    expect(listingApi.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          ownerId: 'owner-1',
+          status: ListingStatus.PENDING,
+          tradeWishes: {
+            create: wishes.map((label, position) => ({
+              label,
+              position,
+            })),
+          },
+        }),
       }),
-    });
+    );
   });
 
-  it('exposes only APPROVED listings publicly', async () => {
-    listingApi.findMany.mockResolvedValue([]);
+  it('rejects a TRADE listing with fewer than 5 distinct wishes', async () => {
+    await expect(
+      service.create('owner-1', {
+        title: pendingListing.title,
+        description: pendingListing.description,
+        operationType: ListingOperationType.TRADE,
+        tradeWishes: ['A', 'B', 'C', 'D'],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
 
-    await service.findPublic();
-
-    expect(listingApi.findMany).toHaveBeenCalledWith({
-      where: { status: ListingStatus.APPROVED },
-      orderBy: { createdAt: 'desc' },
-    });
+    expect(listingApi.create).not.toHaveBeenCalled();
   });
 
-  it('returns one APPROVED listing publicly by id', async () => {
-    const approvedListing = {
-      ...pendingListing,
+  it('creates a DONATION without trade wishes', async () => {
+    listingApi.create.mockResolvedValue(
+      richListing({
+        operationType: ListingOperationType.DONATION,
+        tradeWishes: [],
+      }),
+    );
+
+    await service.create('owner-1', {
+      title: 'Objet à donner',
+      description: 'Objet encore utile donné sans contrepartie.',
+      operationType: ListingOperationType.DONATION,
+    });
+
+    expect(listingApi.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          tradeWishes: {
+            create: [],
+          },
+        }),
+      }),
+    );
+  });
+
+  it('exposes enriched APPROVED listings without storage keys', async () => {
+    listingApi.findMany.mockResolvedValue([
+      richListing({
+        status: ListingStatus.APPROVED,
+      }),
+    ]);
+
+    const result = await service.findPublic();
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.images).toHaveLength(5);
+    expect(result[0]?.tradeWishes).toHaveLength(5);
+    expect(result[0]?.images[0]).not.toHaveProperty('objectKey');
+    expect(result[0]?.images[0]?.contentUrl).toContain(
+      '/api/listings/listing-1/images/image-0/content',
+    );
+    expect(listingApi.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: ListingStatus.APPROVED },
+      }),
+    );
+  });
+
+  it('returns one enriched APPROVED listing publicly by id', async () => {
+    const approvedListing = richListing({
       status: ListingStatus.APPROVED,
-    };
+    });
     listingApi.findFirst.mockResolvedValue(approvedListing);
 
     const result = await service.findPublicById('listing-1');
 
-    expect(result).toEqual(approvedListing);
-    expect(listingApi.findFirst).toHaveBeenCalledWith({
-      where: {
-        id: 'listing-1',
-        status: ListingStatus.APPROVED,
-      },
-    });
+    expect(result.id).toBe('listing-1');
+    expect(result.images).toHaveLength(5);
+    expect(result.tradeWishes.map((wish) => wish.label)).toEqual(
+      wishes,
+    );
   });
 
   it('returns 404 for a listing that is not publicly approved', async () => {
@@ -99,39 +193,32 @@ describe('ListingsService', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('returns only the authenticated owner listings', async () => {
-    listingApi.findMany.mockResolvedValue([pendingListing]);
+  it('returns only the authenticated owner listings with assets', async () => {
+    listingApi.findMany.mockResolvedValue([richListing()]);
 
     const result = await service.findMine('owner-1');
 
-    expect(result).toEqual([pendingListing]);
-    expect(listingApi.findMany).toHaveBeenCalledWith({
-      where: { ownerId: 'owner-1' },
-      orderBy: { createdAt: 'desc' },
-    });
+    expect(result).toHaveLength(1);
+    expect(result[0]?.images).toHaveLength(5);
+    expect(listingApi.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { ownerId: 'owner-1' },
+      }),
+    );
   });
 
   it('returns PENDING listings by default for moderation', async () => {
-    listingApi.findMany.mockResolvedValue([pendingListing]);
+    listingApi.findMany.mockResolvedValue([richListing()]);
 
     const result = await service.findForModeration();
 
-    expect(result).toEqual([pendingListing]);
-    expect(listingApi.findMany).toHaveBeenCalledWith({
-      where: { status: ListingStatus.PENDING },
-      orderBy: { createdAt: 'asc' },
-    });
-  });
-
-  it('supports an explicit moderation status filter', async () => {
-    listingApi.findMany.mockResolvedValue([]);
-
-    await service.findForModeration(ListingStatus.REJECTED);
-
-    expect(listingApi.findMany).toHaveBeenCalledWith({
-      where: { status: ListingStatus.REJECTED },
-      orderBy: { createdAt: 'asc' },
-    });
+    expect(result).toHaveLength(1);
+    expect(result[0]?.tradeWishes).toHaveLength(5);
+    expect(listingApi.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: ListingStatus.PENDING },
+      }),
+    );
   });
 
   it('rejects an empty owner update', async () => {
@@ -141,7 +228,7 @@ describe('ListingsService', () => {
   });
 
   it('blocks updates from another owner', async () => {
-    listingApi.findUnique.mockResolvedValue(pendingListing);
+    listingApi.findUnique.mockResolvedValue(richListing());
 
     await expect(
       service.updateOwned('listing-1', 'other-owner', {
@@ -151,10 +238,11 @@ describe('ListingsService', () => {
   });
 
   it('blocks modifications after approval', async () => {
-    listingApi.findUnique.mockResolvedValue({
-      ...pendingListing,
-      status: ListingStatus.APPROVED,
-    });
+    listingApi.findUnique.mockResolvedValue(
+      richListing({
+        status: ListingStatus.APPROVED,
+      }),
+    );
 
     await expect(
       service.updateOwned('listing-1', 'owner-1', {
@@ -163,75 +251,142 @@ describe('ListingsService', () => {
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('updates a pending listing owned by the current user', async () => {
-    listingApi.findUnique.mockResolvedValue(pendingListing);
-    listingApi.update.mockResolvedValue({
-      ...pendingListing,
-      title: 'Titre modifié',
-    });
+  it('updates wishes and returns the listing to PENDING', async () => {
+    listingApi.findUnique.mockResolvedValue(richListing());
+    listingApi.update.mockResolvedValue(
+      richListing({
+        title: 'Titre modifié',
+      }),
+    );
 
     const result = await service.updateOwned(
       'listing-1',
       'owner-1',
       {
         title: 'Titre modifié',
+        tradeWishes: wishes,
       },
     );
 
     expect(result.title).toBe('Titre modifié');
-    expect(listingApi.update).toHaveBeenCalledWith({
-      where: { id: 'listing-1' },
-      data: {
-        title: 'Titre modifié',
-        description: undefined,
-        operationType: undefined,
-        status: ListingStatus.PENDING,
-        moderationReason: null,
-      },
+    expect(listingApi.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'listing-1' },
+        data: expect.objectContaining({
+          title: 'Titre modifié',
+          status: ListingStatus.PENDING,
+          moderationReason: null,
+          tradeWishes: {
+            deleteMany: {},
+            create: wishes.map((label, position) => ({
+              label,
+              position,
+            })),
+          },
+        }),
+      }),
+    );
+  });
+
+  it('clears trade wishes when switching to DONATION', async () => {
+    listingApi.findUnique.mockResolvedValue(richListing());
+    listingApi.update.mockResolvedValue(
+      richListing({
+        operationType: ListingOperationType.DONATION,
+        tradeWishes: [],
+      }),
+    );
+
+    await service.updateOwned('listing-1', 'owner-1', {
+      operationType: ListingOperationType.DONATION,
     });
+
+    expect(listingApi.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          operationType: ListingOperationType.DONATION,
+          tradeWishes: {
+            deleteMany: {},
+            create: [],
+          },
+        }),
+      }),
+    );
   });
 
   it('resubmits a rejected listing as PENDING after owner edit', async () => {
-    listingApi.findUnique.mockResolvedValue({
-      ...pendingListing,
-      status: ListingStatus.REJECTED,
-      moderationReason: 'Description insuffisante',
-    });
-    listingApi.update.mockResolvedValue(pendingListing);
+    listingApi.findUnique.mockResolvedValue(
+      richListing({
+        status: ListingStatus.REJECTED,
+        moderationReason: 'Description insuffisante',
+      }),
+    );
+    listingApi.update.mockResolvedValue(richListing());
 
     await service.updateOwned('listing-1', 'owner-1', {
       description:
         'Description corrigée et suffisamment détaillée.',
     });
 
-    expect(listingApi.update).toHaveBeenCalledWith({
-      where: { id: 'listing-1' },
-      data: expect.objectContaining({
-        status: ListingStatus.PENDING,
-        moderationReason: null,
+    expect(listingApi.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: ListingStatus.PENDING,
+          moderationReason: null,
+        }),
       }),
-    });
+    );
   });
 
   it('returns 404 when the listing does not exist', async () => {
     listingApi.findUnique.mockResolvedValue(null);
 
     await expect(
-      service.approve('missing-listing'),
+      service.approve(
+        'missing-listing',
+        pendingListing.updatedAt.toISOString(),
+      ),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('approves only a PENDING listing', async () => {
-    listingApi.findUnique.mockResolvedValue(pendingListing);
-    listingApi.update.mockResolvedValue({
-      ...pendingListing,
-      status: ListingStatus.APPROVED,
-    });
+  it('refuses approval when publication assets are incomplete', async () => {
+    listingApi.findUnique.mockResolvedValue(
+      richListing({
+        images: [],
+      }),
+    );
 
-    await service.approve('listing-1');
+    await expect(
+      service.approve(
+        'listing-1',
+        pendingListing.updatedAt.toISOString(),
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
 
-    expect(listingApi.update).toHaveBeenCalledWith({
-      where: { id: 'listing-1' },
+    expect(listingApi.update).not.toHaveBeenCalled();
+  });
+
+  it('approves a PENDING listing only when enriched assets are valid', async () => {
+    listingApi.findUnique
+      .mockResolvedValueOnce(richListing())
+      .mockResolvedValueOnce(
+        richListing({
+          status: ListingStatus.APPROVED,
+        }),
+      );
+
+    const result = await service.approve(
+      'listing-1',
+      pendingListing.updatedAt.toISOString(),
+    );
+
+    expect(result.status).toBe(ListingStatus.APPROVED);
+    expect(listingApi.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'listing-1',
+        status: ListingStatus.PENDING,
+        updatedAt: pendingListing.updatedAt,
+      },
       data: {
         status: ListingStatus.APPROVED,
         moderationReason: null,
@@ -239,33 +394,84 @@ describe('ListingsService', () => {
     });
   });
 
-  it('rejects moderation when the listing is no longer PENDING', async () => {
-    listingApi.findUnique.mockResolvedValue({
-      ...pendingListing,
-      status: ListingStatus.APPROVED,
+  it('rejects approval when the reviewed revision is stale', async () => {
+    listingApi.findUnique.mockResolvedValue(richListing());
+
+    await expect(
+      service.approve(
+        'listing-1',
+        new Date('2026-09-25T11:59:00Z').toISOString(),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(listingApi.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects approval when the listing changes after asset validation', async () => {
+    listingApi.findUnique.mockResolvedValue(richListing());
+    listingApi.updateMany.mockResolvedValue({
+      count: 0,
     });
+
+    await expect(
+      service.approve(
+        'listing-1',
+        pendingListing.updatedAt.toISOString(),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('rejects moderation when the listing is no longer PENDING', async () => {
+    listingApi.findUnique.mockResolvedValue(
+      richListing({
+        status: ListingStatus.APPROVED,
+      }),
+    );
 
     await expect(
       service.reject('listing-1', {
         reason: 'Tentative tardive',
+        reviewedUpdatedAt: pendingListing.updatedAt.toISOString(),
       }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('stores the moderation reason when rejecting', async () => {
-    listingApi.findUnique.mockResolvedValue(pendingListing);
-    listingApi.update.mockResolvedValue({
-      ...pendingListing,
-      status: ListingStatus.REJECTED,
-      moderationReason: 'Description insuffisante',
-    });
+  it('rejects a stale moderation revision before rejection', async () => {
+    listingApi.findUnique.mockResolvedValue(richListing());
+
+    await expect(
+      service.reject('listing-1', {
+        reason: 'Description insuffisante',
+        reviewedUpdatedAt: new Date(
+          '2026-09-25T11:59:00Z',
+        ).toISOString(),
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(listingApi.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('stores the moderation reason when rejecting the reviewed revision', async () => {
+    listingApi.findUnique
+      .mockResolvedValueOnce(richListing())
+      .mockResolvedValueOnce(
+        richListing({
+          status: ListingStatus.REJECTED,
+          moderationReason: 'Description insuffisante',
+        }),
+      );
 
     await service.reject('listing-1', {
       reason: 'Description insuffisante',
+      reviewedUpdatedAt: pendingListing.updatedAt.toISOString(),
     });
 
-    expect(listingApi.update).toHaveBeenCalledWith({
-      where: { id: 'listing-1' },
+    expect(listingApi.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'listing-1',
+        status: ListingStatus.PENDING,
+        updatedAt: pendingListing.updatedAt,
+      },
       data: {
         status: ListingStatus.REJECTED,
         moderationReason: 'Description insuffisante',

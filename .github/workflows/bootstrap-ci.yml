@@ -67,6 +67,9 @@ jobs:
           test -f docs/14-lot9-security-audit.md
           test -f docs/15-lot9b-a-marketplace-domain.md
           test -f docs/16-lot9b-b-object-storage.md
+          test -f docs/17-lot9b-c-enriched-publishing.md
+          test -f apps/api/prisma/migrations/20260928_093000_requeue_invalid_enriched_approvals/migration.sql
+          test -f apps/api/prisma/migrations/20260928_104500_reconcile_legacy_enriched_approvals/migration.sql
           test -f package.json
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
@@ -95,6 +98,8 @@ jobs:
           test -f apps/web/eslint.config.mjs
           test -f apps/web/app/page.tsx
           test -f apps/web/app/globals.css
+          test -f apps/web/lib/publication.ts
+          test -f apps/web/lib/publication.test.ts
           test -f infra/keycloak/projet-indiv26-realm.json
           test -f scripts/keycloak-smoke.sh
           test -f scripts/lot3-smoke.sh
@@ -174,6 +179,9 @@ jobs:
 
       - name: Validate LOT 9B-A marketplace domain
         run: pnpm marketplace:validate
+
+      - name: Validate LOT 9B-C enriched publication
+        run: pnpm publication:validate
 
       - name: Apply Prisma migrations
         run: pnpm db:deploy

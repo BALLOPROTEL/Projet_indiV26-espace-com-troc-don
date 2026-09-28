@@ -112,6 +112,9 @@ export class ListingImagesService {
             data: {
               status: ListingStatus.PENDING,
               moderationReason: null,
+              updatedAt: new Date(
+                listing.updatedAt.getTime() + 1,
+              ),
             },
           });
 
@@ -178,10 +181,38 @@ export class ListingImagesService {
       };
     }
 
-    await this.prisma.listingImage.deleteMany({
-      where: {
-        listingId,
-      },
+    await this.prisma.$transaction(async (transaction) => {
+      const claim = await transaction.listing.updateMany({
+        where: {
+          id: listingId,
+          ownerId,
+          status: {
+            not: ListingStatus.APPROVED,
+          },
+          availabilityStatus:
+            ListingAvailabilityStatus.AVAILABLE,
+          updatedAt: listing.updatedAt,
+        },
+        data: {
+          status: ListingStatus.PENDING,
+          moderationReason: null,
+          updatedAt: new Date(
+            listing.updatedAt.getTime() + 1,
+          ),
+        },
+      });
+
+      if (claim.count !== 1) {
+        throw new ConflictException(
+          'Listing changed while images were being deleted; retry',
+        );
+      }
+
+      await transaction.listingImage.deleteMany({
+        where: {
+          listingId,
+        },
+      });
     });
 
     await this.bestEffortDelete(
@@ -218,6 +249,47 @@ export class ListingImagesService {
     return listing.images.map((image) =>
       this.toPublicImage(listingId, image),
     );
+  }
+
+  async readAuthorizedImage(
+    listingId: string,
+    imageId: string,
+    requesterId: string,
+    canModerate: boolean,
+  ): Promise<ListingImageContent> {
+    const image = await this.prisma.listingImage.findFirst({
+      where: {
+        id: imageId,
+        listingId,
+      },
+      include: {
+        listing: true,
+      },
+    });
+
+    if (!image) {
+      throw new NotFoundException('Listing image not found');
+    }
+
+    if (
+      image.listing.ownerId !== requesterId &&
+      !canModerate
+    ) {
+      throw new ForbiddenException(
+        'Only the listing owner or a moderator may read this image',
+      );
+    }
+
+    const object = await this.storage.readObject(
+      image.objectKey,
+    );
+
+    return {
+      body: object.body,
+      contentType: image.mimeType,
+      contentLength:
+        object.contentLength ?? image.sizeBytes,
+    };
   }
 
   async readPublicImage(

@@ -42,6 +42,16 @@ export class MarketplaceRulesService {
   ): string[] {
     this.assertImageCount(imageCount);
 
+    return this.validateTradeWishes(
+      operationType,
+      tradeWishes,
+    );
+  }
+
+  validateTradeWishes(
+    operationType: ListingOperationType,
+    tradeWishes: string[],
+  ): string[] {
     const normalizedWishes =
       this.normalizeTradeWishes(tradeWishes);
 
@@ -180,7 +190,7 @@ export class MarketplaceRulesService {
         continue;
       }
 
-      const key = wish.toLocaleLowerCase();
+      const key = wish.toLowerCase();
 
       if (seen.has(key)) {
         continue;

@@ -1,8 +1,13 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { ApiError, listingsApi } from '../lib/api';
+import {
+  ApiError,
+  listingAssetUrl,
+  listingsApi,
+} from '../lib/api';
 import {
   formatListingDate,
   operationLabel,
@@ -118,10 +123,65 @@ export function ListingDetail({ id }: { id: string }) {
 
           <h1>{listing.title}</h1>
 
+          {listing.images.length > 0 ? (
+            <section
+              className="listing-gallery"
+              aria-label="Galerie de l’objet"
+            >
+              {listing.images.map((image, index) => (
+                <figure
+                  className={
+                    index === 0
+                      ? 'listing-gallery__item listing-gallery__item--lead'
+                      : 'listing-gallery__item'
+                  }
+                  key={image.id}
+                >
+                  <img
+                    src={listingAssetUrl(image.contentUrl)}
+                    alt={`${listing.title} — vue ${index + 1}`}
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                  />
+                  <figcaption>
+                    Vue {(index + 1).toString().padStart(2, '0')}
+                  </figcaption>
+                </figure>
+              ))}
+            </section>
+          ) : null}
+
           <div className="listing-detail__description">
             <span className="eyebrow">À propos de l’objet</span>
             <p>{listing.description}</p>
           </div>
+
+          {listing.operationType === 'TRADE' ? (
+            <section className="listing-wishes">
+              <span className="eyebrow">
+                Contreparties recherchées
+              </span>
+              <h2>Ce qui pourrait faire l’échange.</h2>
+              <div className="listing-wishes__grid">
+                {listing.tradeWishes.map((wish, index) => (
+                  <div className="listing-wish" key={wish.id}>
+                    <span>
+                      {(index + 1).toString().padStart(2, '0')}
+                    </span>
+                    <strong>{wish.label}</strong>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : (
+            <section className="listing-wishes">
+              <span className="eyebrow">Don</span>
+              <h2>Aucune contrepartie demandée.</h2>
+              <p>
+                Cet objet est proposé gratuitement à un autre membre
+                de la communauté.
+              </p>
+            </section>
+          )}
 
           <div className="listing-detail__actions">
             <Link className="button" href="/espace">
@@ -151,6 +211,16 @@ export function ListingDetail({ id }: { id: string }) {
             <span>Nature</span>
             <strong>{operationLabel(listing.operationType)}</strong>
           </div>
+          <div className="listing-detail__rule">
+            <span>Galerie</span>
+            <strong>{listing.images.length} images</strong>
+          </div>
+          {listing.operationType === 'TRADE' ? (
+            <div className="listing-detail__rule">
+              <span>Souhaits</span>
+              <strong>{listing.tradeWishes.length}</strong>
+            </div>
+          ) : null}
         </aside>
       </div>
     </article>

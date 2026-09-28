@@ -1,6 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ListingOperationType } from '@prisma/client';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsEnum,
   IsOptional,
   IsString,
@@ -27,4 +29,17 @@ export class UpdateListingDto {
   @IsOptional()
   @IsEnum(ListingOperationType)
   operationType?: ListingOperationType;
+
+  @ApiPropertyOptional({
+    type: [String],
+    maxItems: 10,
+    description:
+      '5 à 10 souhaits distincts pour un troc ; vide pour un don.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  @MaxLength(120, { each: true })
+  tradeWishes?: string[];
 }

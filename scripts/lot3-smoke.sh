@@ -9,9 +9,11 @@ API_BASE_URL="${API_BASE_URL:-http://localhost:3000}"
 TOKEN_ENDPOINT="${KEYCLOAK_BASE_URL}/realms/${REALM}/protocol/openid-connect/token"
 DISCOVERY_ENDPOINT="${KEYCLOAK_BASE_URL}/realms/${REALM}/.well-known/openid-configuration"
 TMP_BODY="$(mktemp)"
+TMP_DIR="$(mktemp -d)"
 
 cleanup() {
   rm -f "${TMP_BODY}"
+  rm -rf "${TMP_DIR}"
 }
 trap cleanup EXIT
 
@@ -78,6 +80,22 @@ api_call() {
   curl "${args[@]}" "${API_BASE_URL}${path}"
 }
 
+upload_listing_images() {
+  local listing_id="$1"
+  local token="$2"
+  local args=(-sS -o "${TMP_BODY}" -w "%{http_code}" -X PUT)
+
+  args+=(-H "Authorization: Bearer ${token}")
+
+  for index in 1 2 3 4 5; do
+    local image="${TMP_DIR}/image-${index}.png"
+    printf '\211PNG\r\n\032\nlot9bc-%s' "${index}" > "${image}"
+    args+=(-F "images=@${image};type=image/png")
+  done
+
+  curl "${args[@]}" "${API_BASE_URL}/api/listings/${listing_id}/images"
+}
+
 expect_status() {
   local label="$1"
   local expected="$2"
@@ -139,6 +157,20 @@ assert_array_contains_id() {
   echo "[OK] ${label}"
 }
 
+json_array_field_by_id() {
+  local id="$1"
+  local field="$2"
+  node -e '
+    const fs = require("fs");
+    const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    if (!Array.isArray(payload)) process.exit(1);
+    const item = payload.find((entry) => entry.id === process.argv[2]);
+    if (!item || item[process.argv[3]] === undefined || item[process.argv[3]] === null) {
+      process.exit(1);
+    }
+    process.stdout.write(String(item[process.argv[3]]));
+  ' "${TMP_BODY}" "${id}" "${field}"
+}
 assert_array_missing_id() {
   local label="$1"
   local id="$2"
@@ -166,7 +198,7 @@ STAMP="$(date +%s)"
 
 expect_status "Swagger/OpenAPI document" 200   "$(api_call GET /docs-json)"
 
-APPROVE_BODY="{\"title\":\"LOT3 approval ${STAMP}\",\"description\":\"Annonce de test LOT 3 destinée à être approuvée par un modérateur.\",\"operationType\":\"TRADE\"}"
+APPROVE_BODY="{\"title\":\"LOT3 approval ${STAMP}\",\"description\":\"Annonce de test LOT 3 destinée à être approuvée par un modérateur.\",\"operationType\":\"DONATION\"}"
 expect_status "USER creates listing" 201   "$(api_call POST /api/listings "${USER_TOKEN}" "${APPROVE_BODY}")"
 APPROVE_ID="$(json_field id)"
 assert_field "New listing starts pending" status PENDING
@@ -182,7 +214,16 @@ expect_status "USER cannot access moderation" 403   "$(api_call GET "/api/modera
 expect_status "MODERATOR reads moderation queue" 200   "$(api_call GET "/api/moderation/listings?status=PENDING" "${MODERATOR_TOKEN}")"
 assert_array_contains_id "PENDING listing is in moderation queue" "${APPROVE_ID}"
 
-expect_status "MODERATOR approves listing" 200   "$(api_call POST "/api/moderation/listings/${APPROVE_ID}/approve" "${MODERATOR_TOKEN}")"
+expect_status "USER uploads required publication images" 200 \
+  "$(upload_listing_images "${APPROVE_ID}" "${USER_TOKEN}")"
+
+expect_status "MODERATOR reloads reviewed listing revision" 200 \
+  "$(api_call GET "/api/moderation/listings?status=PENDING" "${MODERATOR_TOKEN}")"
+APPROVE_UPDATED_AT="$(json_array_field_by_id "${APPROVE_ID}" updatedAt)"
+APPROVE_REQUEST="$(node -e 'process.stdout.write(JSON.stringify({reviewedUpdatedAt: process.argv[1]}))' "${APPROVE_UPDATED_AT}")"
+
+expect_status "MODERATOR approves reviewed listing revision" 200 \
+  "$(api_call POST "/api/moderation/listings/${APPROVE_ID}/approve" "${MODERATOR_TOKEN}" "${APPROVE_REQUEST}")"
 assert_field "Approved listing status" status APPROVED
 
 expect_status "Public listing collection after approval" 200   "$(api_call GET /api/listings)"

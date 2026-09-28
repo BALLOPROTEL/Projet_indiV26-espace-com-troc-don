@@ -166,5 +166,5 @@ describe('LOT 9B-B object storage integration', () => {
 
     expect(first.contentType).toBe('image/png');
     expect(first.body).toEqual(files[0]!.buffer);
-  });
+  }, 30_000);
 });
