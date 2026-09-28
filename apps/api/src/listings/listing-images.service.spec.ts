@@ -345,6 +345,20 @@ describe('ListingImagesService', () => {
       deleted: 1,
     });
 
+    expect(listingApi.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'listing-1',
+          ownerId: 'owner-1',
+          updatedAt: expect.any(Date),
+        }),
+        data: expect.objectContaining({
+          status: ListingStatus.PENDING,
+          moderationReason: null,
+          updatedAt: expect.any(Date),
+        }),
+      }),
+    );
     expect(listingImageApi.deleteMany).toHaveBeenCalledWith({
       where: {
         listingId: 'listing-1',
@@ -388,6 +402,59 @@ describe('ListingImagesService', () => {
       },
     ]);
     expect(images[0]).not.toHaveProperty('objectKey');
+  });
+
+  it('allows owners and moderators to read private pending images', async () => {
+    listingImageApi.findFirst.mockResolvedValue({
+      id: 'image-private',
+      listingId: 'listing-1',
+      objectKey: 'listings/listing-1/private.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 5,
+      position: 0,
+      createdAt: new Date(),
+      listing: listing(),
+    });
+    (storage.readObject as jest.Mock).mockResolvedValue({
+      body: Buffer.from([0xff, 0xd8, 0xff, 0x00]),
+      contentType: 'image/jpeg',
+      contentLength: 4,
+    });
+
+    await expect(
+      service.readAuthorizedImage(
+        'listing-1',
+        'image-private',
+        'owner-1',
+        false,
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        contentType: 'image/jpeg',
+      }),
+    );
+
+    await expect(
+      service.readAuthorizedImage(
+        'listing-1',
+        'image-private',
+        'moderator-1',
+        true,
+      ),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        contentType: 'image/jpeg',
+      }),
+    );
+
+    await expect(
+      service.readAuthorizedImage(
+        'listing-1',
+        'image-private',
+        'intruder',
+        false,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('reads only an image attached to an approved listing', async () => {
