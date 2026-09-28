@@ -369,6 +369,29 @@ describe('ListingImagesService', () => {
     ]);
   });
 
+  it('rejects a stale concurrent image deletion', async () => {
+    listingApi.findUnique.mockResolvedValue(
+      listing({
+        images: [
+          {
+            id: 'image-1',
+            objectKey: 'listings/listing-1/image.jpg',
+          },
+        ],
+      }),
+    );
+    listingApi.updateMany.mockResolvedValue({
+      count: 0,
+    });
+
+    await expect(
+      service.deleteOwnedImages('listing-1', 'owner-1'),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(listingImageApi.deleteMany).not.toHaveBeenCalled();
+    expect(storage.deleteObjects).not.toHaveBeenCalled();
+  });
+
   it('exposes public image metadata without object keys', async () => {
     listingApi.findFirst.mockResolvedValue({
       ...listing({
