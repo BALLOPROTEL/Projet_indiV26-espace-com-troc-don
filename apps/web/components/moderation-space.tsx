@@ -1,9 +1,7 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
-import {
-  useEffect,
-  useState,
-} from 'react';
+import { useEffect, useState } from 'react';
 import { listingsApi } from '../lib/api';
 import type { Listing } from '../lib/types';
 import { useAuth } from './auth-provider';
@@ -166,8 +164,9 @@ export function ModerationSpace() {
       </div>
 
       <p className="moderation-intro">
-        Ici, on ne juge pas le goût. On vérifie simplement que la
-        fiche est claire, exploitable et prête à rejoindre le cabinet.
+        Ici, on ne juge pas le goût. On vérifie la fiche, ses photos
+        et, pour un troc, les contreparties recherchées avant
+        publication.
       </p>
 
       {error ? (
@@ -198,6 +197,10 @@ export function ModerationSpace() {
               {(index + 1).toString().padStart(2, '0')}
             </span>
             <ListingCard listing={listing} />
+            <ModerationGallery
+              listing={listing}
+              getToken={getToken}
+            />
             <div className="moderation-actions">
               <label className="field field--compact">
                 <span>Motif si refus</span>
@@ -237,5 +240,110 @@ export function ModerationSpace() {
         ))}
       </div>
     </section>
+  );
+}
+
+function ModerationGallery({
+  listing,
+  getToken,
+}: {
+  listing: Listing;
+  getToken: () => Promise<string>;
+}) {
+  const [urls, setUrls] = useState<string[]>([]);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (listing.images.length === 0) {
+      setUrls([]);
+      setFailed(false);
+      return;
+    }
+
+    let active = true;
+    let createdUrls: string[] = [];
+
+    void getToken()
+      .then(async (token) => {
+        const blobs = await Promise.all(
+          listing.images.map((image) =>
+            listingsApi.authorizedImage(
+              token,
+              listing.id,
+              image.id,
+            ),
+          ),
+        );
+
+        createdUrls = blobs.map((blob) =>
+          URL.createObjectURL(blob),
+        );
+
+        if (active) {
+          setUrls(createdUrls);
+          setFailed(false);
+        } else {
+          for (const url of createdUrls) {
+            URL.revokeObjectURL(url);
+          }
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setFailed(true);
+          setUrls([]);
+        }
+      });
+
+    return () => {
+      active = false;
+      for (const url of createdUrls) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [listing.id, listing.images, getToken]);
+
+  if (listing.images.length === 0) {
+    return (
+      <div className="notice notice--error">
+        Galerie absente : cette fiche ne peut pas être approuvée.
+      </div>
+    );
+  }
+
+  if (failed) {
+    return (
+      <div className="notice notice--error">
+        Impossible de charger la galerie privée pour la relecture.
+      </div>
+    );
+  }
+
+  if (urls.length === 0) {
+    return (
+      <div className="page-loading is-compact">
+        <span className="page-loading__mark" aria-hidden="true" />
+        <span>Chargement des photos privées…</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="moderation-gallery"
+      aria-label={`Galerie privée : ${listing.title}`}
+    >
+      {urls.map((url, index) => (
+        <figure key={url}>
+          <img
+            src={url}
+            alt={`${listing.title} — photo ${index + 1}`}
+          />
+          <figcaption>
+            {(index + 1).toString().padStart(2, '0')}
+          </figcaption>
+        </figure>
+      ))}
+    </div>
   );
 }
