@@ -9,9 +9,11 @@ API_BASE_URL="${API_BASE_URL:-http://localhost:3000}"
 TOKEN_ENDPOINT="${KEYCLOAK_BASE_URL}/realms/${REALM}/protocol/openid-connect/token"
 DISCOVERY_ENDPOINT="${KEYCLOAK_BASE_URL}/realms/${REALM}/.well-known/openid-configuration"
 TMP_BODY="$(mktemp)"
+TMP_DIR="$(mktemp -d)"
 
 cleanup() {
   rm -f "${TMP_BODY}"
+  rm -rf "${TMP_DIR}"
 }
 trap cleanup EXIT
 
@@ -76,6 +78,22 @@ api_call() {
   fi
 
   curl "${args[@]}" "${API_BASE_URL}${path}"
+}
+
+upload_listing_images() {
+  local listing_id="$1"
+  local token="$2"
+  local args=(-sS -o "${TMP_BODY}" -w "%{http_code}" -X PUT)
+
+  args+=(-H "Authorization: Bearer ${token}")
+
+  for index in 1 2 3 4 5; do
+    local image="${TMP_DIR}/image-${index}.png"
+    printf '\211PNG\r\n\032\nlot9bc-%s' "${index}" > "${image}"
+    args+=(-F "images=@${image};type=image/png")
+  done
+
+  curl "${args[@]}" "${API_BASE_URL}/api/listings/${listing_id}/images"
 }
 
 expect_status() {
@@ -166,7 +184,7 @@ STAMP="$(date +%s)"
 
 expect_status "Swagger/OpenAPI document" 200   "$(api_call GET /docs-json)"
 
-APPROVE_BODY="{\"title\":\"LOT3 approval ${STAMP}\",\"description\":\"Annonce de test LOT 3 destinée à être approuvée par un modérateur.\",\"operationType\":\"TRADE\"}"
+APPROVE_BODY="{\"title\":\"LOT3 approval ${STAMP}\",\"description\":\"Annonce de test LOT 3 destinée à être approuvée par un modérateur.\",\"operationType\":\"DONATION\"}"
 expect_status "USER creates listing" 201   "$(api_call POST /api/listings "${USER_TOKEN}" "${APPROVE_BODY}")"
 APPROVE_ID="$(json_field id)"
 assert_field "New listing starts pending" status PENDING
@@ -181,6 +199,9 @@ expect_status "USER cannot access moderation" 403   "$(api_call GET "/api/modera
 
 expect_status "MODERATOR reads moderation queue" 200   "$(api_call GET "/api/moderation/listings?status=PENDING" "${MODERATOR_TOKEN}")"
 assert_array_contains_id "PENDING listing is in moderation queue" "${APPROVE_ID}"
+
+expect_status "USER uploads required publication images" 200 \
+  "$(upload_listing_images "${APPROVE_ID}" "${USER_TOKEN}")"
 
 expect_status "MODERATOR approves listing" 200   "$(api_call POST "/api/moderation/listings/${APPROVE_ID}/approve" "${MODERATOR_TOKEN}")"
 assert_field "Approved listing status" status APPROVED
