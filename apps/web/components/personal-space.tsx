@@ -145,10 +145,10 @@ export function PersonalSpace() {
       await loadMine();
     } catch (reason) {
       if (created) {
+        await loadMine();
         setError(
           'La fiche a été créée mais la galerie n’a pas été enregistrée complètement. Corrigez la fiche avant modération.',
         );
-        await loadMine();
       } else {
         setError(
           reason instanceof Error
@@ -225,12 +225,12 @@ export function PersonalSpace() {
       );
       await loadMine();
     } catch (reason) {
-      setError(
+      const mutationError =
         reason instanceof Error
           ? reason.message
-          : 'Impossible de modifier cette annonce.',
-      );
+          : 'Impossible de modifier cette annonce.';
       await loadMine();
+      setError(mutationError);
     } finally {
       setSaving(false);
     }
