@@ -425,6 +425,7 @@ describe('ListingsService PostgreSQL integration', () => {
 
     const rejected = await service.reject(created.id, {
       reason: 'Merci de préciser les dimensions de l’affiche.',
+      reviewedUpdatedAt: created.updatedAt.toISOString(),
     });
 
     expect(rejected.status).toBe(ListingStatus.REJECTED);
