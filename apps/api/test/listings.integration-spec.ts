@@ -9,6 +9,20 @@ import { ListingsService } from '../src/listings/listings.service';
 import { MarketplaceRulesService } from '../src/marketplace/marketplace-rules.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
+async function executeSqlScript(
+  prisma: PrismaService,
+  sql: string,
+): Promise<void> {
+  const statements = sql
+    .split(';')
+    .map((statement) => statement.trim())
+    .filter(Boolean);
+
+  for (const statement of statements) {
+    await prisma.$executeRawUnsafe(statement);
+  }
+}
+
 describe('ListingsService PostgreSQL integration', () => {
   const prisma = new PrismaService();
   const service = new ListingsService(
@@ -274,7 +288,7 @@ describe('ListingsService PostgreSQL integration', () => {
     );
 
     await prisma.$executeRawUnsafe(initialCleanupSql);
-    await prisma.$executeRawUnsafe(correctiveSql);
+    await executeSqlScript(prisma, correctiveSql);
 
     const migrated = await prisma.listing.findUniqueOrThrow({
       where: {
@@ -335,7 +349,7 @@ describe('ListingsService PostgreSQL integration', () => {
     );
 
     await prisma.$executeRawUnsafe(initialCleanupSql);
-    await prisma.$executeRawUnsafe(correctiveSql);
+    await executeSqlScript(prisma, correctiveSql);
 
     const migrated = await prisma.listing.findUniqueOrThrow({
       where: {
