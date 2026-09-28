@@ -190,12 +190,17 @@ export const listingsApi = {
       token,
     ),
 
-  reject: (token: string, id: string, reason: string) =>
+  reject: (
+    token: string,
+    id: string,
+    reason: string,
+    reviewedUpdatedAt: string,
+  ) =>
     request<Listing>(
       `/moderation/listings/${id}/reject`,
       {
         method: 'POST',
-        body: JSON.stringify({ reason }),
+        body: JSON.stringify({ reason, reviewedUpdatedAt }),
       },
       token,
     ),
