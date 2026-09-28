@@ -204,6 +204,14 @@ export function PersonalSpace() {
 
     try {
       const token = await getToken();
+
+      if (editImages.length > 0) {
+        await listingsApi.deleteImages(
+          token,
+          editing.id,
+        );
+      }
+
       await listingsApi.update(
         token,
         editing.id,
