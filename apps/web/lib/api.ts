@@ -128,6 +128,13 @@ export const listingsApi = {
       token,
     ),
 
+  deleteImages: (token: string, id: string) =>
+    request<{ deleted: number }>(
+      `/listings/${id}/images`,
+      { method: 'DELETE' },
+      token,
+    ),
+
   replaceImages: (
     token: string,
     id: string,
@@ -169,10 +176,17 @@ export const listingsApi = {
       token,
     ),
 
-  approve: (token: string, id: string) =>
+  approve: (
+    token: string,
+    id: string,
+    reviewedUpdatedAt: string,
+  ) =>
     request<Listing>(
       `/moderation/listings/${id}/approve`,
-      { method: 'POST' },
+      {
+        method: 'POST',
+        body: JSON.stringify({ reviewedUpdatedAt }),
+      },
       token,
     ),
 
