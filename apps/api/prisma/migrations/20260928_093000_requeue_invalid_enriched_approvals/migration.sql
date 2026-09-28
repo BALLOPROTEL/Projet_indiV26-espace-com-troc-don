@@ -18,15 +18,22 @@ WHERE
     OR (
       listing."operationType" = 'TRADE'
       AND (
-        SELECT COUNT(
-          DISTINCT NULLIF(
-            LOWER(BTRIM(wish."label")),
-            ''
+        SELECT
+          COUNT(*) <> COUNT(
+            DISTINCT NULLIF(
+              LOWER(BTRIM(wish."label")),
+              ''
+            )
           )
-        )
+          OR COUNT(
+            DISTINCT NULLIF(
+              LOWER(BTRIM(wish."label")),
+              ''
+            )
+          ) NOT BETWEEN 5 AND 10
         FROM "ListingTradeWish" AS wish
         WHERE wish."listingId" = listing."id"
-      ) NOT BETWEEN 5 AND 10
+      )
     )
     OR (
       listing."operationType" = 'DONATION'
