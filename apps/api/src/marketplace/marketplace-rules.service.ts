@@ -190,7 +190,7 @@ export class MarketplaceRulesService {
         continue;
       }
 
-      const key = wish.toLocaleLowerCase();
+      const key = wish.toLowerCase();
 
       if (seen.has(key)) {
         continue;
