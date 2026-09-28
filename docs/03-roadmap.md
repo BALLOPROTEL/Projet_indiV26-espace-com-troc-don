@@ -10,10 +10,10 @@ Epic : [#19](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/i
 - [x] [#2 — Cadrage, architecture et Quality Gates](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/2)
 - [x] [#3 — Conventions Git et templates](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/3)
 - [x] [#4 — CI de bootstrap](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/4)
-- [ ] [#5 — Kanban GitHub Project](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/5)
-- [ ] [#6 — Protection de main](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/6)
-- [ ] [#7 — Environnement local](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/7)
-- [ ] [#8 — Gate de sortie LOT 0](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/8)
+- [x] [#5 — Kanban GitHub Project](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/5)
+- [x] [#6 — Protection de main](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/6)
+- [x] [#7 — Environnement local](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/7)
+- [x] [#8 — Gate de sortie LOT 0](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/8)
 
 ## Backlog macro
 
@@ -57,6 +57,7 @@ Règle de pilotage :
 - LOT 8 : **Done**
 - LOT 9 : **Done**
 - LOT 9B-A : **Done**
-- LOT 9B-B : **In Progress**
-- LOT 9B-C à LOT 9B-F : **Backlog**
+- LOT 9B-B : **Done** — PR #38, squash `46c1a29a2137897dea0e340e6414102da81b8dba`
+- LOT 9B-C : **In Progress** — Publication enrichie
+- LOT 9B-D à LOT 9B-F : **Backlog**
 - LOT 10 : **Backlog**
