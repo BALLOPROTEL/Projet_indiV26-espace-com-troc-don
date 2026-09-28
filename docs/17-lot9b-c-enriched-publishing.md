@@ -46,6 +46,8 @@ Une image exposée contient uniquement :
 
 La clé privée S3 `objectKey` n'est jamais exposée au client.
 
+Pour la modération, une route protégée permet au propriétaire ou à un rôle `MODERATOR` / `ADMIN` de lire le contenu d'une image PENDING. Le frontend récupère ces octets avec le Bearer token et crée des URLs Blob temporaires ; le bucket MinIO reste privé.
+
 ### Gate de modération
 
 L'approbation appelle `MarketplaceRulesService.validatePublicationAssets`.
@@ -55,6 +57,8 @@ Une annonce PENDING ne peut donc pas devenir APPROVED si :
 - elle possède moins de 5 ou plus de 8 images ;
 - un TROC possède moins de 5 ou plus de 10 souhaits distincts ;
 - un DON contient des souhaits de contrepartie.
+
+L'approbation utilise ensuite un claim conditionnel sur le statut et `updatedAt`. Le remplacement ou la suppression d'images modifie également la fiche avant la mutation des métadonnées : une modification concurrente invalide donc l'approbation au lieu de publier une fiche devenue incomplète.
 
 Le rejet reste possible pour une fiche incomplète afin que le modérateur puisse demander une correction.
 
