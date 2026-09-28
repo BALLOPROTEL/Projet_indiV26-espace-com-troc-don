@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { listingsApi } from '../lib/api';
 import type { Listing } from '../lib/types';
 import { useAuth } from './auth-provider';
@@ -257,14 +257,18 @@ function ModerationGallery({
   const [urls, setUrls] = useState<string[]>([]);
   const [loadingGallery, setLoadingGallery] = useState(false);
   const [failed, setFailed] = useState(false);
+  const mountedRef = useRef(true);
+  const urlsRef = useRef<string[]>([]);
 
   useEffect(
     () => () => {
-      for (const url of urls) {
+      mountedRef.current = false;
+      for (const url of urlsRef.current) {
         URL.revokeObjectURL(url);
       }
+      urlsRef.current = [];
     },
-    [urls],
+    [],
   );
 
   async function loadGallery() {
@@ -290,13 +294,27 @@ function ModerationGallery({
           ),
         ),
       );
-      setUrls(
-        blobs.map((blob) => URL.createObjectURL(blob)),
+      const nextUrls = blobs.map((blob) =>
+        URL.createObjectURL(blob),
       );
+
+      if (!mountedRef.current) {
+        for (const url of nextUrls) {
+          URL.revokeObjectURL(url);
+        }
+        return;
+      }
+
+      urlsRef.current = nextUrls;
+      setUrls(nextUrls);
     } catch {
-      setFailed(true);
+      if (mountedRef.current) {
+        setFailed(true);
+      }
     } finally {
-      setLoadingGallery(false);
+      if (mountedRef.current) {
+        setLoadingGallery(false);
+      }
     }
   }
 
