@@ -92,7 +92,7 @@ export function validatePublicationDraft(
     .map((wish) => wish.trim())
     .filter(Boolean);
   const distinct = new Set(
-    normalized.map((wish) => wish.toLocaleLowerCase()),
+    normalized.map((wish) => wish.toLowerCase()),
   );
 
   if (
