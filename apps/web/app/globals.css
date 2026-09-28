@@ -1794,3 +1794,14 @@ textarea:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.moderation-gallery-gate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 16px 0 4px;
+  padding: 12px 14px;
+  border: 1px dashed var(--line);
+  background: rgba(251, 247, 239, 0.52);
+}
