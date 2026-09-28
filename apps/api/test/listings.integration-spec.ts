@@ -4,11 +4,15 @@ import {
   ListingStatus,
 } from '@prisma/client';
 import { ListingsService } from '../src/listings/listings.service';
+import { MarketplaceRulesService } from '../src/marketplace/marketplace-rules.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 describe('ListingsService PostgreSQL integration', () => {
   const prisma = new PrismaService();
-  const service = new ListingsService(prisma);
+  const service = new ListingsService(
+    prisma,
+    new MarketplaceRulesService(),
+  );
   const ownerPrefix = 'lot4-integration-';
 
   beforeEach(async () => {
@@ -40,6 +44,13 @@ describe('ListingsService PostgreSQL integration', () => {
       description:
         'Lot de comics en très bon état proposé pour un échange.',
       operationType: ListingOperationType.TRADE,
+      tradeWishes: [
+        'Console',
+        'Tablette',
+        'Écran',
+        'Clavier',
+        'Casque',
+      ],
     });
 
     expect(created.status).toBe(ListingStatus.PENDING);
@@ -68,6 +79,16 @@ describe('ListingsService PostgreSQL integration', () => {
     expect(beforeApproval.some((listing) => listing.id === created.id)).toBe(
       false,
     );
+
+    await prisma.listingImage.createMany({
+      data: Array.from({ length: 5 }, (_, position) => ({
+        listingId: created.id,
+        objectKey: `integration/${created.id}/${position}.jpg`,
+        mimeType: 'image/jpeg',
+        sizeBytes: 128,
+        position,
+      })),
+    });
 
     const approved = await service.approve(created.id);
     expect(approved.status).toBe(ListingStatus.APPROVED);
