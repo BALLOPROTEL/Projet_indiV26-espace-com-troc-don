@@ -8,6 +8,7 @@ import {
 import {
   Listing,
   ListingImage,
+  ListingOperationType,
   ListingStatus,
   ListingTradeWish,
 } from '@prisma/client';
@@ -174,7 +175,9 @@ export class ListingsService {
     );
     const wishesForValidation =
       input.tradeWishes ??
-      (operationType === 'DONATION' ? [] : currentWishes);
+      (operationType === ListingOperationType.DONATION
+        ? []
+        : currentWishes);
     const normalizedWishes = shouldReplaceWishes
       ? this.marketplaceRules.validateTradeWishes(
           operationType,
