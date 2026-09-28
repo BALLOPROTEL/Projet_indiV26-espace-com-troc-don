@@ -21,6 +21,7 @@ describe('ListingsService', () => {
     findFirst: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
   };
 
   const prisma = {
@@ -76,6 +77,9 @@ describe('ListingsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    listingApi.updateMany.mockResolvedValue({
+      count: 1,
+    });
   });
 
   it('creates a TRADE listing with normalized wishes as PENDING', async () => {
@@ -295,7 +299,6 @@ describe('ListingsService', () => {
 
     await service.updateOwned('listing-1', 'owner-1', {
       operationType: ListingOperationType.DONATION,
-      tradeWishes: [],
     });
 
     expect(listingApi.update).toHaveBeenCalledWith(
@@ -358,25 +361,39 @@ describe('ListingsService', () => {
   });
 
   it('approves a PENDING listing only when enriched assets are valid', async () => {
-    listingApi.findUnique.mockResolvedValue(richListing());
-    listingApi.update.mockResolvedValue(
-      richListing({
-        status: ListingStatus.APPROVED,
-      }),
-    );
+    listingApi.findUnique
+      .mockResolvedValueOnce(richListing())
+      .mockResolvedValueOnce(
+        richListing({
+          status: ListingStatus.APPROVED,
+        }),
+      );
 
     const result = await service.approve('listing-1');
 
     expect(result.status).toBe(ListingStatus.APPROVED);
-    expect(listingApi.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'listing-1' },
-        data: {
-          status: ListingStatus.APPROVED,
-          moderationReason: null,
-        },
-      }),
-    );
+    expect(listingApi.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'listing-1',
+        status: ListingStatus.PENDING,
+        updatedAt: pendingListing.updatedAt,
+      },
+      data: {
+        status: ListingStatus.APPROVED,
+        moderationReason: null,
+      },
+    });
+  });
+
+  it('rejects approval when the listing changes after asset validation', async () => {
+    listingApi.findUnique.mockResolvedValue(richListing());
+    listingApi.updateMany.mockResolvedValue({
+      count: 0,
+    });
+
+    await expect(
+      service.approve('listing-1'),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('rejects moderation when the listing is no longer PENDING', async () => {
