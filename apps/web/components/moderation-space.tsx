@@ -255,8 +255,6 @@ function ModerationGallery({
 
   useEffect(() => {
     if (listing.images.length === 0) {
-      setUrls([]);
-      setFailed(false);
       return;
     }
 
