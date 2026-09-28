@@ -244,9 +244,20 @@ describe('Listings HTTP acceptance E2E', () => {
 
     await enrichedUpload.expect(200);
 
+    const reviewedQueue = await request(app.getHttpServer())
+      .get('/api/moderation/listings?status=PENDING')
+      .set('Authorization', 'Bearer moderator-token')
+      .expect(200);
+    const reviewedListing = reviewedQueue.body.find(
+      (listing: { id: string }) => listing.id === listingId,
+    ) as { updatedAt: string };
+
     const approvedResponse = await request(app.getHttpServer())
       .post(`/api/moderation/listings/${listingId}/approve`)
       .set('Authorization', 'Bearer moderator-token')
+      .send({
+        reviewedUpdatedAt: reviewedListing.updatedAt,
+      })
       .expect(200);
 
     expect(approvedResponse.body.status).toBe('APPROVED');
@@ -339,11 +350,22 @@ describe('Listings HTTP acceptance E2E', () => {
       .get(`/api/listings/${listingId}/images`)
       .expect(404);
 
+    const imageReviewQueue = await request(app.getHttpServer())
+      .get('/api/moderation/listings?status=PENDING')
+      .set('Authorization', 'Bearer moderator-token')
+      .expect(200);
+    const imageReviewedListing = imageReviewQueue.body.find(
+      (listing: { id: string }) => listing.id === listingId,
+    ) as { updatedAt: string };
+
     await request(app.getHttpServer())
       .post(
         `/api/moderation/listings/${listingId}/approve`,
       )
       .set('Authorization', 'Bearer moderator-token')
+      .send({
+        reviewedUpdatedAt: imageReviewedListing.updatedAt,
+      })
       .expect(200);
 
     const publicImages = await request(app.getHttpServer())
@@ -420,6 +442,38 @@ describe('Listings HTTP acceptance E2E', () => {
     }
 
     await spoofed.expect(400);
+  });
+
+  it('rejects approval of a stale moderation revision', async () => {
+    const createdResponse = await request(app.getHttpServer())
+      .post('/api/listings')
+      .set('Authorization', 'Bearer user-token')
+      .send({
+        title: 'LOT 9B-C stale review',
+        description:
+          'Annonce utilisée pour vérifier la révision réellement relue.',
+        operationType: 'DONATION',
+      })
+      .expect(201);
+
+    const listingId = createdResponse.body.id as string;
+    const reviewedUpdatedAt =
+      createdResponse.body.updatedAt as string;
+
+    await request(app.getHttpServer())
+      .patch(`/api/listings/${listingId}`)
+      .set('Authorization', 'Bearer user-token')
+      .send({
+        description:
+          'Description modifiée après ouverture de la file de modération.',
+      })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post(`/api/moderation/listings/${listingId}/approve`)
+      .set('Authorization', 'Bearer moderator-token')
+      .send({ reviewedUpdatedAt })
+      .expect(409);
   });
 
   it('rejects invalid request bodies before business logic', async () => {
