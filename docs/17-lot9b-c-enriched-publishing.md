@@ -185,3 +185,10 @@ Le composant de modération suit son état de montage. Si une galerie est encore
 Les aperçus locaux sont créés dans un effet React et chaque URL Blob créée par cet effet est révoquée par son cleanup. Cette mécanique reste sûre avec React Strict Mode et les rendus abandonnés.
 
 Sur la fiche publique, seule l'image principale est chargée en mode `eager`. Les images suivantes utilisent `loading="lazy"` pour éviter de transférer immédiatement plusieurs fichiers pouvant atteindre 5 MiB chacun.
+
+
+### Cohérence de modération et normalisation
+
+La validation des souhaits utilise `toLowerCase()` côté Web comme côté API afin que la détection des doublons ne dépende pas de la locale du navigateur ou du processus serveur.
+
+Les deux décisions de modération sont liées à la révision effectivement affichée : approbation **et rejet** envoient `reviewedUpdatedAt`. L'API ne bascule l'état que si l'annonce est toujours `PENDING` et conserve exactement le même `updatedAt`; sinon elle renvoie un conflit et impose au modérateur de recharger la fiche.
