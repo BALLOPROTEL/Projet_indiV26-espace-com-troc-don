@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   ListingAvailabilityStatus,
   ListingOperationType,
@@ -99,6 +101,42 @@ describe('ListingsService PostgreSQL integration', () => {
     const afterApproval = await service.findPublic();
     expect(afterApproval.some((listing) => listing.id === created.id)).toBe(
       true,
+    );
+  });
+
+  it('requeues a legacy invalid approval through the LOT 9B-C migration', async () => {
+    const ownerId = `${ownerPrefix}legacy-approved`;
+
+    const legacy = await prisma.listing.create({
+      data: {
+        ownerId,
+        title: 'Ancienne annonce approuvée',
+        description:
+          'Annonce historique approuvée avant les exigences de galerie enrichie.',
+        operationType: ListingOperationType.DONATION,
+        status: ListingStatus.APPROVED,
+      },
+    });
+
+    const migrationSql = readFileSync(
+      join(
+        __dirname,
+        '../prisma/migrations/20260928_093000_requeue_invalid_enriched_approvals/migration.sql',
+      ),
+      'utf8',
+    );
+
+    await prisma.$executeRawUnsafe(migrationSql);
+
+    const migrated = await prisma.listing.findUniqueOrThrow({
+      where: {
+        id: legacy.id,
+      },
+    });
+
+    expect(migrated.status).toBe(ListingStatus.PENDING);
+    expect(migrated.moderationReason).toBe(
+      'Publication enrichie à compléter avant republication.',
     );
   });
 
