@@ -18,7 +18,9 @@ WHERE
     OR (
       listing."operationType" = 'TRADE'
       AND (
-        SELECT COUNT(*)
+        SELECT COUNT(
+          DISTINCT LOWER(BTRIM(wish."label"))
+        )
         FROM "ListingTradeWish" AS wish
         WHERE wish."listingId" = listing."id"
       ) NOT BETWEEN 5 AND 10
