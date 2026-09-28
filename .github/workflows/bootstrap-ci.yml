@@ -69,6 +69,7 @@ jobs:
           test -f docs/16-lot9b-b-object-storage.md
           test -f docs/17-lot9b-c-enriched-publishing.md
           test -f apps/api/prisma/migrations/20260928_093000_requeue_invalid_enriched_approvals/migration.sql
+          test -f apps/api/prisma/migrations/20260928_104500_reconcile_legacy_enriched_approvals/migration.sql
           test -f package.json
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
