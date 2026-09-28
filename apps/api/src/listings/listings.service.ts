@@ -172,10 +172,13 @@ export class ListingsService {
     const currentWishes = listing.tradeWishes.map(
       (wish) => wish.label,
     );
+    const wishesForValidation =
+      input.tradeWishes ??
+      (operationType === 'DONATION' ? [] : currentWishes);
     const normalizedWishes = shouldReplaceWishes
       ? this.marketplaceRules.validateTradeWishes(
           operationType,
-          input.tradeWishes ?? currentWishes,
+          wishesForValidation,
         )
       : currentWishes;
 
@@ -230,16 +233,25 @@ export class ListingsService {
       listing.tradeWishes.map((wish) => wish.label),
     );
 
-    const updated = await this.prisma.listing.update({
-      where: { id },
+    const claim = await this.prisma.listing.updateMany({
+      where: {
+        id,
+        status: ListingStatus.PENDING,
+        updatedAt: listing.updatedAt,
+      },
       data: {
         status: ListingStatus.APPROVED,
         moderationReason: null,
       },
-      include: assetInclude,
     });
 
-    return this.toView(updated);
+    if (claim.count !== 1) {
+      throw new ConflictException(
+        'Listing changed while approval was being processed; retry',
+      );
+    }
+
+    return this.toView(await this.requireListing(id));
   }
 
   async reject(
