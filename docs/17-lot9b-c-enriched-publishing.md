@@ -125,3 +125,28 @@ pnpm security:audit:static
 ## Statut
 
 **IN PROGRESS — implémentation versionnée sur `feat/35-lot9b-c-enriched-publishing`.**
+
+
+### Révision réellement relue
+
+La modération envoie désormais le `updatedAt` exact de la fiche affichée au modérateur lors de l'approbation.
+
+Le backend compare cette valeur à la révision courante avant toute transition vers `APPROVED`. Si le propriétaire a modifié la fiche ou sa galerie entre la lecture et le clic d'approbation, l'API retourne un conflit et impose un rechargement.
+
+### Remplacement de galerie sans fenêtre d'approbation
+
+Lorsqu'un propriétaire choisit un nouveau lot d'images pendant l'édition :
+
+1. l'ancienne galerie est supprimée ;
+2. la fiche possède temporairement 0 image et devient donc inapprovable ;
+3. les métadonnées sont mises à jour ;
+4. le nouveau lot complet de 5 à 8 images est envoyé ;
+5. seule la nouvelle révision complète peut ensuite être relue et approuvée.
+
+Si une étape échoue, la fiche reste privée et incomplète plutôt que de publier une ancienne galerie contre l'intention du propriétaire.
+
+### Chargement des galeries de modération
+
+La file de modération ne télécharge plus toutes les images privées au montage de la page.
+
+Chaque galerie est chargée uniquement lorsque le modérateur choisit explicitement de voir les photos de la fiche. Les URLs Blob temporaires sont libérées par le navigateur lorsque le composant est nettoyé.
