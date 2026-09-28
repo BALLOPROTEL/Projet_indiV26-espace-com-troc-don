@@ -157,6 +157,20 @@ assert_array_contains_id() {
   echo "[OK] ${label}"
 }
 
+json_array_field_by_id() {
+  local id="$1"
+  local field="$2"
+  node -e '
+    const fs = require("fs");
+    const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    if (!Array.isArray(payload)) process.exit(1);
+    const item = payload.find((entry) => entry.id === process.argv[2]);
+    if (!item || item[process.argv[3]] === undefined || item[process.argv[3]] === null) {
+      process.exit(1);
+    }
+    process.stdout.write(String(item[process.argv[3]]));
+  ' "${TMP_BODY}" "${id}" "${field}"
+}
 assert_array_missing_id() {
   local label="$1"
   local id="$2"
@@ -203,7 +217,13 @@ assert_array_contains_id "PENDING listing is in moderation queue" "${APPROVE_ID}
 expect_status "USER uploads required publication images" 200 \
   "$(upload_listing_images "${APPROVE_ID}" "${USER_TOKEN}")"
 
-expect_status "MODERATOR approves listing" 200   "$(api_call POST "/api/moderation/listings/${APPROVE_ID}/approve" "${MODERATOR_TOKEN}")"
+expect_status "MODERATOR reloads reviewed listing revision" 200 \
+  "$(api_call GET "/api/moderation/listings?status=PENDING" "${MODERATOR_TOKEN}")"
+APPROVE_UPDATED_AT="$(json_array_field_by_id "${APPROVE_ID}" updatedAt)"
+APPROVE_REQUEST="$(node -e 'process.stdout.write(JSON.stringify({reviewedUpdatedAt: process.argv[1]}))' "${APPROVE_UPDATED_AT}")"
+
+expect_status "MODERATOR approves reviewed listing revision" 200 \
+  "$(api_call POST "/api/moderation/listings/${APPROVE_ID}/approve" "${MODERATOR_TOKEN}" "${APPROVE_REQUEST}")"
 assert_field "Approved listing status" status APPROVED
 
 expect_status "Public listing collection after approval" 200   "$(api_call GET /api/listings)"
