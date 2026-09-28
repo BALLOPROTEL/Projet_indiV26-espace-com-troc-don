@@ -319,6 +319,22 @@ describe('Listings HTTP acceptance E2E', () => {
       ),
     ).toBe(true);
 
+    const pendingImageId = uploadResponse.body[0].id as string;
+
+    await request(app.getHttpServer())
+      .get(
+        `/api/listings/${listingId}/images/${pendingImageId}/content/authorized`,
+      )
+      .set('Authorization', 'Bearer moderator-token')
+      .expect('Content-Type', /image\/png/)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get(
+        `/api/listings/${listingId}/images/${pendingImageId}/content/authorized`,
+      )
+      .expect(401);
+
     await request(app.getHttpServer())
       .get(`/api/listings/${listingId}/images`)
       .expect(404);
