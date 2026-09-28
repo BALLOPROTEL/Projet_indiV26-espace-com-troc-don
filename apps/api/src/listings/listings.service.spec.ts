@@ -431,30 +431,51 @@ describe('ListingsService', () => {
     await expect(
       service.reject('listing-1', {
         reason: 'Tentative tardive',
+        reviewedUpdatedAt: pendingListing.updatedAt.toISOString(),
       }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('stores the moderation reason when rejecting', async () => {
+  it('rejects a stale moderation revision before rejection', async () => {
     listingApi.findUnique.mockResolvedValue(richListing());
-    listingApi.update.mockResolvedValue(
-      richListing({
-        status: ListingStatus.REJECTED,
-        moderationReason: 'Description insuffisante',
+
+    await expect(
+      service.reject('listing-1', {
+        reason: 'Description insuffisante',
+        reviewedUpdatedAt: new Date(
+          '2026-09-25T11:59:00Z',
+        ).toISOString(),
       }),
-    );
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(listingApi.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('stores the moderation reason when rejecting the reviewed revision', async () => {
+    listingApi.findUnique
+      .mockResolvedValueOnce(richListing())
+      .mockResolvedValueOnce(
+        richListing({
+          status: ListingStatus.REJECTED,
+          moderationReason: 'Description insuffisante',
+        }),
+      );
 
     await service.reject('listing-1', {
       reason: 'Description insuffisante',
+      reviewedUpdatedAt: pendingListing.updatedAt.toISOString(),
     });
 
-    expect(listingApi.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: {
-          status: ListingStatus.REJECTED,
-          moderationReason: 'Description insuffisante',
-        },
-      }),
-    );
+    expect(listingApi.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'listing-1',
+        status: ListingStatus.PENDING,
+        updatedAt: pendingListing.updatedAt,
+      },
+      data: {
+        status: ListingStatus.REJECTED,
+        moderationReason: 'Description insuffisante',
+      },
+    });
   });
 });
