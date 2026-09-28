@@ -79,6 +79,8 @@ Le frontend :
 1. crée ou met à jour la fiche JSON ;
 2. envoie le lot d'images par multipart vers `PUT /api/listings/:id/images`.
 
+Le CORS API autorise explicitement `PUT` et `DELETE` en plus des méthodes historiques afin que ce cycle d'images fonctionne depuis le navigateur.
+
 Si l'étape image échoue après la création, la fiche reste PENDING et la gate de modération empêche toute publication incomplète.
 
 ### Affichage public
