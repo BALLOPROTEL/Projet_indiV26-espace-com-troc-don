@@ -227,8 +227,17 @@ export class ListingsService {
     return listings.map((listing) => this.toView(listing));
   }
 
-  async approve(id: string): Promise<ListingView> {
+  async approve(
+    id: string,
+    reviewedUpdatedAt: string,
+  ): Promise<ListingView> {
     const listing = await this.requirePendingListing(id);
+
+    if (listing.updatedAt.toISOString() !== reviewedUpdatedAt) {
+      throw new ConflictException(
+        'Listing changed after moderator review; reload before approval',
+      );
+    }
 
     this.marketplaceRules.validatePublicationAssets(
       listing.operationType,
