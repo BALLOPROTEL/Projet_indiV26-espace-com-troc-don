@@ -29,7 +29,7 @@ async function bootstrap(): Promise<void> {
 
   app.enableCors({
     origin: webOrigins,
-    methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
   app.useGlobalPipes(
