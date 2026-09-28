@@ -4,6 +4,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
   type FormEvent,
 } from 'react';
@@ -463,8 +464,6 @@ function ListingForm({
   onImagesChange: (images: File[]) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
-  const previews = useImagePreviews(images);
-
   function changeOperation(operationType: ListingOperationType) {
     onChange({
       ...value,
@@ -674,14 +673,12 @@ function ListingForm({
               {images.length > 1 ? 's' : ''}
             </div>
             <div className="upload-gallery">
-              {previews.map((preview, index) => (
-                <figure key={preview.url}>
-                  <img
-                    src={preview.url}
-                    alt={`Aperçu ${index + 1} : ${preview.name}`}
-                  />
-                  <figcaption>{index + 1}</figcaption>
-                </figure>
+              {images.map((file, index) => (
+                <FileImagePreview
+                  key={`${file.name}-${file.size}-${file.lastModified}-${index}`}
+                  file={file}
+                  index={index}
+                />
               ))}
             </div>
           </>
@@ -699,27 +696,37 @@ function ListingForm({
   );
 }
 
-function useImagePreviews(files: File[]) {
-  const [previews, setPreviews] = useState<
-    Array<{ name: string; url: string }>
-  >([]);
+function FileImagePreview({
+  file,
+  index,
+}: {
+  file: File;
+  index: number;
+}) {
+  const imageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    const nextPreviews = files.map((file) => ({
-      name: file.name,
-      url: URL.createObjectURL(file),
-    }));
+    const url = URL.createObjectURL(file);
+    const image = imageRef.current;
 
-    setPreviews(nextPreviews);
+    if (image) {
+      image.src = url;
+    }
 
     return () => {
-      for (const preview of nextPreviews) {
-        URL.revokeObjectURL(preview.url);
-      }
+      URL.revokeObjectURL(url);
     };
-  }, [files]);
+  }, [file]);
 
-  return previews;
+  return (
+    <figure>
+      <img
+        ref={imageRef}
+        alt={`Aperçu ${index + 1} : ${file.name}`}
+      />
+      <figcaption>{index + 1}</figcaption>
+    </figure>
+  );
 }
 
 function PageLoading({
