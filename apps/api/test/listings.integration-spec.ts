@@ -243,6 +243,112 @@ describe('ListingsService PostgreSQL integration', () => {
     expect(migrated.status).toBe(ListingStatus.PENDING);
   });
 
+  it('restores a transaction-bound legacy listing after the corrective migration', async () => {
+    const ownerId = `${ownerPrefix}legacy-reserved`;
+
+    const legacy = await prisma.listing.create({
+      data: {
+        ownerId,
+        title: 'Ancienne annonce réservée',
+        description:
+          'Annonce historique déjà liée à une transaction et non modifiable.',
+        operationType: ListingOperationType.DONATION,
+        status: ListingStatus.APPROVED,
+        availabilityStatus: ListingAvailabilityStatus.RESERVED,
+      },
+    });
+
+    const initialCleanupSql = readFileSync(
+      join(
+        __dirname,
+        '../prisma/migrations/20260928_093000_requeue_invalid_enriched_approvals/migration.sql',
+      ),
+      'utf8',
+    );
+    const correctiveSql = readFileSync(
+      join(
+        __dirname,
+        '../prisma/migrations/20260928_104500_reconcile_legacy_enriched_approvals/migration.sql',
+      ),
+      'utf8',
+    );
+
+    await prisma.$executeRawUnsafe(initialCleanupSql);
+    await prisma.$executeRawUnsafe(correctiveSql);
+
+    const migrated = await prisma.listing.findUniqueOrThrow({
+      where: {
+        id: legacy.id,
+      },
+    });
+
+    expect(migrated.status).toBe(ListingStatus.APPROVED);
+    expect(migrated.availabilityStatus).toBe(
+      ListingAvailabilityStatus.RESERVED,
+    );
+    expect(migrated.moderationReason).toBeNull();
+  });
+
+  it('requeues legacy trade wishes containing JavaScript-trim whitespace', async () => {
+    const ownerId = `${ownerPrefix}legacy-trade-tab`;
+
+    const legacy = await prisma.listing.create({
+      data: {
+        ownerId,
+        title: 'Ancien troc avec tabulation',
+        description:
+          'Ancienne annonce avec quatre souhaits réels et une tabulation.',
+        operationType: ListingOperationType.TRADE,
+        status: ListingStatus.APPROVED,
+        images: {
+          create: Array.from({ length: 5 }, (_, position) => ({
+            objectKey: `legacy/${ownerId}/${position}.jpg`,
+            mimeType: 'image/jpeg',
+            sizeBytes: 128,
+            position,
+          })),
+        },
+        tradeWishes: {
+          create: ['Console', 'Tablette', 'Écran', 'Clavier', '\t'].map(
+            (label, position) => ({
+              label,
+              position,
+            }),
+          ),
+        },
+      },
+    });
+
+    const initialCleanupSql = readFileSync(
+      join(
+        __dirname,
+        '../prisma/migrations/20260928_093000_requeue_invalid_enriched_approvals/migration.sql',
+      ),
+      'utf8',
+    );
+    const correctiveSql = readFileSync(
+      join(
+        __dirname,
+        '../prisma/migrations/20260928_104500_reconcile_legacy_enriched_approvals/migration.sql',
+      ),
+      'utf8',
+    );
+
+    await prisma.$executeRawUnsafe(initialCleanupSql);
+    await prisma.$executeRawUnsafe(correctiveSql);
+
+    const migrated = await prisma.listing.findUniqueOrThrow({
+      where: {
+        id: legacy.id,
+      },
+    });
+
+    expect(migrated.status).toBe(ListingStatus.PENDING);
+    expect(migrated.moderationReason).toBe(
+      'Publication enrichie à compléter avant republication.',
+    );
+  });
+
   it('stores a rejection reason and keeps the listing private', async () => {
     const ownerId = `${ownerPrefix}user-3`;
 
