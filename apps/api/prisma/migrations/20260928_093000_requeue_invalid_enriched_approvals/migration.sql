@@ -19,7 +19,10 @@ WHERE
       listing."operationType" = 'TRADE'
       AND (
         SELECT COUNT(
-          DISTINCT LOWER(BTRIM(wish."label"))
+          DISTINCT NULLIF(
+            LOWER(BTRIM(wish."label")),
+            ''
+          )
         )
         FROM "ListingTradeWish" AS wish
         WHERE wish."listingId" = listing."id"
