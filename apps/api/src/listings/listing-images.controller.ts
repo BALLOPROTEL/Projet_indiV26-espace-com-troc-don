@@ -99,6 +99,40 @@ export class ListingImagesController {
     return this.listingImages.findPublicImages(id);
   }
 
+  @Get(':id/images/:imageId/content/authorized')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      "Télécharger une image privée de son annonce ou d'une annonce à modérer",
+  })
+  @Roles(AppRole.USER, AppRole.MODERATOR, AppRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async readAuthorizedImage(
+    @Param('id') id: string,
+    @Param('imageId') imageId: string,
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: HeaderResponse,
+  ) {
+    const roles = request.user?.roles ?? [];
+    const image = await this.listingImages.readAuthorizedImage(
+      id,
+      imageId,
+      this.requireSubject(request),
+      roles.includes(AppRole.MODERATOR) ||
+        roles.includes(AppRole.ADMIN),
+    );
+
+    response.setHeader(
+      'Cache-Control',
+      'private, no-store',
+    );
+
+    return new StreamableFile(image.body, {
+      type: image.contentType,
+      length: image.contentLength ?? image.body.length,
+    });
+  }
+
   @Get(':id/images/:imageId/content')
   @ApiOperation({
     summary:
