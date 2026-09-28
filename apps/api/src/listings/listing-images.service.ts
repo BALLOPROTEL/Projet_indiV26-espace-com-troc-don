@@ -112,6 +112,9 @@ export class ListingImagesService {
             data: {
               status: ListingStatus.PENDING,
               moderationReason: null,
+              updatedAt: new Date(
+                listing.updatedAt.getTime() + 1,
+              ),
             },
           });
 
@@ -193,7 +196,9 @@ export class ListingImagesService {
         data: {
           status: ListingStatus.PENDING,
           moderationReason: null,
-          updatedAt: new Date(),
+          updatedAt: new Date(
+            listing.updatedAt.getTime() + 1,
+          ),
         },
       });
 
