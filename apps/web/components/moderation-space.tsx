@@ -260,16 +260,17 @@ function ModerationGallery({
   const mountedRef = useRef(true);
   const urlsRef = useRef<string[]>([]);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
       mountedRef.current = false;
       for (const url of urlsRef.current) {
         URL.revokeObjectURL(url);
       }
       urlsRef.current = [];
-    },
-    [],
-  );
+    };
+  }, []);
 
   async function loadGallery() {
     if (
