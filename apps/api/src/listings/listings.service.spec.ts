@@ -342,7 +342,10 @@ describe('ListingsService', () => {
     listingApi.findUnique.mockResolvedValue(null);
 
     await expect(
-      service.approve('missing-listing'),
+      service.approve(
+        'missing-listing',
+        pendingListing.updatedAt.toISOString(),
+      ),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -354,7 +357,10 @@ describe('ListingsService', () => {
     );
 
     await expect(
-      service.approve('listing-1'),
+      service.approve(
+        'listing-1',
+        pendingListing.updatedAt.toISOString(),
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
 
     expect(listingApi.update).not.toHaveBeenCalled();
@@ -369,7 +375,10 @@ describe('ListingsService', () => {
         }),
       );
 
-    const result = await service.approve('listing-1');
+    const result = await service.approve(
+      'listing-1',
+      pendingListing.updatedAt.toISOString(),
+    );
 
     expect(result.status).toBe(ListingStatus.APPROVED);
     expect(listingApi.updateMany).toHaveBeenCalledWith({
@@ -383,6 +392,19 @@ describe('ListingsService', () => {
         moderationReason: null,
       },
     });
+  });
+
+  it('rejects approval when the reviewed revision is stale', async () => {
+    listingApi.findUnique.mockResolvedValue(richListing());
+
+    await expect(
+      service.approve(
+        'listing-1',
+        new Date('2026-09-25T11:59:00Z').toISOString(),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(listingApi.updateMany).not.toHaveBeenCalled();
   });
 
   it('rejects approval when the listing changes after asset validation', async () => {
