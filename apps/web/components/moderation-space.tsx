@@ -65,7 +65,11 @@ export function ModerationSpace() {
 
     try {
       const token = await getToken();
-      await listingsApi.approve(token, listing.id);
+      await listingsApi.approve(
+        token,
+        listing.id,
+        listing.updatedAt,
+      );
       setQueue((current) =>
         current.filter((item) => item.id !== listing.id),
       );
@@ -251,55 +255,50 @@ function ModerationGallery({
   getToken: () => Promise<string>;
 }) {
   const [urls, setUrls] = useState<string[]>([]);
+  const [loadingGallery, setLoadingGallery] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    if (listing.images.length === 0) {
+  useEffect(
+    () => () => {
+      for (const url of urls) {
+        URL.revokeObjectURL(url);
+      }
+    },
+    [urls],
+  );
+
+  async function loadGallery() {
+    if (
+      listing.images.length === 0 ||
+      loadingGallery ||
+      urls.length > 0
+    ) {
       return;
     }
 
-    let active = true;
-    let createdUrls: string[] = [];
+    setLoadingGallery(true);
+    setFailed(false);
 
-    void getToken()
-      .then(async (token) => {
-        const blobs = await Promise.all(
-          listing.images.map((image) =>
-            listingsApi.authorizedImage(
-              token,
-              listing.id,
-              image.id,
-            ),
+    try {
+      const token = await getToken();
+      const blobs = await Promise.all(
+        listing.images.map((image) =>
+          listingsApi.authorizedImage(
+            token,
+            listing.id,
+            image.id,
           ),
-        );
-
-        createdUrls = blobs.map((blob) =>
-          URL.createObjectURL(blob),
-        );
-
-        if (active) {
-          setUrls(createdUrls);
-          setFailed(false);
-        } else {
-          for (const url of createdUrls) {
-            URL.revokeObjectURL(url);
-          }
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setFailed(true);
-          setUrls([]);
-        }
-      });
-
-    return () => {
-      active = false;
-      for (const url of createdUrls) {
-        URL.revokeObjectURL(url);
-      }
-    };
-  }, [listing.id, listing.images, getToken]);
+        ),
+      );
+      setUrls(
+        blobs.map((blob) => URL.createObjectURL(blob)),
+      );
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoadingGallery(false);
+    }
+  }
 
   if (listing.images.length === 0) {
     return (
@@ -309,19 +308,28 @@ function ModerationGallery({
     );
   }
 
-  if (failed) {
-    return (
-      <div className="notice notice--error">
-        Impossible de charger la galerie privée pour la relecture.
-      </div>
-    );
-  }
-
   if (urls.length === 0) {
     return (
-      <div className="page-loading is-compact">
-        <span className="page-loading__mark" aria-hidden="true" />
-        <span>Chargement des photos privées…</span>
+      <div className="moderation-gallery-gate">
+        <button
+          className="button button--quiet button--small"
+          type="button"
+          disabled={loadingGallery}
+          onClick={() => void loadGallery()}
+        >
+          {loadingGallery
+            ? 'Chargement des photos…'
+            : `Voir les ${listing.images.length} photos`}
+        </button>
+        {failed ? (
+          <span className="quiet-note">
+            Impossible de charger la galerie privée. Réessayez.
+          </span>
+        ) : (
+          <span className="quiet-note">
+            Les photos privées sont chargées uniquement à la demande.
+          </span>
+        )}
       </div>
     );
   }
