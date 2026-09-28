@@ -150,3 +150,24 @@ Si une étape échoue, la fiche reste privée et incomplète plutôt que de publ
 La file de modération ne télécharge plus toutes les images privées au montage de la page.
 
 Chaque galerie est chargée uniquement lorsque le modérateur choisit explicitement de voir les photos de la fiche. Les URLs Blob temporaires sont libérées par le navigateur lorsque le composant est nettoyé.
+
+
+### Compatibilité des anciennes approbations
+
+La migration `20260928_093000_requeue_invalid_enriched_approvals` remet en `PENDING` les annonces historiquement `APPROVED` qui ne respectent pas encore le contrat 9B-C :
+
+- moins de 5 ou plus de 8 images ;
+- TROC avec moins de 5 ou plus de 10 souhaits ;
+- DONATION avec des souhaits de contrepartie.
+
+Ces fiches deviennent ainsi réparables et doivent être relues avant republication.
+
+### Retry de création et champ fichier
+
+Si la création JSON réussit mais que l'upload de la galerie échoue, le frontend conserve le `listingId` créé et réutilise ce même brouillon au prochain submit. Il ne crée donc pas de doublon.
+
+Après un succès complet, le champ natif `input[type=file]` est remonté via une clé React afin de vider réellement son `FileList`, y compris lorsqu'un utilisateur sélectionne ensuite exactement les mêmes fichiers.
+
+### Nettoyage des galeries privées
+
+Le composant de modération suit son état de montage. Si une galerie est encore en cours de téléchargement lorsque la fiche disparaît de la file, toute Blob URL créée après l'unmount est immédiatement révoquée et aucun state update n'est tenté sur le composant démonté.
