@@ -47,6 +47,17 @@ describe('enriched publication helpers', () => {
     ).toContain('souhaits distincts');
   });
 
+  it('treats I and i as duplicate wishes independently of browser locale', () => {
+    const draft = {
+      ...createBlankListingInput(),
+      tradeWishes: ['I', 'i', 'Console', 'Tablette', 'Écran'],
+    };
+
+    expect(
+      validatePublicationDraft(draft, images, 0),
+    ).toContain('souhaits distincts');
+  });
+
   it('accepts donation without wishes and strips them from payload', () => {
     const draft = {
       ...createBlankListingInput(),
