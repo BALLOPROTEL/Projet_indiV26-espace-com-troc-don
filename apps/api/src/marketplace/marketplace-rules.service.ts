@@ -42,6 +42,16 @@ export class MarketplaceRulesService {
   ): string[] {
     this.assertImageCount(imageCount);
 
+    return this.validateTradeWishes(
+      operationType,
+      tradeWishes,
+    );
+  }
+
+  validateTradeWishes(
+    operationType: ListingOperationType,
+    tradeWishes: string[],
+  ): string[] {
     const normalizedWishes =
       this.normalizeTradeWishes(tradeWishes);
 
