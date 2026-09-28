@@ -1,8 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ListingOperationType } from '@prisma/client';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
   MinLength,
@@ -36,4 +39,24 @@ export class CreateListingDto {
   })
   @IsEnum(ListingOperationType)
   operationType!: ListingOperationType;
+
+  @ApiPropertyOptional({
+    type: [String],
+    maxItems: 10,
+    example: [
+      'Nintendo Switch',
+      'Steam Deck',
+      'Tablette',
+      'Ordinateur portable',
+      'Écran gaming',
+    ],
+    description:
+      'Obligatoire pour un troc : 5 à 10 souhaits distincts. Interdit pour un don.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  @MaxLength(120, { each: true })
+  tradeWishes?: string[];
 }
