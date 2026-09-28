@@ -183,6 +183,13 @@ export function PersonalSpace() {
   function startEditing(listing: Listing) {
     const labels = listing.tradeWishes.map((wish) => wish.label);
 
+    if (pendingCreateId === listing.id) {
+      setPendingCreateId(null);
+      setForm(createBlankListingInput());
+      setCreateImages([]);
+      setCreateImageInputKey((current) => current + 1);
+    }
+
     setEditing(listing);
     setEditForm({
       title: listing.title,
