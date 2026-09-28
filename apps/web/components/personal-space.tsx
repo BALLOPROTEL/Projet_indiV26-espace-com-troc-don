@@ -41,6 +41,10 @@ export function PersonalSpace() {
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<ListingInput>(createBlankListingInput);
   const [createImages, setCreateImages] = useState<File[]>([]);
+  const [pendingCreateId, setPendingCreateId] =
+    useState<string | null>(null);
+  const [createImageInputKey, setCreateImageInputKey] =
+    useState(0);
   const [editing, setEditing] = useState<Listing | null>(null);
   const [editForm, setEditForm] =
     useState<ListingInput>(createBlankListingInput);
@@ -124,30 +128,45 @@ export function PersonalSpace() {
     }
 
     setSaving(true);
-    let created: Listing | null = null;
+    let draftId = pendingCreateId;
 
     try {
       const token = await getToken();
-      created = await listingsApi.create(
-        token,
-        normalizedListingInput(form),
-      );
+
+      if (draftId) {
+        await listingsApi.update(
+          token,
+          draftId,
+          normalizedListingInput(form),
+        );
+      } else {
+        const created = await listingsApi.create(
+          token,
+          normalizedListingInput(form),
+        );
+        draftId = created.id;
+        setPendingCreateId(created.id);
+      }
+
       await listingsApi.replaceImages(
         token,
-        created.id,
+        draftId,
         createImages,
       );
+
+      setPendingCreateId(null);
       setForm(createBlankListingInput());
       setCreateImages([]);
+      setCreateImageInputKey((current) => current + 1);
       setFeedback(
         'Annonce complète déposée. Elle attend maintenant la relecture de la réserve.',
       );
       await loadMine();
     } catch (reason) {
-      if (created) {
+      if (draftId) {
         await loadMine();
         setError(
-          'La fiche a été créée mais la galerie n’a pas été enregistrée complètement. Corrigez la fiche avant modération.',
+          'La fiche existe déjà mais sa galerie n’a pas été enregistrée complètement. Corrigez si nécessaire puis réessayez : le même brouillon sera réutilisé.',
         );
       } else {
         setError(
@@ -298,8 +317,13 @@ export function PersonalSpace() {
             value={form}
             images={createImages}
             existingImageCount={0}
+            imageInputKey={createImageInputKey}
             submitLabel={
-              saving ? 'Dépôt en cours…' : 'Déposer pour relecture'
+              saving
+                ? 'Dépôt en cours…'
+                : pendingCreateId
+                  ? 'Réessayer la galerie'
+                  : 'Déposer pour relecture'
             }
             disabled={saving}
             onChange={setForm}
@@ -416,6 +440,7 @@ function ListingForm({
   value,
   images,
   existingImageCount,
+  imageInputKey,
   submitLabel,
   disabled,
   onChange,
@@ -425,6 +450,7 @@ function ListingForm({
   value: ListingInput;
   images: File[];
   existingImageCount: number;
+  imageInputKey?: string | number;
   submitLabel: string;
   disabled: boolean;
   onChange: (value: ListingInput) => void;
@@ -619,6 +645,7 @@ function ListingForm({
         <label className="file-picker">
           <span>Choisir 5 à 8 images</span>
           <input
+            key={imageInputKey}
             type="file"
             multiple
             accept="image/jpeg,image/png,image/webp"
