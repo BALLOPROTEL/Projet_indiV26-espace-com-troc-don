@@ -474,6 +474,15 @@ describe('Listings HTTP acceptance E2E', () => {
       .set('Authorization', 'Bearer moderator-token')
       .send({ reviewedUpdatedAt })
       .expect(409);
+
+    await request(app.getHttpServer())
+      .post(`/api/moderation/listings/${listingId}/reject`)
+      .set('Authorization', 'Bearer moderator-token')
+      .send({
+        reason: 'Révision obsolète',
+        reviewedUpdatedAt,
+      })
+      .expect(409);
   });
 
   it('rejects invalid request bodies before business logic', async () => {
