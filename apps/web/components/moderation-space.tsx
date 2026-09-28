@@ -97,7 +97,12 @@ export function ModerationSpace() {
 
     try {
       const token = await getToken();
-      await listingsApi.reject(token, listing.id, reason);
+      await listingsApi.reject(
+        token,
+        listing.id,
+        reason,
+        listing.updatedAt,
+      );
       setQueue((current) =>
         current.filter((item) => item.id !== listing.id),
       );
