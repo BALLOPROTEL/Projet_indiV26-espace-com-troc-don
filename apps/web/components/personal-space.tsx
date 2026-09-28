@@ -10,6 +10,15 @@ import {
 } from 'react';
 import { listingsApi } from '../lib/api';
 import { canEditListing } from '../lib/presentation';
+import {
+  createBlankListingInput,
+  MAX_IMAGES,
+  MAX_WISHES,
+  MIN_WISHES,
+  normalizedListingInput,
+  padWishes,
+  validatePublicationDraft,
+} from '../lib/publication';
 import type {
   Listing,
   ListingInput,
@@ -18,26 +27,6 @@ import type {
 import { useAuth } from './auth-provider';
 import { EmptyState } from './empty-state';
 import { ListingCard } from './listing-card';
-
-const MIN_IMAGES = 5;
-const MAX_IMAGES = 8;
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-const MIN_WISHES = 5;
-const MAX_WISHES = 10;
-const IMAGE_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-]);
-
-function createBlankForm(): ListingInput {
-  return {
-    title: '',
-    description: '',
-    operationType: 'TRADE',
-    tradeWishes: Array.from({ length: MIN_WISHES }, () => ''),
-  };
-}
 
 export function PersonalSpace() {
   const {
@@ -50,11 +39,11 @@ export function PersonalSpace() {
 
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState<ListingInput>(createBlankForm);
+  const [form, setForm] = useState<ListingInput>(createBlankListingInput);
   const [createImages, setCreateImages] = useState<File[]>([]);
   const [editing, setEditing] = useState<Listing | null>(null);
   const [editForm, setEditForm] =
-    useState<ListingInput>(createBlankForm);
+    useState<ListingInput>(createBlankListingInput);
   const [editImages, setEditImages] = useState<File[]>([]);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -141,14 +130,14 @@ export function PersonalSpace() {
       const token = await getToken();
       created = await listingsApi.create(
         token,
-        normalizedInput(form),
+        normalizedListingInput(form),
       );
       await listingsApi.replaceImages(
         token,
         created.id,
         createImages,
       );
-      setForm(createBlankForm());
+      setForm(createBlankListingInput());
       setCreateImages([]);
       setFeedback(
         'Annonce complète déposée. Elle attend maintenant la relecture de la réserve.',
@@ -218,7 +207,7 @@ export function PersonalSpace() {
       await listingsApi.update(
         token,
         editing.id,
-        normalizedInput(editForm),
+        normalizedListingInput(editForm),
       );
 
       if (editImages.length > 0) {
@@ -689,82 +678,6 @@ function useImagePreviews(files: File[]) {
   );
 
   return previews;
-}
-
-function normalizedInput(value: ListingInput): ListingInput {
-  return {
-    title: value.title.trim(),
-    description: value.description.trim(),
-    operationType: value.operationType,
-    tradeWishes:
-      value.operationType === 'TRADE'
-        ? value.tradeWishes
-            .map((wish) => wish.trim())
-            .filter(Boolean)
-        : [],
-  };
-}
-
-function padWishes(wishes: string[]): string[] {
-  if (wishes.length >= MIN_WISHES) {
-    return wishes.slice(0, MAX_WISHES);
-  }
-
-  return [
-    ...wishes,
-    ...Array.from(
-      { length: MIN_WISHES - wishes.length },
-      () => '',
-    ),
-  ];
-}
-
-function validatePublicationDraft(
-  value: ListingInput,
-  selectedImages: File[],
-  existingImageCount: number,
-): string | null {
-  const effectiveImageCount =
-    selectedImages.length > 0
-      ? selectedImages.length
-      : existingImageCount;
-
-  if (
-    effectiveImageCount < MIN_IMAGES ||
-    effectiveImageCount > MAX_IMAGES
-  ) {
-    return `Ajoutez entre ${MIN_IMAGES} et ${MAX_IMAGES} images avant l’envoi.`;
-  }
-
-  for (const image of selectedImages) {
-    if (!IMAGE_TYPES.has(image.type)) {
-      return 'Les images doivent être au format JPEG, PNG ou WEBP.';
-    }
-
-    if (image.size > MAX_IMAGE_SIZE) {
-      return `L’image « ${image.name} » dépasse 5 MiB.`;
-    }
-  }
-
-  if (value.operationType === 'DONATION') {
-    return null;
-  }
-
-  const normalized = value.tradeWishes
-    .map((wish) => wish.trim())
-    .filter(Boolean);
-  const distinct = new Set(
-    normalized.map((wish) => wish.toLocaleLowerCase()),
-  );
-
-  if (
-    distinct.size < MIN_WISHES ||
-    distinct.size > MAX_WISHES
-  ) {
-    return `Un troc exige entre ${MIN_WISHES} et ${MAX_WISHES} souhaits distincts.`;
-  }
-
-  return null;
 }
 
 function PageLoading({
