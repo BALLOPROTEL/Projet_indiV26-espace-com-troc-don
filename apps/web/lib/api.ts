@@ -1,11 +1,16 @@
 import type {
   Listing,
+  ListingImage,
   ListingInput,
   ListingStatus,
 } from './types';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api';
+
+const API_ORIGIN = API_URL.startsWith('http')
+  ? new URL(API_URL).origin
+  : '';
 
 export class ApiError extends Error {
   constructor(
@@ -24,7 +29,7 @@ async function request<T>(
 ): Promise<T> {
   const headers = new Headers(options.headers);
 
-  if (options.body) {
+  if (options.body && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -61,6 +66,14 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 
+export function listingAssetUrl(path: string): string {
+  if (!API_ORIGIN || !path.startsWith('/')) {
+    return path;
+  }
+
+  return `${API_ORIGIN}${path}`;
+}
+
 export const listingsApi = {
   public: () => request<Listing[]>('/listings'),
 
@@ -93,6 +106,27 @@ export const listingsApi = {
       },
       token,
     ),
+
+  replaceImages: (
+    token: string,
+    id: string,
+    images: File[],
+  ) => {
+    const body = new FormData();
+
+    for (const image of images) {
+      body.append('images', image);
+    }
+
+    return request<ListingImage[]>(
+      `/listings/${id}/images`,
+      {
+        method: 'PUT',
+        body,
+      },
+      token,
+    );
+  },
 
   moderation: (
     token: string,
