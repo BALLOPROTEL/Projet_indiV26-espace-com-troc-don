@@ -270,18 +270,35 @@ export class ListingsService {
     id: string,
     input: RejectListingDto,
   ): Promise<ListingView> {
-    await this.requirePendingListing(id);
+    const listing = await this.requirePendingListing(id);
 
-    const updated = await this.prisma.listing.update({
-      where: { id },
+    if (
+      listing.updatedAt.toISOString() !== input.reviewedUpdatedAt
+    ) {
+      throw new ConflictException(
+        'Listing changed after moderator review; reload before rejection',
+      );
+    }
+
+    const claim = await this.prisma.listing.updateMany({
+      where: {
+        id,
+        status: ListingStatus.PENDING,
+        updatedAt: listing.updatedAt,
+      },
       data: {
         status: ListingStatus.REJECTED,
         moderationReason: input.reason,
       },
-      include: assetInclude,
     });
 
-    return this.toView(updated);
+    if (claim.count !== 1) {
+      throw new ConflictException(
+        'Listing changed while rejection was being processed; retry',
+      );
+    }
+
+    return this.toView(await this.requireListing(id));
   }
 
   private async requireListing(
