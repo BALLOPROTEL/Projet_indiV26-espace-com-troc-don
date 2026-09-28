@@ -66,6 +66,27 @@ async function request<T>(
   return response.json() as Promise<T>;
 }
 
+async function requestBlob(
+  path: string,
+  token: string,
+): Promise<Blob> {
+  const response = await fetch(`${API_URL}${path}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      `Impossible de charger l’image (HTTP ${response.status}).`,
+    );
+  }
+
+  return response.blob();
+}
+
 export function listingAssetUrl(path: string): string {
   if (!API_ORIGIN || !path.startsWith('/')) {
     return path;
@@ -127,6 +148,16 @@ export const listingsApi = {
       token,
     );
   },
+
+  authorizedImage: (
+    token: string,
+    listingId: string,
+    imageId: string,
+  ) =>
+    requestBlob(
+      `/listings/${listingId}/images/${imageId}/content/authorized`,
+      token,
+    ),
 
   moderation: (
     token: string,
