@@ -7,7 +7,7 @@ const securityHeaders = [
   },
   {
     key: 'X-Frame-Options',
-    value: 'DENY',
+    value: 'SAMEORIGIN',
   },
   {
     key: 'Referrer-Policy',
@@ -19,7 +19,7 @@ const securityHeaders = [
   },
   {
     key: 'Content-Security-Policy',
-    value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
+    value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'",
   },
 ];
 
