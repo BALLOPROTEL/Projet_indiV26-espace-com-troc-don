@@ -90,7 +90,10 @@ describe('ListingsService PostgreSQL integration', () => {
       })),
     });
 
-    const approved = await service.approve(created.id);
+    const approved = await service.approve(
+      created.id,
+      created.updatedAt.toISOString(),
+    );
     expect(approved.status).toBe(ListingStatus.APPROVED);
 
     const afterApproval = await service.findPublic();
