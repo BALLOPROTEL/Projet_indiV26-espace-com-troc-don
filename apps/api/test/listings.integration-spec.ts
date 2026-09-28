@@ -363,6 +363,56 @@ describe('ListingsService PostgreSQL integration', () => {
     );
   });
 
+  it('keeps valid legacy wishes beginning or ending with v approved', async () => {
+    const ownerId = `${ownerPrefix}legacy-trade-valid-v`;
+
+    const legacy = await prisma.listing.create({
+      data: {
+        ownerId,
+        title: 'Ancien troc valide en v',
+        description:
+          'Annonce legacy valide dont certains souhaits commencent ou finissent par v.',
+        operationType: ListingOperationType.TRADE,
+        status: ListingStatus.APPROVED,
+        images: {
+          create: Array.from({ length: 5 }, (_, position) => ({
+            objectKey: `legacy/${ownerId}/${position}.jpg`,
+            mimeType: 'image/jpeg',
+            sizeBytes: 128,
+            position,
+          })),
+        },
+        tradeWishes: {
+          create: ['velo', 'liv', 'Console', 'Tablette', 'Écran'].map(
+            (label, position) => ({
+              label,
+              position,
+            }),
+          ),
+        },
+      },
+    });
+
+    const correctiveSql = readFileSync(
+      join(
+        __dirname,
+        '../prisma/migrations/20260928_104500_reconcile_legacy_enriched_approvals/migration.sql',
+      ),
+      'utf8',
+    );
+
+    await executeSqlScript(prisma, correctiveSql);
+
+    const migrated = await prisma.listing.findUniqueOrThrow({
+      where: {
+        id: legacy.id,
+      },
+    });
+
+    expect(migrated.status).toBe(ListingStatus.APPROVED);
+    expect(migrated.moderationReason).toBeNull();
+  });
+
   it('stores a rejection reason and keeps the listing private', async () => {
     const ownerId = `${ownerPrefix}user-3`;
 
