@@ -162,6 +162,13 @@ La migration `20260928_093000_requeue_invalid_enriched_approvals` remet en `PEND
 
 Ces fiches deviennent ainsi réparables et doivent être relues avant republication.
 
+La migration corrective `20260928_104500_reconcile_legacy_enriched_approvals` complète ce traitement sans modifier la migration déjà appliquée :
+
+- les annonces `RESERVED` ou `COMPLETED` rebasculées par l'ancienne migration sont restaurées en `APPROVED`, car le parcours d'édition interdit de modifier une annonce déjà liée à une transaction ;
+- seules les annonces `AVAILABLE` restent candidates à une remise en modération ;
+- la normalisation legacy utilise le même ensemble de caractères de trim que JavaScript, y compris tabulations, retours à la ligne, espaces insécables et espaces Unicode ;
+- une ligne blanche, un doublon après trim/casse, ou un label qui change après trim force la relecture.
+
 ### Retry de création et champ fichier
 
 Si la création JSON réussit mais que l'upload de la galerie échoue, le frontend conserve le `listingId` créé et réutilise ce même brouillon au prochain submit. Il ne crée donc pas de doublon.
@@ -171,3 +178,10 @@ Après un succès complet, le champ natif `input[type=file]` est remonté via un
 ### Nettoyage des galeries privées
 
 Le composant de modération suit son état de montage. Si une galerie est encore en cours de téléchargement lorsque la fiche disparaît de la file, toute Blob URL créée après l'unmount est immédiatement révoquée et aucun state update n'est tenté sur le composant démonté.
+
+
+### Gestion mémoire des aperçus et galerie publique
+
+Les aperçus locaux sont créés dans un effet React et chaque URL Blob créée par cet effet est révoquée par son cleanup. Cette mécanique reste sûre avec React Strict Mode et les rendus abandonnés.
+
+Sur la fiche publique, seule l'image principale est chargée en mode `eager`. Les images suivantes utilisent `loading="lazy"` pour éviter de transférer immédiatement plusieurs fichiers pouvant atteindre 5 MiB chacun.
