@@ -1754,3 +1754,43 @@ textarea:focus-visible {
     aspect-ratio: 4 / 3;
   }
 }
+
+
+.moderation-gallery {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0 4px;
+}
+
+.moderation-gallery figure {
+  position: relative;
+  aspect-ratio: 1;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--paper-deep);
+}
+
+.moderation-gallery img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.moderation-gallery figcaption {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  padding: 3px 5px;
+  background: rgba(39, 33, 27, 0.8);
+  color: #fffaf2;
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+@media (max-width: 650px) {
+  .moderation-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
