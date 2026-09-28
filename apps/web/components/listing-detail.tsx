@@ -140,6 +140,7 @@ export function ListingDetail({ id }: { id: string }) {
                   <img
                     src={listingAssetUrl(image.contentUrl)}
                     alt={`${listing.title} — vue ${index + 1}`}
+                    loading={index === 0 ? 'eager' : 'lazy'}
                   />
                   <figcaption>
                     Vue {(index + 1).toString().padStart(2, '0')}
