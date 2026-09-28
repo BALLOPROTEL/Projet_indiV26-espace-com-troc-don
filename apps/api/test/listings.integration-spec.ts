@@ -189,6 +189,60 @@ describe('ListingsService PostgreSQL integration', () => {
     expect(migrated.status).toBe(ListingStatus.PENDING);
   });
 
+  it('requeues a legacy trade with five valid wishes plus a dirty row', async () => {
+    const ownerId = `${ownerPrefix}legacy-trade-dirty`;
+
+    const legacy = await prisma.listing.create({
+      data: {
+        ownerId,
+        title: 'Ancien troc avec ligne sale',
+        description:
+          'Ancienne annonce avec cinq souhaits valides plus une ligne blanche.',
+        operationType: ListingOperationType.TRADE,
+        status: ListingStatus.APPROVED,
+        images: {
+          create: Array.from({ length: 5 }, (_, position) => ({
+            objectKey: `legacy/${ownerId}/${position}.jpg`,
+            mimeType: 'image/jpeg',
+            sizeBytes: 128,
+            position,
+          })),
+        },
+        tradeWishes: {
+          create: [
+            'Console',
+            'Tablette',
+            'Écran',
+            'Clavier',
+            'Casque',
+            '   ',
+          ].map((label, position) => ({
+            label,
+            position,
+          })),
+        },
+      },
+    });
+
+    const migrationSql = readFileSync(
+      join(
+        __dirname,
+        '../prisma/migrations/20260928_093000_requeue_invalid_enriched_approvals/migration.sql',
+      ),
+      'utf8',
+    );
+
+    await prisma.$executeRawUnsafe(migrationSql);
+
+    const migrated = await prisma.listing.findUniqueOrThrow({
+      where: {
+        id: legacy.id,
+      },
+    });
+
+    expect(migrated.status).toBe(ListingStatus.PENDING);
+  });
+
   it('stores a rejection reason and keeps the listing private', async () => {
     const ownerId = `${ownerPrefix}user-3`;
 
