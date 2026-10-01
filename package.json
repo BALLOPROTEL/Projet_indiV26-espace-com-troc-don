@@ -41,11 +41,16 @@
     "storage:up": "docker compose up -d minio minio-init",
     "storage:validate:manifests": "bash scripts/lot9b-storage-validate.sh --static",
     "storage:validate": "bash scripts/lot9b-storage-validate.sh",
-    "publication:validate": "pnpm db:generate && pnpm --filter api exec jest --runInBand src/marketplace/marketplace-rules.service.spec.ts src/listings/listings.service.spec.ts && pnpm web:test"
+    "publication:validate": "pnpm db:generate && pnpm --filter api exec jest --runInBand src/marketplace/marketplace-rules.service.spec.ts src/listings/listings.service.spec.ts && pnpm web:test",
+    "codespaces:up": "bash scripts/codespaces-up.sh",
+    "codespaces:down": "bash scripts/codespaces-down.sh",
+    "codespaces:check": "bash scripts/codespaces-check.sh",
+    "codespaces:dev": "bash scripts/codespaces-dev.sh"
   },
   "pnpm": {
     "overrides": {
-      "deepmerge-ts": "8.0.1"
+      "deepmerge-ts": "8.0.1",
+      "@nestjs/swagger>js-yaml": "5.4.1"
     }
   }
 }

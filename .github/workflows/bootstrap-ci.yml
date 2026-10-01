@@ -236,14 +236,31 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p reports/security
-          audit_status=0
-          pnpm audit --prod --audit-level=high --json > reports/security/pnpm-audit.json || audit_status=$?
-          if [ "${audit_status}" -ne 0 ]; then
-            echo "Production dependency audit failed with exit code ${audit_status}."
-            cat reports/security/pnpm-audit.json
-            exit "${audit_status}"
-          fi
-          echo "Production dependency audit: PASS"
+
+          # pnpm may return a non-zero status when lower-severity advisories are
+          # present even though this project's gate is HIGH/CRITICAL only.
+          pnpm audit --prod --json > reports/security/pnpm-audit.json || true
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(
+            fs.readFileSync('reports/security/pnpm-audit.json', 'utf8'),
+          );
+          const vulnerabilities = report.metadata?.vulnerabilities ?? {};
+          const high = Number(vulnerabilities.high ?? 0);
+          const critical = Number(vulnerabilities.critical ?? 0);
+
+          console.log(
+            `Production audit summary: moderate=${vulnerabilities.moderate ?? 0}, high=${high}, critical=${critical}`,
+          );
+
+          if (high > 0 || critical > 0) {
+            console.error('Production dependency audit: FAIL (HIGH/CRITICAL found)');
+            process.exit(1);
+          }
+
+          console.log('Production dependency audit: PASS');
+          NODE
 
       - name: Prepare image metadata
         shell: bash

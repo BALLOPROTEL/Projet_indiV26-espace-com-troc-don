@@ -21,9 +21,12 @@ export class TokenVerifierService {
 
     this.issuer = issuer.replace(/\/$/, '');
     this.audience = audience;
-    this.jwks = createRemoteJWKSet(
-      new URL(`${this.issuer}/protocol/openid-connect/certs`),
-    );
+
+    const jwksUrl =
+      this.config.get<string>('KEYCLOAK_JWKS_URL')?.trim() ||
+      `${this.issuer}/protocol/openid-connect/certs`;
+
+    this.jwks = createRemoteJWKSet(new URL(jwksUrl));
   }
 
   async verify(token: string): Promise<AuthenticatedUser> {
