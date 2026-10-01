@@ -232,7 +232,9 @@ print("[OK] Prometheus uses namespace-scoped pod discovery RBAC.")
 PY
 
 echo "[CHECK] CI keeps dependency and image vulnerability gates"
-grep -q "pnpm audit --prod --audit-level=high"   .github/workflows/bootstrap-ci.yml
+grep -q "pnpm audit --prod --json"   .github/workflows/bootstrap-ci.yml
+grep -q "vulnerabilities.high"   .github/workflows/bootstrap-ci.yml
+grep -q "vulnerabilities.critical"   .github/workflows/bootstrap-ci.yml
 grep -q "Trivy HIGH/CRITICAL gate"   .github/workflows/bootstrap-ci.yml
 grep -q "severity: HIGH,CRITICAL"   .github/workflows/bootstrap-ci.yml
 
