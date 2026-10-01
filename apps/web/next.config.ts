@@ -26,6 +26,20 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: 'standalone',
   reactStrictMode: true,
+  async rewrites() {
+    const apiInternalUrl = process.env.API_INTERNAL_URL;
+
+    if (!apiInternalUrl) {
+      return [];
+    }
+
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${apiInternalUrl.replace(/\/$/, '')}/api/:path*`,
+      },
+    ];
+  },
   async headers() {
     return [
       {
