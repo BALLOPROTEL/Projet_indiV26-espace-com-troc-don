@@ -47,26 +47,26 @@ await writeFile(
   `CODESPACE_KEYCLOAK_URL=${keycloakUrl}\n`,
 );
 
-await writeFile(
-  '.env',
-  [
-    'PORT=3000',
-    'DATABASE_URL=postgresql://app:app_local_change_me@localhost:5433/projet_indiv26?schema=public',
-    `KEYCLOAK_ISSUER=${keycloakIssuer}`,
-    'KEYCLOAK_JWKS_URL=http://127.0.0.1:8081/realms/projet-indiv26/protocol/openid-connect/certs',
-    'KEYCLOAK_AUDIENCE=api',
-    `WEB_ORIGIN=${webUrl}`,
-    'METRICS_TOKEN=local_optional_metrics_token',
-    'SWAGGER_ENABLED=true',
-    'S3_ENDPOINT=http://127.0.0.1:9000',
-    'S3_REGION=us-east-1',
-    'S3_BUCKET=listing-images',
-    'S3_ACCESS_KEY=marketplace-api',
-    'S3_SECRET_KEY=marketplace_storage_local_change_me_2026',
-    'S3_FORCE_PATH_STYLE=true',
-    '',
-  ].join('\n'),
-);
+const apiEnv = [
+  'PORT=3000',
+  'DATABASE_URL=postgresql://app:app_local_change_me@localhost:5433/projet_indiv26?schema=public',
+  `KEYCLOAK_ISSUER=${keycloakIssuer}`,
+  'KEYCLOAK_JWKS_URL=http://127.0.0.1:8081/realms/projet-indiv26/protocol/openid-connect/certs',
+  'KEYCLOAK_AUDIENCE=api',
+  `WEB_ORIGIN=${webUrl}`,
+  'METRICS_TOKEN=local_optional_metrics_token',
+  'SWAGGER_ENABLED=true',
+  'S3_ENDPOINT=http://127.0.0.1:9000',
+  'S3_REGION=us-east-1',
+  'S3_BUCKET=listing-images',
+  'S3_ACCESS_KEY=marketplace-api',
+  'S3_SECRET_KEY=marketplace_storage_local_change_me_2026',
+  'S3_FORCE_PATH_STYLE=true',
+  '',
+].join('\n');
+
+await writeFile('.env', apiEnv);
+await writeFile(path.join('apps', 'api', '.env'), apiEnv);
 
 await writeFile(
   path.join('apps', 'web', '.env.local'),
