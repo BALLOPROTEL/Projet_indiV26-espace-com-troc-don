@@ -1,0 +1,29 @@
+{
+  "name": "Projet Individuel 26 Cloud Dev",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {}
+  },
+  "forwardPorts": [3001, 3000, 8081, 9001],
+  "portsAttributes": {
+    "3001": {
+      "label": "Web",
+      "onAutoForward": "openBrowser"
+    },
+    "3000": {
+      "label": "API / Swagger",
+      "onAutoForward": "silent"
+    },
+    "8081": {
+      "label": "Keycloak",
+      "onAutoForward": "silent"
+    },
+    "9001": {
+      "label": "MinIO Console",
+      "onAutoForward": "silent"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "bash .devcontainer/post-start.sh"
+}
