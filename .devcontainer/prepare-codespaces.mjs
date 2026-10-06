@@ -50,6 +50,7 @@ await writeFile(
 const apiEnv = [
   'PORT=3000',
   'DATABASE_URL=postgresql://app:app_local_change_me@localhost:5433/projet_indiv26?schema=public',
+  'CATALOG_DATABASE_URL=postgresql://app:app_local_change_me@localhost:5433/projet_indiv26?schema=catalog',
   `KEYCLOAK_ISSUER=${keycloakIssuer}`,
   'KEYCLOAK_JWKS_URL=http://127.0.0.1:8081/realms/projet-indiv26/protocol/openid-connect/certs',
   'KEYCLOAK_AUDIENCE=api',
@@ -67,6 +68,7 @@ const apiEnv = [
 
 await writeFile('.env', apiEnv);
 await writeFile(path.join('apps', 'api', '.env'), apiEnv);
+await writeFile(path.join('apps', 'catalog-service', '.env'), apiEnv);
 
 await writeFile(
   path.join('apps', 'web', '.env.local'),
@@ -82,3 +84,4 @@ await writeFile(
 
 console.log(`[ProjetIndiv26] Web: ${webUrl}`);
 console.log(`[ProjetIndiv26] Keycloak: ${keycloakUrl}`);
+console.log('[ProjetIndiv26] Catalog DB schema: catalog');
