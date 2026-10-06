@@ -50,7 +50,6 @@ await writeFile(
 const apiEnv = [
   'PORT=3000',
   'DATABASE_URL=postgresql://app:app_local_change_me@localhost:5433/projet_indiv26?schema=public',
-  'CATALOG_DATABASE_URL=postgresql://app:app_local_change_me@localhost:5433/projet_indiv26?schema=catalog',
   `KEYCLOAK_ISSUER=${keycloakIssuer}`,
   'KEYCLOAK_JWKS_URL=http://127.0.0.1:8081/realms/projet-indiv26/protocol/openid-connect/certs',
   'KEYCLOAK_AUDIENCE=api',
@@ -66,9 +65,25 @@ const apiEnv = [
   '',
 ].join('\n');
 
+const catalogEnv = [
+  'PORT=3101',
+  'CATALOG_DATABASE_URL=postgresql://app:app_local_change_me@localhost:5433/projet_indiv26?schema=catalog',
+  `KEYCLOAK_ISSUER=${keycloakIssuer}`,
+  'KEYCLOAK_JWKS_URL=http://127.0.0.1:8081/realms/projet-indiv26/protocol/openid-connect/certs',
+  'KEYCLOAK_AUDIENCE=api',
+  'SWAGGER_ENABLED=true',
+  'S3_ENDPOINT=http://127.0.0.1:9000',
+  'S3_REGION=us-east-1',
+  'S3_BUCKET=listing-images',
+  'S3_ACCESS_KEY=marketplace-api',
+  'S3_SECRET_KEY=marketplace_storage_local_change_me_2026',
+  'S3_FORCE_PATH_STYLE=true',
+  '',
+].join('\n');
+
 await writeFile('.env', apiEnv);
 await writeFile(path.join('apps', 'api', '.env'), apiEnv);
-await writeFile(path.join('apps', 'catalog-service', '.env'), apiEnv);
+await writeFile(path.join('apps', 'catalog-service', '.env'), catalogEnv);
 
 await writeFile(
   path.join('apps', 'web', '.env.local'),
@@ -84,4 +99,5 @@ await writeFile(
 
 console.log(`[ProjetIndiv26] Web: ${webUrl}`);
 console.log(`[ProjetIndiv26] Keycloak: ${keycloakUrl}`);
+console.log('[ProjetIndiv26] Catalog: http://127.0.0.1:3101');
 console.log('[ProjetIndiv26] Catalog DB schema: catalog');
