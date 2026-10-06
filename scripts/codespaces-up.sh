@@ -34,9 +34,10 @@ for attempt in $(seq 1 120); do
 done
 
 pnpm db:deploy
+pnpm catalog:migrate:deploy
 
 echo
-echo "[OK] PostgreSQL, Keycloak and MinIO are ready."
+echo "[OK] PostgreSQL public/catalog, Keycloak and MinIO are ready."
 echo "Next:"
 echo "  pnpm codespaces:check"
 echo "  pnpm codespaces:dev"
