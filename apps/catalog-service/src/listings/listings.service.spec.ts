@@ -9,7 +9,7 @@ import {
   ListingAvailabilityStatus,
   ListingOperationType,
   ListingStatus,
-} from '@prisma/client';
+} from '../../generated/prisma';
 import { MarketplaceRulesService } from '../marketplace/marketplace-rules.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListingsService } from './listings.service';

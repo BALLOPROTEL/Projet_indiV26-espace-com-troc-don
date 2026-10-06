@@ -8,7 +8,7 @@ import {
   ListingAvailabilityStatus,
   ListingOperationType,
   ListingStatus,
-} from '@prisma/client';
+} from '../../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { ObjectStorageService } from '../storage/object-storage.service';
 import { UploadedImageFile } from './image-file.validator';

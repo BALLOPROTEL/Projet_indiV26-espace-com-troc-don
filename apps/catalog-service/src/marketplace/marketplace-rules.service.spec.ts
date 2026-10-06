@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { ListingOperationType } from '@prisma/client';
+import { ListingOperationType } from '../../generated/prisma';
 import {
   MAX_LISTING_IMAGES,
   MarketplaceRulesService,
