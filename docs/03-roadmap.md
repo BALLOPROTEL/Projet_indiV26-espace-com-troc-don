@@ -58,6 +58,11 @@ Règle de pilotage :
 - LOT 9 : **Done**
 - LOT 9B-A : **Done**
 - LOT 9B-B : **Done** — PR #38, squash `46c1a29a2137897dea0e340e6414102da81b8dba`
-- LOT 9B-C : **In Progress** — Publication enrichie
-- LOT 9B-D à LOT 9B-F : **Backlog**
+- LOT 9B-C : **Done** — PR #40, parcours de publication enrichie certifié
+- LOT 9B-D : **In Progress** — Workflow DON
+- LOT 9B-E à LOT 9B-F : **Backlog**
 - LOT 10 : **Backlog**
+
+## Mode de développement actuel
+
+Le développement courant se fait dans **GitHub Codespaces**. GitHub reste la source de vérité pour le code et les migrations ; les Codespaces sont jetables et doivent être supprimés après push/merge afin de ne pas conserver inutilement du stockage ou du quota cloud.
