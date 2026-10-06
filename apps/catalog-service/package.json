@@ -1,22 +1,37 @@
 {
   "name": "catalog-service",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
     "start:dev": "ts-node --transpile-only src/main.ts",
-    "start:prod": "node dist/main.js"
+    "start:prod": "node dist/main.js",
+    "test": "jest --runInBand",
+    "test:coverage": "jest --runInBand --coverage",
+    "prisma:validate": "prisma validate --schema prisma/schema.prisma",
+    "prisma:migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1141.0",
     "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/swagger": "^11.0.0",
+    "@prisma/client": "^6.0.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "jose": "^6.2.12",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
+    "jest": "^30.0.0",
+    "prisma": "^6.0.0",
+    "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.0"
   }

@@ -10,7 +10,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "moduleResolution": "node",
-    "types": ["node"]
+    "types": ["node", "jest"]
   },
   "include": ["src/**/*.ts"]
 }
