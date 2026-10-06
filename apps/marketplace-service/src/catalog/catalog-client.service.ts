@@ -1,0 +1,88 @@
+import {
+  BadGatewayException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import {
+  CatalogListingSnapshot,
+  ListingAvailabilityStatus,
+  ListingOperationType,
+  ListingStatus,
+} from './catalog-contract';
+
+@Injectable()
+export class CatalogClientService {
+  private readonly baseUrl: string;
+  private readonly token: string;
+
+  constructor(private readonly config: ConfigService) {
+    const baseUrl = this.config.get<string>('CATALOG_INTERNAL_URL')?.trim();
+    const token = this.config.get<string>('INTERNAL_SERVICE_TOKEN')?.trim();
+
+    if (!baseUrl || !token) {
+      throw new Error(
+        'CATALOG_INTERNAL_URL and INTERNAL_SERVICE_TOKEN must be configured',
+      );
+    }
+
+    this.baseUrl = baseUrl.replace(/\/$/, '');
+    this.token = token;
+  }
+
+  async getListing(id: string): Promise<CatalogListingSnapshot> {
+    let response: Response;
+
+    try {
+      response = await fetch(
+        `${this.baseUrl}/internal/listings/${encodeURIComponent(id)}`,
+        {
+          headers: {
+            'x-internal-service-token': this.token,
+          },
+          signal: AbortSignal.timeout(3000),
+        },
+      );
+    } catch {
+      throw new BadGatewayException('Catalog Service is unavailable');
+    }
+
+    if (response.status === 404) {
+      throw new NotFoundException('Listing not found');
+    }
+
+    if (!response.ok) {
+      throw new BadGatewayException(
+        `Catalog Service returned HTTP ${response.status}`,
+      );
+    }
+
+    const value = (await response.json()) as unknown;
+
+    if (!this.isSnapshot(value)) {
+      throw new BadGatewayException('Invalid Catalog Service response');
+    }
+
+    return value;
+  }
+
+  private isSnapshot(value: unknown): value is CatalogListingSnapshot {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    const item = value as Record<string, unknown>;
+
+    return (
+      typeof item.id === 'string' &&
+      typeof item.ownerId === 'string' &&
+      Object.values(ListingOperationType).includes(
+        item.operationType as never,
+      ) &&
+      Object.values(ListingStatus).includes(item.status as never) &&
+      Object.values(ListingAvailabilityStatus).includes(
+        item.availabilityStatus as never,
+      )
+    );
+  }
+}

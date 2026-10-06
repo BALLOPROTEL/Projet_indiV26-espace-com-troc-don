@@ -16,6 +16,8 @@ if (!name || !domain) {
 const webUrl = `https://${name}-3001.${domain}`;
 const keycloakUrl = `https://${name}-8081.${domain}`;
 const keycloakIssuer = `${keycloakUrl}/realms/projet-indiv26`;
+const internalServiceToken =
+  'codespaces_internal_change_me_2026_very_long_token';
 
 await mkdir('.codespaces', { recursive: true });
 
@@ -71,6 +73,7 @@ const catalogEnv = [
   `KEYCLOAK_ISSUER=${keycloakIssuer}`,
   'KEYCLOAK_JWKS_URL=http://127.0.0.1:8081/realms/projet-indiv26/protocol/openid-connect/certs',
   'KEYCLOAK_AUDIENCE=api',
+  `INTERNAL_SERVICE_TOKEN=${internalServiceToken}`,
   'SWAGGER_ENABLED=true',
   'S3_ENDPOINT=http://127.0.0.1:9000',
   'S3_REGION=us-east-1',
@@ -84,7 +87,11 @@ const catalogEnv = [
 const marketplaceEnv = [
   'PORT=3102',
   'MARKETPLACE_DATABASE_URL=postgresql://app:app_local_change_me@localhost:5433/projet_indiv26?schema=marketplace',
+  `KEYCLOAK_ISSUER=${keycloakIssuer}`,
+  'KEYCLOAK_JWKS_URL=http://127.0.0.1:8081/realms/projet-indiv26/protocol/openid-connect/certs',
+  'KEYCLOAK_AUDIENCE=api',
   'CATALOG_INTERNAL_URL=http://127.0.0.1:3101',
+  `INTERNAL_SERVICE_TOKEN=${internalServiceToken}`,
   '',
 ].join('\n');
 

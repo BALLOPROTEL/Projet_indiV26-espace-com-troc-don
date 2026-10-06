@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
+import { InternalModule } from './internal/internal.module';
 import { ListingsModule } from './listings/listings.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -18,6 +19,7 @@ import { StorageModule } from './storage/storage.module';
     AuthModule,
     MarketplaceModule,
     ListingsModule,
+    InternalModule,
     HealthModule,
   ],
 })
