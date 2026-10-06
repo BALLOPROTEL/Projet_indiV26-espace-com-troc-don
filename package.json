@@ -42,6 +42,21 @@
     "storage:validate:manifests": "bash scripts/lot9b-storage-validate.sh --static",
     "storage:validate": "bash scripts/lot9b-storage-validate.sh",
     "publication:validate": "pnpm db:generate && pnpm --filter api exec jest --runInBand src/marketplace/marketplace-rules.service.spec.ts src/listings/listings.service.spec.ts && pnpm web:test",
+    "gateway:dev": "pnpm --filter gateway start:dev",
+    "catalog:dev": "pnpm --filter catalog-service start:dev",
+    "catalog:prisma:validate": "pnpm --filter catalog-service prisma:validate",
+    "catalog:migrate:deploy": "pnpm --filter catalog-service prisma:migrate:deploy",
+    "catalog:test": "pnpm --filter catalog-service test",
+    "catalog:quality": "pnpm catalog:prisma:validate && pnpm --filter catalog-service typecheck && pnpm catalog:test && pnpm --filter catalog-service build",
+    "marketplace-service:dev": "pnpm --filter marketplace-service start:dev",
+    "marketplace-service:prisma:validate": "pnpm --filter marketplace-service prisma:validate",
+    "marketplace-service:migrate:deploy": "pnpm --filter marketplace-service prisma:migrate:deploy",
+    "marketplace-service:test": "pnpm --filter marketplace-service test",
+    "marketplace-service:quality": "pnpm marketplace-service:prisma:validate && pnpm --filter marketplace-service typecheck && pnpm marketplace-service:test && pnpm --filter marketplace-service build",
+    "notification:dev": "pnpm --filter notification-service start:dev",
+    "services:dev": "pnpm --parallel --filter gateway --filter catalog-service --filter marketplace-service --filter notification-service run start:dev",
+    "services:typecheck": "pnpm --filter gateway typecheck && pnpm --filter catalog-service typecheck && pnpm --filter marketplace-service typecheck && pnpm --filter notification-service typecheck",
+    "services:build": "pnpm --filter gateway build && pnpm --filter catalog-service build && pnpm --filter marketplace-service build && pnpm --filter notification-service build",
     "codespaces:up": "bash scripts/codespaces-up.sh",
     "codespaces:down": "bash scripts/codespaces-down.sh",
     "codespaces:check": "bash scripts/codespaces-check.sh",
@@ -50,7 +65,9 @@
   "pnpm": {
     "overrides": {
       "deepmerge-ts": "8.0.1",
-      "@nestjs/swagger>js-yaml": "5.4.1"
+      "@nestjs/swagger>js-yaml": "5.4.1",
+      "source-map-js": "1.2.2",
+      "sharp": "0.35.5"
     }
   }
 }

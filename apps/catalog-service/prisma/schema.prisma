@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("CATALOG_DATABASE_URL")
+}
+
+enum ListingOperationType {
+  TRADE
+  DONATION
+}
+
+enum ListingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ListingAvailabilityStatus {
+  AVAILABLE
+  RESERVED
+  COMPLETED
+}
+
+model Listing {
+  id                 String                    @id @default(cuid())
+  ownerId            String
+  title              String                    @db.VarChar(120)
+  description        String                    @db.VarChar(2000)
+  operationType      ListingOperationType
+  status             ListingStatus             @default(PENDING)
+  availabilityStatus ListingAvailabilityStatus @default(AVAILABLE)
+  moderationReason   String?                   @db.VarChar(500)
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  images      ListingImage[]
+  tradeWishes ListingTradeWish[]
+
+  @@index([ownerId, createdAt])
+  @@index([status, createdAt])
+  @@index([status, availabilityStatus, createdAt])
+}
+
+model ListingImage {
+  id        String   @id @default(cuid())
+  listingId String
+  objectKey String   @unique @db.VarChar(500)
+  mimeType  String   @db.VarChar(100)
+  sizeBytes Int
+  position  Int
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, position])
+  @@index([listingId])
+}
+
+model ListingTradeWish {
+  id        String   @id @default(cuid())
+  listingId String
+  label     String   @db.VarChar(120)
+  position  Int
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, position])
+  @@index([listingId])
+}

@@ -8,6 +8,8 @@ build/
 .next/
 out/
 coverage/
+apps/catalog-service/generated/prisma/
+apps/marketplace-service/generated/prisma/
 
 # Environment / secrets
 .env
