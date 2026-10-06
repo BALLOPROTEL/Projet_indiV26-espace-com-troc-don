@@ -14,6 +14,7 @@ module.exports = {
   collectCoverageFrom: [
     'src/marketplace/marketplace-rules.service.ts',
     'src/proposals/proposals.service.ts',
+    'src/transactions/transactions.service.ts',
     'src/catalog/catalog-client.service.ts',
   ],
   coverageDirectory: '../../coverage/marketplace-service',

@@ -1,5 +1,6 @@
 import {
   BadGatewayException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -30,13 +31,35 @@ export class CatalogClientService {
     this.token = token;
   }
 
-  async getListing(id: string): Promise<CatalogListingSnapshot> {
+  getListing(id: string): Promise<CatalogListingSnapshot> {
+    return this.requestListing('GET', id);
+  }
+
+  reserveListing(id: string): Promise<CatalogListingSnapshot> {
+    return this.requestListing('POST', id, 'reserve');
+  }
+
+  completeListing(id: string): Promise<CatalogListingSnapshot> {
+    return this.requestListing('POST', id, 'complete');
+  }
+
+  releaseListing(id: string): Promise<CatalogListingSnapshot> {
+    return this.requestListing('POST', id, 'release');
+  }
+
+  private async requestListing(
+    method: 'GET' | 'POST',
+    id: string,
+    action?: 'reserve' | 'complete' | 'release',
+  ): Promise<CatalogListingSnapshot> {
+    const suffix = action ? `/${action}` : '';
     let response: Response;
 
     try {
       response = await fetch(
-        `${this.baseUrl}/internal/listings/${encodeURIComponent(id)}`,
+        `${this.baseUrl}/internal/listings/${encodeURIComponent(id)}${suffix}`,
         {
+          method,
           headers: {
             'x-internal-service-token': this.token,
           },
@@ -49,6 +72,10 @@ export class CatalogClientService {
 
     if (response.status === 404) {
       throw new NotFoundException('Listing not found');
+    }
+
+    if (response.status === 409) {
+      throw new ConflictException('Catalog listing state conflict');
     }
 
     if (!response.ok) {

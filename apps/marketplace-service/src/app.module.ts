@@ -6,6 +6,7 @@ import { HealthModule } from './health/health.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProposalsModule } from './proposals/proposals.module';
+import { TransactionsModule } from './transactions/transactions.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ProposalsModule } from './proposals/proposals.module';
     CatalogModule,
     MarketplaceModule,
     ProposalsModule,
+    TransactionsModule,
     HealthModule,
   ],
 })

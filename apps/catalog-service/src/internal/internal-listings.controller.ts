@@ -1,4 +1,10 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { InternalServiceGuard } from './internal-service.guard';
 import { InternalListingsService } from './internal-listings.service';
 
@@ -10,5 +16,20 @@ export class InternalListingsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.listings.getSnapshot(id);
+  }
+
+  @Post(':id/reserve')
+  reserve(@Param('id') id: string) {
+    return this.listings.reserve(id);
+  }
+
+  @Post(':id/complete')
+  complete(@Param('id') id: string) {
+    return this.listings.complete(id);
+  }
+
+  @Post(':id/release')
+  release(@Param('id') id: string) {
+    return this.listings.release(id);
   }
 }

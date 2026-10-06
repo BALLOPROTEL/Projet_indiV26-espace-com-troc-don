@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Req,
   UnauthorizedException,
@@ -30,6 +31,14 @@ export class ProposalsController {
   @Get('me')
   findMine(@Req() request: AuthenticatedRequest) {
     return this.proposals.findMine(this.actorId(request));
+  }
+
+  @Post(':id/accept')
+  accept(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.proposals.accept(id, this.actorId(request));
   }
 
   private actorId(request: AuthenticatedRequest): string {
