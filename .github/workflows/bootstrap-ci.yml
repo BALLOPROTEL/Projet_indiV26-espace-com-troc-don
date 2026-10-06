@@ -33,6 +33,9 @@ jobs:
     env:
       DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=public
       CATALOG_DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=catalog
+      MARKETPLACE_DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=marketplace
+      CATALOG_INTERNAL_URL: http://127.0.0.1:3101
+      INTERNAL_SERVICE_TOKEN: ci_internal_service_token_2026_long_value
       KEYCLOAK_ISSUER: http://localhost:8081/realms/projet-indiv26
       KEYCLOAK_AUDIENCE: api
       S3_ENDPOINT: http://127.0.0.1:9000
@@ -73,6 +76,12 @@ jobs:
           test -f apps/catalog-service/package.json
           test -f apps/catalog-service/prisma/schema.prisma
           test -f apps/catalog-service/prisma/migrations/20261006_173500_init_catalog/migration.sql
+          test -f apps/marketplace-service/package.json
+          test -f apps/marketplace-service/prisma/schema.prisma
+          test -d apps/marketplace-service/prisma/migrations
+          test -f apps/marketplace-service/src/proposals/proposals.service.ts
+          test -f apps/marketplace-service/src/transactions/transactions.service.ts
+          test -f apps/marketplace-service/src/transactions/transactions.service.spec.ts
           test -f apps/api/prisma/migrations/20260928_093000_requeue_invalid_enriched_approvals/migration.sql
           test -f apps/api/prisma/migrations/20260928_104500_reconcile_legacy_enriched_approvals/migration.sql
           test -f package.json
@@ -197,6 +206,12 @@ jobs:
       - name: Apply Catalog Prisma migrations
         run: pnpm catalog:migrate:deploy
 
+      - name: Validate Marketplace Prisma schema
+        run: pnpm marketplace-service:prisma:validate
+
+      - name: Apply Marketplace Prisma migrations
+        run: pnpm marketplace-service:migrate:deploy
+
       - name: Validate LOT 9B-B object storage
         run: pnpm storage:validate
 
@@ -239,6 +254,9 @@ jobs:
       - name: Test Catalog Service
         run: pnpm catalog:test
 
+      - name: Test Marketplace Service
+        run: pnpm marketplace-service:test
+
       - name: Smoke test Catalog Service HTTP
         shell: bash
         run: |
@@ -277,6 +295,221 @@ jobs:
           "
 
           echo "Catalog Service HTTP smoke: PASS"
+
+      - name: Smoke test Marketplace transaction lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pnpm catalog:dev > /tmp/catalog-m3-ci.log 2>&1 &
+          catalog_pid=$!
+
+          pnpm marketplace-service:dev > /tmp/marketplace-m3-ci.log 2>&1 &
+          marketplace_pid=$!
+
+          cleanup() {
+            kill "${catalog_pid}" "${marketplace_pid}" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          for attempt in $(seq 1 30); do
+            catalog_ok=0
+            marketplace_ok=0
+
+            curl -fsS http://127.0.0.1:3101/health/live >/dev/null               && catalog_ok=1 || true
+            curl -fsS http://127.0.0.1:3102/health/live >/dev/null               && marketplace_ok=1 || true
+
+            if [[ "${catalog_ok}" -eq 1 && "${marketplace_ok}" -eq 1 ]]; then
+              break
+            fi
+
+            if [[ "${attempt}" -eq 30 ]]; then
+              echo "=== Catalog log ==="
+              cat /tmp/catalog-m3-ci.log
+              echo "=== Marketplace log ==="
+              cat /tmp/marketplace-m3-ci.log
+              exit 1
+            fi
+
+            sleep 1
+          done
+
+          wrong_status="$(
+            curl -sS               -o /tmp/catalog-internal-denied.json               -w '%{http_code}'               -H 'x-internal-service-token: wrong-token'               http://127.0.0.1:3101/internal/listings/m3-ci-listing
+          )"
+
+          test "${wrong_status}" = "401"
+
+          pnpm --filter catalog-service exec node - <<'NODE'
+          const { PrismaClient } = require('./generated/prisma');
+
+          (async () => {
+            const prisma = new PrismaClient({
+              datasources: {
+                db: { url: process.env.CATALOG_DATABASE_URL },
+              },
+            });
+
+            try {
+              await prisma.listing.deleteMany({
+                where: { id: 'm3-ci-listing' },
+              });
+
+              await prisma.listing.create({
+                data: {
+                  id: 'm3-ci-listing',
+                  ownerId: 'm3-ci-owner',
+                  title: 'M3 CI smoke',
+                  description: 'Temporary CI listing for microservice transaction lifecycle.',
+                  operationType: 'DONATION',
+                  status: 'APPROVED',
+                  availabilityStatus: 'AVAILABLE',
+                },
+              });
+            } finally {
+              await prisma.$disconnect();
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+          pnpm --filter marketplace-service exec node - <<'NODE'
+          const { ConfigService } = require('@nestjs/config');
+          const { PrismaService } =
+            require('./dist/prisma/prisma.service.js');
+          const { CatalogClientService } =
+            require('./dist/catalog/catalog-client.service.js');
+          const { MarketplaceRulesService } =
+            require('./dist/marketplace/marketplace-rules.service.js');
+          const { ProposalsService } =
+            require('./dist/proposals/proposals.service.js');
+          const { TransactionsService } =
+            require('./dist/transactions/transactions.service.js');
+
+          (async () => {
+            const prisma = new PrismaService();
+
+            try {
+              const catalog = new CatalogClientService(
+                new ConfigService(process.env),
+              );
+              const rules = new MarketplaceRulesService();
+              const proposals = new ProposalsService(prisma, catalog, rules);
+              const transactions =
+                new TransactionsService(prisma, catalog, rules);
+
+              await prisma.marketplaceTransaction.deleteMany({
+                where: { proposalId: 'm3-ci-proposal' },
+              });
+              await prisma.proposal.deleteMany({
+                where: { id: 'm3-ci-proposal' },
+              });
+
+              await prisma.proposal.create({
+                data: {
+                  id: 'm3-ci-proposal',
+                  targetListingId: 'm3-ci-listing',
+                  requesterId: 'm3-ci-requester',
+                  type: 'DONATION_REQUEST',
+                  status: 'PENDING',
+                },
+              });
+
+              const transaction = await proposals.accept(
+                'm3-ci-proposal',
+                'm3-ci-owner',
+              );
+
+              if (transaction.status !== 'IN_PROGRESS') {
+                throw new Error('Expected transaction IN_PROGRESS');
+              }
+
+              const reserved = await catalog.getListing('m3-ci-listing');
+              if (reserved.availabilityStatus !== 'RESERVED') {
+                throw new Error('Expected listing RESERVED');
+              }
+
+              const first = await transactions.confirm(
+                transaction.id,
+                'm3-ci-owner',
+              );
+              if (first.status !== 'IN_PROGRESS') {
+                throw new Error('Expected first confirmation IN_PROGRESS');
+              }
+
+              const second = await transactions.confirm(
+                transaction.id,
+                'm3-ci-requester',
+              );
+              if (second.status !== 'COMPLETED') {
+                throw new Error('Expected transaction COMPLETED');
+              }
+
+              const completed = await catalog.getListing('m3-ci-listing');
+              if (completed.availabilityStatus !== 'COMPLETED') {
+                throw new Error('Expected listing COMPLETED');
+              }
+
+              console.log('Marketplace transaction lifecycle smoke: PASS');
+            } finally {
+              await prisma.$disconnect();
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+          pnpm --filter marketplace-service exec node - <<'NODE'
+          const { PrismaClient } = require('./generated/prisma');
+
+          (async () => {
+            const prisma = new PrismaClient({
+              datasources: {
+                db: { url: process.env.MARKETPLACE_DATABASE_URL },
+              },
+            });
+
+            try {
+              await prisma.marketplaceTransaction.deleteMany({
+                where: { proposalId: 'm3-ci-proposal' },
+              });
+              await prisma.proposal.deleteMany({
+                where: { id: 'm3-ci-proposal' },
+              });
+            } finally {
+              await prisma.$disconnect();
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+          pnpm --filter catalog-service exec node - <<'NODE'
+          const { PrismaClient } = require('./generated/prisma');
+
+          (async () => {
+            const prisma = new PrismaClient({
+              datasources: {
+                db: { url: process.env.CATALOG_DATABASE_URL },
+              },
+            });
+
+            try {
+              await prisma.listing.deleteMany({
+                where: { id: 'm3-ci-listing' },
+              });
+            } finally {
+              await prisma.$disconnect();
+            }
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
 
       - name: Lint Web
         run: pnpm web:lint
