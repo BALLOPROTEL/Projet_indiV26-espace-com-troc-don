@@ -32,6 +32,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=public
+      CATALOG_DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=catalog
       KEYCLOAK_ISSUER: http://localhost:8081/realms/projet-indiv26
       KEYCLOAK_AUDIENCE: api
       S3_ENDPOINT: http://127.0.0.1:9000
@@ -68,6 +69,10 @@ jobs:
           test -f docs/15-lot9b-a-marketplace-domain.md
           test -f docs/16-lot9b-b-object-storage.md
           test -f docs/17-lot9b-c-enriched-publishing.md
+          test -f docs/18-microservices-migration.md
+          test -f apps/catalog-service/package.json
+          test -f apps/catalog-service/prisma/schema.prisma
+          test -f apps/catalog-service/prisma/migrations/20261006_173500_init_catalog/migration.sql
           test -f apps/api/prisma/migrations/20260928_093000_requeue_invalid_enriched_approvals/migration.sql
           test -f apps/api/prisma/migrations/20260928_104500_reconcile_legacy_enriched_approvals/migration.sql
           test -f package.json
@@ -186,6 +191,12 @@ jobs:
       - name: Apply Prisma migrations
         run: pnpm db:deploy
 
+      - name: Validate Catalog Prisma schema
+        run: pnpm catalog:prisma:validate
+
+      - name: Apply Catalog Prisma migrations
+        run: pnpm catalog:migrate:deploy
+
       - name: Validate LOT 9B-B object storage
         run: pnpm storage:validate
 
@@ -218,6 +229,54 @@ jobs:
 
       - name: Build API
         run: pnpm api:build
+
+      - name: Typecheck microservices
+        run: pnpm services:typecheck
+
+      - name: Build microservices
+        run: pnpm services:build
+
+      - name: Test Catalog Service
+        run: pnpm catalog:test
+
+      - name: Smoke test Catalog Service HTTP
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pnpm catalog:dev > /tmp/catalog-service.log 2>&1 &
+          catalog_pid=$!
+
+          cleanup() {
+            kill "${catalog_pid}" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3101/health/live > /tmp/catalog-live.json; then
+              break
+            fi
+
+            if [[ "${attempt}" -eq 30 ]]; then
+              cat /tmp/catalog-service.log
+              exit 1
+            fi
+
+            sleep 1
+          done
+
+          grep -q '"service":"catalog-service"' /tmp/catalog-live.json
+          curl -fsS http://127.0.0.1:3101/listings > /tmp/catalog-listings.json
+
+          node -e "
+            const fs = require('fs');
+            const value = JSON.parse(
+              fs.readFileSync('/tmp/catalog-listings.json', 'utf8')
+            );
+            if (!Array.isArray(value)) process.exit(1);
+          "
+
+          echo "Catalog Service HTTP smoke: PASS"
 
       - name: Lint Web
         run: pnpm web:lint
