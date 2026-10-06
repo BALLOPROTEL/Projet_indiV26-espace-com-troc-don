@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { ListingOperationType } from '@prisma/client';
+import { ListingOperationType } from '../../generated/prisma';
 
 export const MIN_LISTING_IMAGES = 5;
 export const MAX_LISTING_IMAGES = 8;

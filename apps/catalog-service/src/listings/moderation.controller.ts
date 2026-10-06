@@ -14,7 +14,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { ListingStatus } from '@prisma/client';
+import { ListingStatus } from '../../generated/prisma';
 import { AppRole } from '../auth/app-role.enum';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';

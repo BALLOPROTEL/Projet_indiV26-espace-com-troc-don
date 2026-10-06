@@ -11,7 +11,7 @@ import {
   ListingOperationType,
   ListingStatus,
   ListingTradeWish,
-} from '@prisma/client';
+} from '../../generated/prisma';
 import { MarketplaceRulesService } from '../marketplace/marketplace-rules.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateListingDto } from './dto/create-listing.dto';

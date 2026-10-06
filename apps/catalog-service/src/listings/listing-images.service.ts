@@ -10,7 +10,7 @@ import {
   ListingAvailabilityStatus,
   ListingImage,
   ListingStatus,
-} from '@prisma/client';
+} from '../../generated/prisma';
 import { randomUUID } from 'node:crypto';
 import {
   MAX_LISTING_IMAGES,

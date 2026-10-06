@@ -3,12 +3,13 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit",
-    "start:dev": "ts-node --transpile-only src/main.ts",
+    "build": "pnpm prisma:generate && tsc -p tsconfig.json",
+    "typecheck": "pnpm prisma:generate && tsc --noEmit",
+    "start:dev": "pnpm prisma:generate && ts-node --transpile-only src/main.ts",
     "start:prod": "node dist/main.js",
-    "test": "jest --runInBand",
-    "test:coverage": "jest --runInBand --coverage",
+    "test": "pnpm prisma:generate && jest --runInBand",
+    "test:coverage": "pnpm prisma:generate && jest --runInBand --coverage",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:validate": "prisma validate --schema prisma/schema.prisma",
     "prisma:migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma"
   },

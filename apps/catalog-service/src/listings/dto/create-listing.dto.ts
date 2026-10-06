@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ListingOperationType } from '@prisma/client';
+import { ListingOperationType } from '../../../generated/prisma';
 import {
   ArrayMaxSize,
   IsArray,

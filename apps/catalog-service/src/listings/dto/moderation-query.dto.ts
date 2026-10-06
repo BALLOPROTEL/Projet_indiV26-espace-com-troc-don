@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { ListingStatus } from '@prisma/client';
+import { ListingStatus } from '../../../generated/prisma';
 import { IsEnum, IsOptional } from 'class-validator';
 
 export class ModerationQueryDto {
