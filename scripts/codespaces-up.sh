@@ -35,9 +35,10 @@ done
 
 pnpm db:deploy
 pnpm catalog:migrate:deploy
+pnpm --filter marketplace-service prisma:migrate:deploy
 
 echo
-echo "[OK] PostgreSQL public/catalog, Keycloak and MinIO are ready."
+echo "[OK] PostgreSQL public/catalog/marketplace, Keycloak and MinIO are ready."
 echo "Next:"
 echo "  pnpm codespaces:check"
 echo "  pnpm codespaces:dev"

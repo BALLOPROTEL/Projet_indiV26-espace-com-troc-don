@@ -28,10 +28,19 @@ if [[ "${catalog_table}" != "t" ]]; then
 fi
 echo "Catalog schema PASS"
 
+marketplace_table="$(${compose[@]} exec -T postgres psql -U app -d projet_indiv26 -Atqc 'SELECT to_regclass('"'"'marketplace."Proposal"'"'"') IS NOT NULL;')"
+if [[ "${marketplace_table}" != "t" ]]; then
+  echo "[FAIL] Marketplace schema/table is missing. Run pnpm codespaces:up."
+  exit 1
+fi
+echo "Marketplace schema PASS"
+
 pnpm api:typecheck
 pnpm web:typecheck
 pnpm catalog:prisma:validate
 pnpm --filter catalog-service typecheck
+pnpm --filter marketplace-service prisma:validate
+pnpm --filter marketplace-service typecheck
 
 echo
 echo "Codespaces infrastructure/typecheck: PASS"

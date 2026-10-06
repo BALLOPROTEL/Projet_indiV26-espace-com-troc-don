@@ -81,9 +81,17 @@ const catalogEnv = [
   '',
 ].join('\n');
 
+const marketplaceEnv = [
+  'PORT=3102',
+  'MARKETPLACE_DATABASE_URL=postgresql://app:app_local_change_me@localhost:5433/projet_indiv26?schema=marketplace',
+  'CATALOG_INTERNAL_URL=http://127.0.0.1:3101',
+  '',
+].join('\n');
+
 await writeFile('.env', apiEnv);
 await writeFile(path.join('apps', 'api', '.env'), apiEnv);
 await writeFile(path.join('apps', 'catalog-service', '.env'), catalogEnv);
+await writeFile(path.join('apps', 'marketplace-service', '.env'), marketplaceEnv);
 
 await writeFile(
   path.join('apps', 'web', '.env.local'),
@@ -101,3 +109,5 @@ console.log(`[ProjetIndiv26] Web: ${webUrl}`);
 console.log(`[ProjetIndiv26] Keycloak: ${keycloakUrl}`);
 console.log('[ProjetIndiv26] Catalog: http://127.0.0.1:3101');
 console.log('[ProjetIndiv26] Catalog DB schema: catalog');
+console.log('[ProjetIndiv26] Marketplace: http://127.0.0.1:3102');
+console.log('[ProjetIndiv26] Marketplace DB schema: marketplace');
