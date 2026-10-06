@@ -21,8 +21,17 @@ echo "MinIO PASS"
 "${compose[@]}" exec -T postgres pg_isready -U app -d projet_indiv26 >/dev/null
 echo "PostgreSQL PASS"
 
+catalog_table="$(${compose[@]} exec -T postgres psql -U app -d projet_indiv26 -Atqc 'SELECT to_regclass('"'"'catalog."Listing"'"'"') IS NOT NULL;')"
+if [[ "${catalog_table}" != "t" ]]; then
+  echo "[FAIL] Catalog schema/table is missing. Run pnpm codespaces:up."
+  exit 1
+fi
+echo "Catalog schema PASS"
+
 pnpm api:typecheck
 pnpm web:typecheck
+pnpm catalog:prisma:validate
+pnpm --filter catalog-service typecheck
 
 echo
 echo "Codespaces infrastructure/typecheck: PASS"
