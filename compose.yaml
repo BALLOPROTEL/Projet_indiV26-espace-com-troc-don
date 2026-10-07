@@ -17,6 +17,24 @@ services:
       timeout: 3s
       retries: 10
 
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    container_name: projet-indiv26-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: app
+      RABBITMQ_DEFAULT_PASS: rabbitmq_local_change_me_2026
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - projet_indiv26_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   keycloak:
     image: quay.io/keycloak/keycloak:26.7.4
     container_name: projet-indiv26-keycloak
@@ -101,4 +119,5 @@ services:
 
 volumes:
   projet_indiv26_pgdata:
+  projet_indiv26_rabbitmq_data:
   projet_indiv26_minio_data:

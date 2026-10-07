@@ -1,0 +1,73 @@
+import {
+  MARKETPLACE_EVENT_VERSION,
+  parseMarketplaceEvent,
+} from './event-contract';
+
+describe('parseMarketplaceEvent', () => {
+  it('accepts the M5 proposal.created envelope', () => {
+    const event = parseMarketplaceEvent({
+      eventId: 'event-1',
+      type: 'proposal.created',
+      version: MARKETPLACE_EVENT_VERSION,
+      occurredAt: '2026-10-07T17:00:00.000Z',
+      source: 'marketplace-service',
+      data: {
+        proposalId: 'proposal-1',
+        targetListingId: 'listing-1',
+        requesterId: 'requester-1',
+        proposalType: 'DONATION_REQUEST',
+        offeredListingId: null,
+      },
+    });
+
+    expect(event.type).toBe('proposal.created');
+    expect(event.data.proposalId).toBe('proposal-1');
+  });
+
+  it('rejects unsupported event versions', () => {
+    expect(() =>
+      parseMarketplaceEvent({
+        eventId: 'event-1',
+        type: 'proposal.created',
+        version: 2,
+        occurredAt: '2026-10-07T17:00:00.000Z',
+        source: 'marketplace-service',
+        data: {
+          proposalId: 'proposal-1',
+          targetListingId: 'listing-1',
+          requesterId: 'requester-1',
+          proposalType: 'DONATION_REQUEST',
+          offeredListingId: null,
+        },
+      }),
+    ).toThrow('Unsupported RabbitMQ event version');
+  });
+
+  it('rejects unknown event types', () => {
+    expect(() =>
+      parseMarketplaceEvent({
+        eventId: 'event-1',
+        type: 'unknown.event',
+        version: 1,
+        occurredAt: '2026-10-07T17:00:00.000Z',
+        source: 'marketplace-service',
+        data: {},
+      }),
+    ).toThrow('Unsupported RabbitMQ event type');
+  });
+
+  it('rejects known event types with incomplete payloads', () => {
+    expect(() =>
+      parseMarketplaceEvent({
+        eventId: 'event-2',
+        type: 'transaction.completed',
+        version: 1,
+        occurredAt: '2026-10-07T17:02:00.000Z',
+        source: 'marketplace-service',
+        data: {
+          transactionId: 'tx-1',
+        },
+      }),
+    ).toThrow('RabbitMQ event data.proposalId');
+  });
+});

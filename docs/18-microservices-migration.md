@@ -163,3 +163,40 @@ Au M4, le Gateway prendra le port public `3000` et le monolithe cessera d'être 
 - stratégie de migration documentée.
 
 **M0 : versionné — validation dans la PR architecture.**
+
+
+## M5 — RabbitMQ + Notification Service
+
+### Topologie
+
+- exchange topic durable : `marketplace.events` ;
+- queue Notification durable : `notification.marketplace-events.v1` ;
+- bindings : `proposal.*` et `transaction.*` ;
+- messages persistants, enveloppe versionnée `version: 1` ;
+- publisher Marketplace en confirm channel ;
+- reconnexion RabbitMQ automatique côté publisher et consumer.
+
+### Événements réellement émis au M5
+
+- `proposal.created` après persistance d'une proposition ;
+- `proposal.accepted` après acceptation et création de la transaction ;
+- `transaction.completed` après les deux confirmations et clôture métier.
+
+Les événements prévus mais sans transition métier actuellement implémentée (`transaction.cancelled`, etc.) ne sont pas simulés artificiellement.
+
+### Notification Service
+
+Le Notification Service ne lit aucune table Marketplace/Catalog et ne reçoit aucun appel HTTP synchrone de Marketplace. Il consomme uniquement RabbitMQ.
+
+Pour la démonstration jury et les tests, il conserve les 50 derniers événements reçus **en mémoire** et expose `GET /notifications/recent` sur son port interne `:3103`. Cet endpoint n'est pas routé par le Gateway public.
+
+### Fiabilité M5
+
+- Marketplace déclare l'exchange, la queue Notification et ses bindings avant de devenir ready ;
+- publisher confirms bornés par timeout, suivi `blocked/unblocked`, puis retry avec le même `eventId` après reconstruction du channel ;
+- Notification recrée son consumer après annulation broker et déduplique les redeliveries par `eventId` ;
+- les payloads sont validés par type avant ACK ;
+- `transaction.completed` n'est publié que par la requête qui gagne la transition conditionnelle `IN_PROGRESS → COMPLETED` ;
+- le smoke M5 construit lui-même Marketplace et corrèle les trois événements à un identifiant de listing unique au run.
+
+Le publisher attend la confirmation RabbitMQ après le commit métier, mais un broker durablement indisponible ne rollback pas une transaction métier déjà validée. Un **transactional outbox** reste donc le durcissement recommandé si une garantie de livraison at-least-once à travers une panne longue entre commit DB et publication devient obligatoire.

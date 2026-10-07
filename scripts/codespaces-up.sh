@@ -16,7 +16,7 @@ compose=(
 )
 
 echo "=== ProjetIndiv26 Codespaces infrastructure ==="
-"${compose[@]}" up -d --wait postgres keycloak minio
+"${compose[@]}" up -d --wait postgres rabbitmq keycloak minio
 "${compose[@]}" run --rm minio-init
 
 echo "[INFO] Waiting for Keycloak realm..."
@@ -38,7 +38,7 @@ pnpm catalog:migrate:deploy
 pnpm --filter marketplace-service prisma:migrate:deploy
 
 echo
-echo "[OK] PostgreSQL public/catalog/marketplace, Keycloak and MinIO are ready."
+echo "[OK] PostgreSQL public/catalog/marketplace, RabbitMQ, Keycloak and MinIO are ready."
 echo "Next:"
 echo "  pnpm codespaces:check"
 echo "  pnpm codespaces:dev"
