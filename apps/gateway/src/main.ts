@@ -1,29 +1,69 @@
 import 'reflect-metadata';
-import { Controller, Get, Module } from '@nestjs/common';
+import { loadEnvFile } from 'node:process';
 import { NestFactory } from '@nestjs/core';
+import { GatewayModule } from './gateway.module';
+import { createProxyMiddleware } from './proxy';
 
-@Controller('health')
-class HealthController {
-  @Get('live')
-  live() {
-    return { status: 'ok', service: 'gateway' };
-  }
-
-  @Get('ready')
-  ready() {
-    return { status: 'ready', service: 'gateway' };
-  }
+try {
+  loadEnvFile('.env');
+} catch {
+  // Runtime environments may provide variables directly.
 }
 
-@Module({
-  controllers: [HealthController],
-})
-class GatewayModule {}
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create(GatewayModule, {
+    bodyParser: false,
+  });
 
-async function bootstrap() {
-  const app = await NestFactory.create(GatewayModule);
+  const port = Number(process.env.PORT ?? 3000);
+  const webOrigins = (
+    process.env.WEB_ORIGIN ??
+    'http://localhost:3001,http://127.0.0.1:3001'
+  )
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  app.enableCors({
+    origin: webOrigins,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+
+  const httpAdapter = app.getHttpAdapter().getInstance() as {
+    use: (
+      middleware: (
+        request: Parameters<
+          ReturnType<typeof createProxyMiddleware>
+        >[0],
+        response: Parameters<
+          ReturnType<typeof createProxyMiddleware>
+        >[1],
+        next: () => void,
+      ) => void,
+    ) => void;
+  };
+
+  httpAdapter.use(
+    createProxyMiddleware({
+      catalog: new URL(
+        process.env.CATALOG_SERVICE_URL ??
+          'http://127.0.0.1:3101',
+      ),
+      marketplace: new URL(
+        process.env.MARKETPLACE_SERVICE_URL ??
+          'http://127.0.0.1:3102',
+      ),
+      legacy: new URL(
+        process.env.LEGACY_API_URL ??
+          'http://127.0.0.1:3099',
+      ),
+    }),
+  );
+
   app.setGlobalPrefix('api');
-  const port = Number(process.env.PORT ?? 3100);
+  app.enableShutdownHooks();
+
   await app.listen(port, '0.0.0.0');
 }
 
