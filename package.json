@@ -54,7 +54,7 @@
     "marketplace-service:test": "pnpm --filter marketplace-service test",
     "marketplace-service:quality": "pnpm marketplace-service:prisma:validate && pnpm --filter marketplace-service typecheck && pnpm marketplace-service:test && pnpm --filter marketplace-service build",
     "notification:dev": "pnpm --filter notification-service start:dev",
-    "services:dev": "pnpm --parallel --filter gateway --filter catalog-service --filter marketplace-service --filter notification-service run start:dev",
+    "services:dev": "bash scripts/services-dev.sh",
     "services:typecheck": "pnpm --filter gateway typecheck && pnpm --filter catalog-service typecheck && pnpm --filter marketplace-service typecheck && pnpm --filter notification-service typecheck",
     "services:build": "pnpm --filter gateway build && pnpm --filter catalog-service build && pnpm --filter marketplace-service build && pnpm --filter notification-service build",
     "codespaces:up": "bash scripts/codespaces-up.sh",

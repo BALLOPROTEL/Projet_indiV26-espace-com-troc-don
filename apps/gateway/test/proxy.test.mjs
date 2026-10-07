@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
+import {
+  createServer,
+  get as httpGet,
+} from 'node:http';
 import test from 'node:test';
 import { createProxyMiddleware } from '../dist/proxy.js';
 
@@ -55,6 +58,7 @@ test('forwards Catalog path, query string and Authorization header', async (t) =
     response.writeHead(200, {
       'content-type': 'application/json',
       'x-upstream': 'catalog',
+      'x-powered-by': 'upstream-framework',
     });
     response.end(JSON.stringify({ ok: true }));
   });
@@ -77,6 +81,12 @@ test('forwards Catalog path, query string and Authorization header', async (t) =
 
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('x-upstream'), 'catalog');
+  assert.equal(response.headers.get('x-powered-by'), null);
+  assert.equal(
+    response.headers.get('x-content-type-options'),
+    'nosniff',
+  );
+  assert.equal(response.headers.get('x-frame-options'), 'DENY');
   assert.deepEqual(await response.json(), { ok: true });
   assert.deepEqual(observed, {
     method: 'GET',
@@ -184,4 +194,49 @@ test('streams binary Catalog responses without re-encoding', async (t) => {
     Buffer.from(await response.arrayBuffer()),
     payload,
   );
+});
+
+test('terminates the downstream response when upstream aborts mid-body', async (t) => {
+  const upstream = createServer((_request, response) => {
+    response.writeHead(200, {
+      'content-type': 'application/octet-stream',
+    });
+    response.write('partial-body');
+    setImmediate(() => response.destroy());
+  });
+
+  const upstreamUrl = await listen(upstream);
+  t.after(() => close(upstream));
+
+  const gateway = createGateway(upstreamUrl);
+  const gatewayUrl = await listen(gateway);
+  t.after(() => close(gateway));
+
+  const outcome = await Promise.race([
+    new Promise((resolve) => {
+      const request = httpGet(
+        new URL('/api/listings/aborted', gatewayUrl),
+        (response) => {
+          response.on('end', () => resolve('end'));
+          response.on('aborted', () => resolve('aborted'));
+          response.on('error', () => resolve('error'));
+          response.on('close', () => {
+            if (!response.complete) {
+              resolve('close');
+            }
+          });
+        },
+      );
+
+      request.on('error', () => resolve('error'));
+    }),
+    new Promise((_, reject) => {
+      setTimeout(
+        () => reject(new Error('Gateway response remained pending')),
+        1_500,
+      );
+    }),
+  ]);
+
+  assert.notEqual(outcome, 'end');
 });

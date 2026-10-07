@@ -83,9 +83,14 @@ jobs:
           test -f apps/marketplace-service/src/transactions/transactions.service.ts
           test -f apps/marketplace-service/src/transactions/transactions.service.spec.ts
           test -f apps/gateway/src/proxy.ts
+          test -f apps/gateway/src/observability.ts
+          test -f apps/gateway/src/security.ts
+          test -f apps/gateway/src/metrics.controller.ts
           test -f apps/gateway/src/routes.ts
           test -f apps/gateway/test/routes.test.mjs
           test -f apps/gateway/test/proxy.test.mjs
+          test -f apps/gateway/test/observability.test.mjs
+          test -f scripts/services-dev.sh
           test -f scripts/m4-gateway-smoke.sh
           test -f apps/api/prisma/migrations/20260928_093000_requeue_invalid_enriched_approvals/migration.sql
           test -f apps/api/prisma/migrations/20260928_104500_reconcile_legacy_enriched_approvals/migration.sql

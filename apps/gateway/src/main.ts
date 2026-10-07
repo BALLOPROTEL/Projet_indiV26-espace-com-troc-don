@@ -2,6 +2,10 @@ import 'reflect-metadata';
 import { loadEnvFile } from 'node:process';
 import { NestFactory } from '@nestjs/core';
 import { GatewayModule } from './gateway.module';
+import {
+  createGatewayObservabilityMiddleware,
+  GatewayMetrics,
+} from './observability';
 import { createProxyMiddleware } from './proxy';
 
 try {
@@ -27,10 +31,15 @@ async function bootstrap(): Promise<void> {
   app.enableCors({
     origin: webOrigins,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Request-ID',
+    ],
   });
 
   const httpAdapter = app.getHttpAdapter().getInstance() as {
+    disable?: (setting: string) => void;
     use: (
       middleware: (
         request: Parameters<
@@ -43,6 +52,13 @@ async function bootstrap(): Promise<void> {
       ) => void,
     ) => void;
   };
+
+  httpAdapter.disable?.('x-powered-by');
+  httpAdapter.use(
+    createGatewayObservabilityMiddleware(
+      app.get(GatewayMetrics),
+    ),
+  );
 
   httpAdapter.use(
     createProxyMiddleware({

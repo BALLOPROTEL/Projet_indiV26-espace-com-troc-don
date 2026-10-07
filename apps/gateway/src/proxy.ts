@@ -8,6 +8,7 @@ import {
 } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { resolveGatewayRoute } from './routes';
+import { applySecurityHeaders } from './security';
 
 type Next = () => void;
 
@@ -55,11 +56,14 @@ function copyResponseHeaders(
   for (const [name, value] of Object.entries(upstream.headers)) {
     if (
       value !== undefined &&
-      !HOP_BY_HOP_HEADERS.has(name.toLowerCase())
+      !HOP_BY_HOP_HEADERS.has(name.toLowerCase()) &&
+      name.toLowerCase() !== 'x-powered-by'
     ) {
       response.setHeader(name, value);
     }
   }
+
+  applySecurityHeaders(response);
 }
 
 function proxyRequest(
@@ -87,6 +91,35 @@ function proxyRequest(
     }
 
     copyResponseHeaders(upstreamResponse, response);
+
+    const terminateDownstream = (error: Error): void => {
+      if (response.writableEnded || response.destroyed) {
+        return;
+      }
+
+      response.destroy(error);
+    };
+
+    upstreamResponse.once('aborted', () => {
+      terminateDownstream(
+        new Error('Gateway upstream response aborted'),
+      );
+    });
+
+    upstreamResponse.once('error', (error) => {
+      terminateDownstream(error);
+    });
+
+    upstreamResponse.once('close', () => {
+      if (!upstreamResponse.complete) {
+        terminateDownstream(
+          new Error(
+            'Gateway upstream response closed before completion',
+          ),
+        );
+      }
+    });
+
     upstreamResponse.pipe(response);
   });
 
@@ -104,6 +137,7 @@ function proxyRequest(
 
     response.statusCode = 502;
     response.setHeader('Content-Type', 'application/json');
+    applySecurityHeaders(response);
     response.end(
       JSON.stringify({
         statusCode: 502,
@@ -114,6 +148,11 @@ function proxyRequest(
   });
 
   request.on('aborted', () => upstreamRequest.destroy());
+  response.on('close', () => {
+    if (!response.writableEnded) {
+      upstreamRequest.destroy();
+    }
+  });
   request.pipe(upstreamRequest);
 
   return upstreamRequest;
