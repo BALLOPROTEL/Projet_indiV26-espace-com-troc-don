@@ -4,6 +4,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   connect,
   type Channel,
@@ -26,9 +27,14 @@ export class RabbitMqConsumer
   private connection?: RecoveringChannelModel;
   private channel?: Channel;
   private startPromise?: Promise<void>;
+  private rebuildPromise?: Promise<void>;
   private ready = false;
+  private stopping = false;
 
-  constructor(private readonly store: NotificationStore) {}
+  constructor(
+    private readonly store: NotificationStore,
+    private readonly config: ConfigService,
+  ) {}
 
   onModuleInit(): void {
     void this.start().catch((error: unknown) => {
@@ -39,8 +45,15 @@ export class RabbitMqConsumer
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.stopping = true;
     this.ready = false;
+
+    const channel = this.channel;
     this.channel = undefined;
+
+    if (channel) {
+      await channel.close().catch(() => undefined);
+    }
 
     if (this.connection) {
       await this.connection.close().catch(() => undefined);
@@ -73,7 +86,7 @@ export class RabbitMqConsumer
 
   private async connect(): Promise<void> {
     const url =
-      process.env.RABBITMQ_URL?.trim() ??
+      this.config.get<string>('RABBITMQ_URL')?.trim() ??
       'amqp://app:rabbitmq_local_change_me_2026@127.0.0.1:5672';
 
     const connection = await connect(url, {
@@ -85,51 +98,7 @@ export class RabbitMqConsumer
         jitter: 0.2,
         maxRetries: Number.POSITIVE_INFINITY,
         setup: async (model: ChannelModel) => {
-          this.ready = false;
-
-          const channel = await model.createChannel();
-          await channel.assertExchange(
-            MARKETPLACE_EVENTS_EXCHANGE,
-            'topic',
-            { durable: true },
-          );
-          await channel.assertQueue(NOTIFICATION_QUEUE, {
-            durable: true,
-          });
-          await channel.bindQueue(
-            NOTIFICATION_QUEUE,
-            MARKETPLACE_EVENTS_EXCHANGE,
-            'proposal.*',
-          );
-          await channel.bindQueue(
-            NOTIFICATION_QUEUE,
-            MARKETPLACE_EVENTS_EXCHANGE,
-            'transaction.*',
-          );
-          await channel.prefetch(10);
-          await channel.consume(
-            NOTIFICATION_QUEUE,
-            (message) => this.consume(channel, message),
-            { noAck: false },
-          );
-
-          channel.on('error', (error) => {
-            this.ready = false;
-            this.logger.error(
-              `RabbitMQ consumer channel error: ${error.message}`,
-            );
-          });
-          channel.on('close', () => {
-            this.ready = false;
-          });
-          channel.on('handler-error', (error, eventName) => {
-            this.logger.error(
-              `RabbitMQ consumer handler error (${eventName}): ${error.message}`,
-            );
-          });
-
-          this.channel = channel;
-          this.ready = true;
+          await this.installChannel(model);
         },
       },
     });
@@ -144,6 +113,7 @@ export class RabbitMqConsumer
       );
     });
     connection.on('connect-failed', (error) => {
+      this.ready = false;
       this.logger.warn(
         `RabbitMQ consumer connection failed: ${error.message}`,
       );
@@ -166,13 +136,74 @@ export class RabbitMqConsumer
     });
   }
 
+  private async installChannel(model: ChannelModel): Promise<void> {
+    const channel = await model.createChannel();
+
+    await channel.assertExchange(
+      MARKETPLACE_EVENTS_EXCHANGE,
+      'topic',
+      { durable: true },
+    );
+    await channel.assertQueue(NOTIFICATION_QUEUE, {
+      durable: true,
+    });
+    await channel.bindQueue(
+      NOTIFICATION_QUEUE,
+      MARKETPLACE_EVENTS_EXCHANGE,
+      'proposal.*',
+    );
+    await channel.bindQueue(
+      NOTIFICATION_QUEUE,
+      MARKETPLACE_EVENTS_EXCHANGE,
+      'transaction.*',
+    );
+    await channel.prefetch(10);
+    await channel.consume(
+      NOTIFICATION_QUEUE,
+      (message) => this.consume(channel, message),
+      { noAck: false },
+    );
+
+    channel.on('error', (error) => {
+      if (this.channel === channel) {
+        this.ready = false;
+      }
+      this.logger.error(
+        `RabbitMQ consumer channel error: ${error.message}`,
+      );
+    });
+    channel.on('close', () => {
+      if (this.channel === channel) {
+        this.channel = undefined;
+        this.ready = false;
+        this.scheduleChannelRebuild();
+      }
+    });
+    channel.on('handler-error', (error, eventName) => {
+      this.logger.error(
+        `RabbitMQ consumer handler error (${eventName}): ${error.message}`,
+      );
+    });
+
+    this.channel = channel;
+    this.ready = true;
+  }
+
   private consume(
     channel: Channel,
     message: ConsumeMessage | null,
   ): void {
     if (!message) {
-      this.ready = false;
-      this.logger.warn('RabbitMQ consumer was cancelled by the broker');
+      if (this.channel === channel) {
+        this.channel = undefined;
+        this.ready = false;
+      }
+
+      this.logger.warn(
+        'RabbitMQ consumer was cancelled by the broker; recreating it',
+      );
+      void channel.close().catch(() => undefined);
+      this.scheduleChannelRebuild();
       return;
     }
 
@@ -180,19 +211,48 @@ export class RabbitMqConsumer
       const parsed = parseMarketplaceEvent(
         JSON.parse(message.content.toString('utf8')) as unknown,
       );
+      const inserted = this.store.record(parsed);
 
-      this.store.record(parsed);
       channel.ack(message);
 
-      this.logger.log(
-        `Notification event consumed: ${parsed.type} (${parsed.eventId})`,
-      );
+      if (inserted) {
+        this.logger.log(
+          `Notification event consumed: ${parsed.type} (${parsed.eventId})`,
+        );
+      } else {
+        this.logger.warn(
+          `Duplicate RabbitMQ event ignored: ${parsed.eventId}`,
+        );
+      }
     } catch (error) {
       channel.nack(message, false, false);
       this.logger.warn(
         `Invalid RabbitMQ event discarded: ${this.message(error)}`,
       );
     }
+  }
+
+  private scheduleChannelRebuild(): void {
+    if (
+      this.stopping ||
+      !this.connection ||
+      this.rebuildPromise
+    ) {
+      return;
+    }
+
+    const model = this.connection;
+
+    this.rebuildPromise = this.installChannel(model)
+      .catch((error: unknown) => {
+        this.ready = false;
+        this.logger.warn(
+          `RabbitMQ consumer channel rebuild failed: ${this.message(error)}`,
+        );
+      })
+      .finally(() => {
+        this.rebuildPromise = undefined;
+      });
   }
 
   private message(error: unknown): string {

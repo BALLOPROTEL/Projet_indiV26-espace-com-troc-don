@@ -4,7 +4,7 @@ import {
 } from './event-contract';
 
 describe('parseMarketplaceEvent', () => {
-  it('accepts the M5 marketplace event envelope', () => {
+  it('accepts the M5 proposal.created envelope', () => {
     const event = parseMarketplaceEvent({
       eventId: 'event-1',
       type: 'proposal.created',
@@ -14,6 +14,9 @@ describe('parseMarketplaceEvent', () => {
       data: {
         proposalId: 'proposal-1',
         targetListingId: 'listing-1',
+        requesterId: 'requester-1',
+        proposalType: 'DONATION_REQUEST',
+        offeredListingId: null,
       },
     });
 
@@ -29,7 +32,13 @@ describe('parseMarketplaceEvent', () => {
         version: 2,
         occurredAt: '2026-10-07T17:00:00.000Z',
         source: 'marketplace-service',
-        data: {},
+        data: {
+          proposalId: 'proposal-1',
+          targetListingId: 'listing-1',
+          requesterId: 'requester-1',
+          proposalType: 'DONATION_REQUEST',
+          offeredListingId: null,
+        },
       }),
     ).toThrow('Unsupported RabbitMQ event version');
   });
@@ -45,5 +54,20 @@ describe('parseMarketplaceEvent', () => {
         data: {},
       }),
     ).toThrow('Unsupported RabbitMQ event type');
+  });
+
+  it('rejects known event types with incomplete payloads', () => {
+    expect(() =>
+      parseMarketplaceEvent({
+        eventId: 'event-2',
+        type: 'transaction.completed',
+        version: 1,
+        occurredAt: '2026-10-07T17:02:00.000Z',
+        source: 'marketplace-service',
+        data: {
+          transactionId: 'tx-1',
+        },
+      }),
+    ).toThrow('RabbitMQ event data.proposalId');
   });
 });

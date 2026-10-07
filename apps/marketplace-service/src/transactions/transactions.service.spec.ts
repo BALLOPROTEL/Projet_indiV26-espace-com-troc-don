@@ -10,6 +10,7 @@ describe('TransactionsService', () => {
     findMany: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
   };
   const prisma = {
     marketplaceTransaction: transactionApi,
@@ -46,6 +47,7 @@ describe('TransactionsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    transactionApi.updateMany.mockResolvedValue({ count: 1 });
     (events.publish as jest.Mock).mockResolvedValue(true);
   });
 
@@ -65,12 +67,13 @@ describe('TransactionsService', () => {
       where: { id: 'tx-1' },
       data: { ownerConfirmedAt: expect.any(Date) },
     });
+    expect(transactionApi.updateMany).not.toHaveBeenCalled();
     expect(catalog.completeListing).not.toHaveBeenCalled();
     expect(events.publish).not.toHaveBeenCalled();
     expect(result.status).toBe(MarketplaceTransactionStatus.IN_PROGRESS);
   });
 
-  it('completes Catalog listings after both confirmations', async () => {
+  it('publishes completion only after winning the conditional transition', async () => {
     const ownerConfirmedAt = new Date();
     const requesterConfirmedAt = new Date();
     const before = { ...baseTransaction, ownerConfirmedAt };
@@ -87,17 +90,29 @@ describe('TransactionsService', () => {
 
     transactionApi.findUnique
       .mockResolvedValueOnce(before)
-      .mockResolvedValueOnce(confirmed);
-    transactionApi.update
       .mockResolvedValueOnce(confirmed)
       .mockResolvedValueOnce(completed);
+    transactionApi.update.mockResolvedValue(confirmed);
     (catalog.completeListing as jest.Mock).mockResolvedValue({});
 
     const result = await service.confirm('tx-1', 'requester-1');
 
     expect(catalog.completeListing).toHaveBeenNthCalledWith(1, 'target-1');
     expect(catalog.completeListing).toHaveBeenNthCalledWith(2, 'offer-1');
+    expect(transactionApi.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'tx-1',
+        status: MarketplaceTransactionStatus.IN_PROGRESS,
+        ownerConfirmedAt: { not: null },
+        requesterConfirmedAt: { not: null },
+      },
+      data: {
+        status: MarketplaceTransactionStatus.COMPLETED,
+        completedAt: expect.any(Date),
+      },
+    });
     expect(result.status).toBe(MarketplaceTransactionStatus.COMPLETED);
+    expect(events.publish).toHaveBeenCalledTimes(1);
     expect(events.publish).toHaveBeenCalledWith(
       'transaction.completed',
       expect.objectContaining({
@@ -107,6 +122,31 @@ describe('TransactionsService', () => {
         offeredListingId: 'offer-1',
       }),
     );
+  });
+
+  it('does not publish when a concurrent request already completed it', async () => {
+    const bothConfirmed = {
+      ...baseTransaction,
+      ownerConfirmedAt: new Date(),
+      requesterConfirmedAt: new Date(),
+    };
+    const completed = {
+      ...bothConfirmed,
+      status: MarketplaceTransactionStatus.COMPLETED,
+      completedAt: new Date(),
+    };
+
+    transactionApi.findUnique
+      .mockResolvedValueOnce(bothConfirmed)
+      .mockResolvedValueOnce(bothConfirmed)
+      .mockResolvedValueOnce(completed);
+    transactionApi.updateMany.mockResolvedValue({ count: 0 });
+    (catalog.completeListing as jest.Mock).mockResolvedValue({});
+
+    const result = await service.confirm('tx-1', 'owner-1');
+
+    expect(result.status).toBe(MarketplaceTransactionStatus.COMPLETED);
+    expect(events.publish).not.toHaveBeenCalled();
   });
 
   it('lists transactions where the actor is a participant', async () => {

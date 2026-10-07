@@ -73,25 +73,42 @@ export class TransactionsService {
         await this.catalog.completeListing(transaction.offeredListingId);
       }
 
-      transaction = await this.prisma.marketplaceTransaction.update({
+      const completedAt = new Date();
+      const completionClaim =
+        await this.prisma.marketplaceTransaction.updateMany({
+          where: {
+            id,
+            status: MarketplaceTransactionStatus.IN_PROGRESS,
+            ownerConfirmedAt: { not: null },
+            requesterConfirmedAt: { not: null },
+          },
+          data: {
+            status: MarketplaceTransactionStatus.COMPLETED,
+            completedAt,
+          },
+        });
+
+      transaction = await this.prisma.marketplaceTransaction.findUnique({
         where: { id },
-        data: {
-          status: MarketplaceTransactionStatus.COMPLETED,
-          completedAt: new Date(),
-        },
       });
 
-      await this.events.publish(
-        MARKETPLACE_EVENT_TYPES.TRANSACTION_COMPLETED,
-        {
-          transactionId: transaction.id,
-          proposalId: transaction.proposalId,
-          targetListingId: transaction.targetListingId,
-          offeredListingId: transaction.offeredListingId,
-          ownerId: transaction.ownerId,
-          requesterId: transaction.requesterId,
-        },
-      );
+      if (!transaction) {
+        throw new NotFoundException('Transaction not found');
+      }
+
+      if (completionClaim.count === 1) {
+        await this.events.publish(
+          MARKETPLACE_EVENT_TYPES.TRANSACTION_COMPLETED,
+          {
+            transactionId: transaction.id,
+            proposalId: transaction.proposalId,
+            targetListingId: transaction.targetListingId,
+            offeredListingId: transaction.offeredListingId,
+            ownerId: transaction.ownerId,
+            requesterId: transaction.requesterId,
+          },
+        );
+      }
     }
 
     return transaction;

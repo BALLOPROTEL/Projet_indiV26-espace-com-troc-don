@@ -1,4 +1,9 @@
 export const MARKETPLACE_EVENTS_EXCHANGE = 'marketplace.events';
+export const NOTIFICATION_QUEUE = 'notification.marketplace-events.v1';
+export const NOTIFICATION_BINDINGS = [
+  'proposal.*',
+  'transaction.*',
+] as const;
 export const MARKETPLACE_EVENT_VERSION = 1 as const;
 
 export const MARKETPLACE_EVENT_TYPES = {

@@ -15,6 +15,8 @@ import { randomUUID } from 'node:crypto';
 import {
   MARKETPLACE_EVENTS_EXCHANGE,
   MARKETPLACE_EVENT_VERSION,
+  NOTIFICATION_BINDINGS,
+  NOTIFICATION_QUEUE,
   type MarketplaceEventEnvelope,
   type MarketplaceEventType,
 } from './event-contract';
@@ -24,12 +26,25 @@ export class MarketplaceEventPublisher
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(MarketplaceEventPublisher.name);
+  private readonly confirmTimeoutMs: number;
   private connection?: RecoveringChannelModel;
   private channel?: ConfirmChannel;
   private startPromise?: Promise<void>;
+  private rebuildPromise?: Promise<void>;
   private ready = false;
+  private blocked = false;
+  private stopping = false;
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly config: ConfigService) {
+    const configuredTimeout = Number(
+      this.config.get<string>('RABBITMQ_CONFIRM_TIMEOUT_MS') ?? '5000',
+    );
+
+    this.confirmTimeoutMs =
+      Number.isFinite(configuredTimeout) && configuredTimeout > 0
+        ? configuredTimeout
+        : 5000;
+  }
 
   onModuleInit(): void {
     void this.start().catch((error: unknown) => {
@@ -40,8 +55,16 @@ export class MarketplaceEventPublisher
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.stopping = true;
     this.ready = false;
+    this.blocked = false;
+
+    const channel = this.channel;
     this.channel = undefined;
+
+    if (channel) {
+      await channel.close().catch(() => undefined);
+    }
 
     if (this.connection) {
       await this.connection.close().catch(() => undefined);
@@ -55,7 +78,7 @@ export class MarketplaceEventPublisher
   }
 
   isReady(): boolean {
-    return this.ready;
+    return this.ready && !this.blocked;
   }
 
   async waitUntilReady(timeoutMs = 10_000): Promise<void> {
@@ -63,7 +86,7 @@ export class MarketplaceEventPublisher
 
     const deadline = Date.now() + timeoutMs;
 
-    while (!this.ready) {
+    while (!this.isReady()) {
       if (Date.now() >= deadline) {
         throw new Error('RabbitMQ publisher did not become ready');
       }
@@ -76,15 +99,6 @@ export class MarketplaceEventPublisher
     type: MarketplaceEventType,
     data: Record<string, string | null>,
   ): Promise<boolean> {
-    const channel = this.channel;
-
-    if (!this.ready || !channel) {
-      this.logger.warn(
-        `RabbitMQ event skipped because publisher is not ready: ${type}`,
-      );
-      return false;
-    }
-
     const event: MarketplaceEventEnvelope = {
       eventId: randomUUID(),
       type,
@@ -94,32 +108,52 @@ export class MarketplaceEventPublisher
       data,
     };
 
-    try {
-      channel.publish(
-        MARKETPLACE_EVENTS_EXCHANGE,
-        type,
-        Buffer.from(JSON.stringify(event)),
-        {
-          contentType: 'application/json',
-          persistent: true,
-          messageId: event.eventId,
-          type,
-          timestamp: Date.now(),
-        },
-      );
-      await channel.waitForConfirms();
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      let channel: ConfirmChannel | undefined;
 
-      this.logger.log(
-        `RabbitMQ event published: ${type} (${event.eventId})`,
-      );
-      return true;
-    } catch (error) {
-      this.ready = false;
-      this.logger.error(
-        `RabbitMQ publish failed for ${type}: ${this.message(error)}`,
-      );
-      return false;
+      try {
+        await this.waitUntilReady(this.confirmTimeoutMs);
+        channel = this.channel;
+
+        if (!channel) {
+          throw new Error('RabbitMQ confirm channel is unavailable');
+        }
+
+        channel.publish(
+          MARKETPLACE_EVENTS_EXCHANGE,
+          type,
+          Buffer.from(JSON.stringify(event)),
+          {
+            contentType: 'application/json',
+            persistent: true,
+            messageId: event.eventId,
+            type,
+            timestamp: Date.now(),
+          },
+        );
+
+        await this.withTimeout(
+          channel.waitForConfirms(),
+          this.confirmTimeoutMs,
+          'RabbitMQ publisher confirm timed out',
+        );
+
+        this.logger.log(
+          `RabbitMQ event published: ${type} (${event.eventId})`,
+        );
+        return true;
+      } catch (error) {
+        this.logger.warn(
+          `RabbitMQ publish attempt ${attempt}/2 failed for ${type}: ${this.message(error)}`,
+        );
+        this.invalidateChannel(channel);
+      }
     }
+
+    this.logger.error(
+      `RabbitMQ event delivery failed after retry: ${type} (${event.eventId})`,
+    );
+    return false;
   }
 
   private async connect(): Promise<void> {
@@ -136,32 +170,7 @@ export class MarketplaceEventPublisher
         jitter: 0.2,
         maxRetries: Number.POSITIVE_INFINITY,
         setup: async (model: ChannelModel) => {
-          this.ready = false;
-
-          const channel = await model.createConfirmChannel();
-          await channel.assertExchange(
-            MARKETPLACE_EVENTS_EXCHANGE,
-            'topic',
-            { durable: true },
-          );
-
-          channel.on('error', (error) => {
-            this.ready = false;
-            this.logger.error(
-              `RabbitMQ publisher channel error: ${error.message}`,
-            );
-          });
-          channel.on('close', () => {
-            this.ready = false;
-          });
-          channel.on('handler-error', (error, eventName) => {
-            this.logger.error(
-              `RabbitMQ publisher handler error (${eventName}): ${error.message}`,
-            );
-          });
-
-          this.channel = channel;
-          this.ready = true;
+          await this.installChannel(model);
         },
       },
     });
@@ -176,6 +185,7 @@ export class MarketplaceEventPublisher
       );
     });
     connection.on('connect-failed', (error) => {
+      this.ready = false;
       this.logger.warn(
         `RabbitMQ publisher connection failed: ${error.message}`,
       );
@@ -191,11 +201,136 @@ export class MarketplaceEventPublisher
         `RabbitMQ publisher reconnect exhausted: ${error.message}`,
       );
     });
+    connection.on('blocked', (reason) => {
+      this.blocked = true;
+      this.ready = false;
+      this.logger.warn(
+        `RabbitMQ publisher connection blocked: ${reason}`,
+      );
+    });
+    connection.on('unblocked', () => {
+      this.blocked = false;
+
+      if (this.channel) {
+        this.ready = true;
+      } else {
+        this.scheduleChannelRebuild();
+      }
+
+      this.logger.log('RabbitMQ publisher connection unblocked');
+    });
     connection.on('handler-error', (error, eventName) => {
       this.logger.error(
         `RabbitMQ publisher connection handler error (${eventName}): ${error.message}`,
       );
     });
+  }
+
+  private async installChannel(model: ChannelModel): Promise<void> {
+    const channel = await model.createConfirmChannel();
+
+    await channel.assertExchange(
+      MARKETPLACE_EVENTS_EXCHANGE,
+      'topic',
+      { durable: true },
+    );
+    await channel.assertQueue(NOTIFICATION_QUEUE, {
+      durable: true,
+    });
+
+    for (const binding of NOTIFICATION_BINDINGS) {
+      await channel.bindQueue(
+        NOTIFICATION_QUEUE,
+        MARKETPLACE_EVENTS_EXCHANGE,
+        binding,
+      );
+    }
+
+    channel.on('error', (error) => {
+      if (this.channel === channel) {
+        this.ready = false;
+      }
+      this.logger.error(
+        `RabbitMQ publisher channel error: ${error.message}`,
+      );
+    });
+    channel.on('close', () => {
+      if (this.channel === channel) {
+        this.channel = undefined;
+        this.ready = false;
+        this.scheduleChannelRebuild();
+      }
+    });
+    channel.on('handler-error', (error, eventName) => {
+      this.logger.error(
+        `RabbitMQ publisher handler error (${eventName}): ${error.message}`,
+      );
+    });
+
+    this.channel = channel;
+    this.ready = !this.blocked;
+  }
+
+  private invalidateChannel(channel?: ConfirmChannel): void {
+    this.ready = false;
+
+    if (channel && this.channel === channel) {
+      this.channel = undefined;
+    }
+
+    if (channel) {
+      void channel.close().catch(() => undefined);
+    }
+
+    this.scheduleChannelRebuild();
+  }
+
+  private scheduleChannelRebuild(): void {
+    if (
+      this.stopping ||
+      this.blocked ||
+      !this.connection ||
+      this.rebuildPromise
+    ) {
+      return;
+    }
+
+    const model = this.connection;
+
+    this.rebuildPromise = this.installChannel(model)
+      .catch((error: unknown) => {
+        this.ready = false;
+        this.logger.warn(
+          `RabbitMQ publisher channel rebuild failed: ${this.message(error)}`,
+        );
+      })
+      .finally(() => {
+        this.rebuildPromise = undefined;
+      });
+  }
+
+  private async withTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    message: string,
+  ): Promise<T> {
+    let timer: NodeJS.Timeout | undefined;
+
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error(message)),
+            timeoutMs,
+          );
+        }),
+      ]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
   }
 
   private message(error: unknown): string {
