@@ -125,5 +125,8 @@ NODE
 curl -fsS "http://127.0.0.1:${gateway_port}/api/listings" >/dev/null
 echo "Gateway -> Catalog public contract: PASS"
 
+curl -fsS "http://127.0.0.1:${web_port}/api/listings" >/dev/null
+echo "Web -> Gateway rewrite: PASS"
+
 echo
 echo "M6 Docker Compose multi-services: PASS"

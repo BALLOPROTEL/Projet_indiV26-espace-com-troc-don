@@ -43,7 +43,7 @@ services:
     ports:
       - "127.0.0.1:${KEYCLOAK_HOST_PORT:-8081}:8080"
     volumes:
-      - ./infra/keycloak/projet-indiv26-realm.json:/opt/keycloak/data/import/projet-indiv26-realm.json:ro
+      - ${KEYCLOAK_REALM_FILE:-./infra/keycloak/projet-indiv26-realm.json}:/opt/keycloak/data/import/projet-indiv26-realm.json:ro
       - ./infra/keycloak/themes/petite-maison:/opt/keycloak/themes/petite-maison:ro
     mem_limit: 1g
 
@@ -334,6 +334,7 @@ services:
         NEXT_PUBLIC_KEYCLOAK_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}
         NEXT_PUBLIC_KEYCLOAK_REALM: projet-indiv26
         NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: web
+        API_INTERNAL_URL: http://gateway:3000
     restart: unless-stopped
     environment:
       API_INTERNAL_URL: http://gateway:3000

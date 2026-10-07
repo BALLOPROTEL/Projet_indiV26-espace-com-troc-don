@@ -46,7 +46,9 @@ La certification vérifie notamment :
 - les jobs de migration/bootstrap avec code de sortie `0` ;
 - Gateway → Legacy/Catalog/Marketplace par DNS Docker ;
 - Marketplace → Catalog par DNS Docker ;
-- le contrat public `/api/listings` via Gateway.
+- Web → Gateway via le rewrite Next.js compilé dans l'image ;
+- le contrat public `/api/listings` via Gateway ;
+- l'acceptation du redirect URI OIDC Web et un JWT Keycloak réel jusqu'au Marketplace Service dans le smoke CI.
 
 ## Logs
 
