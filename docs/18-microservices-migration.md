@@ -192,4 +192,11 @@ Pour la démonstration jury et les tests, il conserve les 50 derniers événemen
 
 ### Fiabilité M5
 
-Le publisher attend la confirmation RabbitMQ après le commit métier, mais un broker indisponible ne rollback pas une transaction métier déjà validée. Le M5 prouve le découplage asynchrone ; un transactional outbox reste le durcissement recommandé si une garantie de livraison at-least-once devient obligatoire.
+- Marketplace déclare l'exchange, la queue Notification et ses bindings avant de devenir ready ;
+- publisher confirms bornés par timeout, suivi `blocked/unblocked`, puis retry avec le même `eventId` après reconstruction du channel ;
+- Notification recrée son consumer après annulation broker et déduplique les redeliveries par `eventId` ;
+- les payloads sont validés par type avant ACK ;
+- `transaction.completed` n'est publié que par la requête qui gagne la transition conditionnelle `IN_PROGRESS → COMPLETED` ;
+- le smoke M5 construit lui-même Marketplace et corrèle les trois événements à un identifiant de listing unique au run.
+
+Le publisher attend la confirmation RabbitMQ après le commit métier, mais un broker durablement indisponible ne rollback pas une transaction métier déjà validée. Un **transactional outbox** reste donc le durcissement recommandé si une garantie de livraison at-least-once à travers une panne longue entre commit DB et publication devient obligatoire.

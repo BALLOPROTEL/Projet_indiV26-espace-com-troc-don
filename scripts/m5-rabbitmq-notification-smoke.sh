@@ -7,6 +7,9 @@ logs=(
   /tmp/m5-notification.log
 )
 
+smoke_id="m5-$(date +%s)-$-${RANDOM}"
+export M5_SMOKE_LISTING_ID="${smoke_id}"
+
 cleanup() {
   for pid in     "${catalog_pid:-}"     "${marketplace_pid:-}"     "${notification_pid:-}"; do
     if [[ -n "${pid}" ]]; then
@@ -45,6 +48,9 @@ wait_for_url() {
   return 1
 }
 
+echo "=== M5 standalone prerequisites ==="
+pnpm --filter marketplace-service build
+
 setsid bash -lc 'exec pnpm catalog:dev' > /tmp/m5-catalog.log 2>&1 &
 catalog_pid=$!
 
@@ -62,6 +68,8 @@ pnpm --filter catalog-service exec node - <<'NODE'
 const { PrismaClient } = require('./generated/prisma');
 
 (async () => {
+  const listingId = process.env.M5_SMOKE_LISTING_ID;
+  if (!listingId) throw new Error('M5_SMOKE_LISTING_ID is missing');
   const prisma = new PrismaClient({
     datasources: {
       db: { url: process.env.CATALOG_DATABASE_URL },
@@ -70,12 +78,12 @@ const { PrismaClient } = require('./generated/prisma');
 
   try {
     await prisma.listing.deleteMany({
-      where: { id: 'm5-ci-listing' },
+      where: { id: listingId },
     });
 
     await prisma.listing.create({
       data: {
-        id: 'm5-ci-listing',
+        id: listingId,
         ownerId: 'm5-ci-owner',
         title: 'M5 async smoke',
         description: 'Temporary listing for RabbitMQ notification certification.',
@@ -109,6 +117,8 @@ const { TransactionsService } =
   require('./dist/transactions/transactions.service.js');
 
 (async () => {
+  const listingId = process.env.M5_SMOKE_LISTING_ID;
+  if (!listingId) throw new Error('M5_SMOKE_LISTING_ID is missing');
   const prisma = new PrismaService();
   const events = new MarketplaceEventPublisher(
     new ConfigService(process.env),
@@ -129,7 +139,7 @@ const { TransactionsService } =
 
     const old = await prisma.proposal.findMany({
       where: {
-        targetListingId: 'm5-ci-listing',
+        targetListingId: listingId,
       },
       select: { id: true },
     });
@@ -150,7 +160,7 @@ const { TransactionsService } =
     const proposal = await proposals.create(
       'm5-ci-requester',
       {
-        targetListingId: 'm5-ci-listing',
+        targetListingId: listingId,
         type: 'DONATION_REQUEST',
         message: 'M5 RabbitMQ smoke',
       },
@@ -195,23 +205,22 @@ for attempt in $(seq 1 40); do
 
   if node - <<'NODE'
 const fs = require('node:fs');
+const listingId = process.env.M5_SMOKE_LISTING_ID;
+if (!listingId) throw new Error('M5_SMOKE_LISTING_ID is missing');
 const items = JSON.parse(
   fs.readFileSync('/tmp/m5-notifications.json', 'utf8'),
 );
-const types = new Set(items.map((item) => item.event?.type));
-const targetSeen = items.some(
-  (item) => item.event?.data?.targetListingId === 'm5-ci-listing',
+const matching = items.filter(
+  (item) => item.event?.data?.targetListingId === listingId,
 );
+const types = new Set(matching.map((item) => item.event?.type));
 const required = [
   'proposal.created',
   'proposal.accepted',
   'transaction.completed',
 ];
 
-if (
-  required.every((type) => types.has(type)) &&
-  targetSeen
-) {
+if (required.every((type) => types.has(type))) {
   process.exit(0);
 }
 
@@ -233,13 +242,15 @@ done
 
 node - <<'NODE'
 const fs = require('node:fs');
+const listingId = process.env.M5_SMOKE_LISTING_ID;
+if (!listingId) throw new Error('M5_SMOKE_LISTING_ID is missing');
 const items = JSON.parse(
   fs.readFileSync('/tmp/m5-notifications.json', 'utf8'),
 );
 const selected = items
   .filter(
     (item) =>
-      item.event?.data?.targetListingId === 'm5-ci-listing',
+      item.event?.data?.targetListingId === listingId,
   )
   .map((item) => ({
     type: item.event.type,
@@ -254,6 +265,8 @@ pnpm --filter marketplace-service exec node - <<'NODE'
 const { PrismaClient } = require('./generated/prisma');
 
 (async () => {
+  const listingId = process.env.M5_SMOKE_LISTING_ID;
+  if (!listingId) throw new Error('M5_SMOKE_LISTING_ID is missing');
   const prisma = new PrismaClient({
     datasources: {
       db: { url: process.env.MARKETPLACE_DATABASE_URL },
@@ -263,7 +276,7 @@ const { PrismaClient } = require('./generated/prisma');
   try {
     const proposals = await prisma.proposal.findMany({
       where: {
-        targetListingId: 'm5-ci-listing',
+        targetListingId: listingId,
       },
       select: { id: true },
     });
@@ -293,6 +306,8 @@ pnpm --filter catalog-service exec node - <<'NODE'
 const { PrismaClient } = require('./generated/prisma');
 
 (async () => {
+  const listingId = process.env.M5_SMOKE_LISTING_ID;
+  if (!listingId) throw new Error('M5_SMOKE_LISTING_ID is missing');
   const prisma = new PrismaClient({
     datasources: {
       db: { url: process.env.CATALOG_DATABASE_URL },
@@ -301,7 +316,7 @@ const { PrismaClient } = require('./generated/prisma');
 
   try {
     await prisma.listing.deleteMany({
-      where: { id: 'm5-ci-listing' },
+      where: { id: listingId },
     });
   } finally {
     await prisma.$disconnect();
@@ -313,4 +328,4 @@ const { PrismaClient } = require('./generated/prisma');
 NODE
 
 echo
-echo "M5 RabbitMQ -> Notification async flow: PASS"
+echo "M5 RabbitMQ -> Notification async flow: PASS (${M5_SMOKE_LISTING_ID})"

@@ -48,9 +48,17 @@ describe('NotificationStore', () => {
       'event-1',
     ]);
 
-    recent[0].event.data.transactionId = 'mutated';
+    const returned = recent[0].event;
+    if (returned.type !== 'transaction.completed') {
+      throw new Error('Expected transaction.completed');
+    }
+    returned.data.transactionId = 'mutated';
 
-    expect(store.recent()[0].event.data.transactionId).toBe('tx-1');
+    const stored = store.recent()[0].event;
+    if (stored.type !== 'transaction.completed') {
+      throw new Error('Expected transaction.completed');
+    }
+    expect(stored.data.transactionId).toBe('tx-1');
   });
 
   it('deduplicates RabbitMQ redeliveries by eventId', () => {

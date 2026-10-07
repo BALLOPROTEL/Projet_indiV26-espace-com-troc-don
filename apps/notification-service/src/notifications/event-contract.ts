@@ -236,4 +236,6 @@ export function parseMarketplaceEvent(
         },
       };
   }
+
+  throw new Error('Unexpected RabbitMQ event type after validation');
 }
