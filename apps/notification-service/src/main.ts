@@ -1,28 +1,13 @@
 import 'reflect-metadata';
-import { Controller, Get, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
 
-@Controller('health')
-class HealthController {
-  @Get('live')
-  live() {
-    return { status: 'ok', service: 'notification-service' };
-  }
-
-  @Get('ready')
-  ready() {
-    return { status: 'ready', service: 'notification-service' };
-  }
-}
-
-@Module({
-  controllers: [HealthController],
-})
-class NotificationModule {}
-
-async function bootstrap() {
-  const app = await NestFactory.create(NotificationModule);
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.create(AppModule);
   const port = Number(process.env.PORT ?? 3103);
+
+  app.enableShutdownHooks();
+
   await app.listen(port, '0.0.0.0');
 }
 
