@@ -63,7 +63,12 @@
     "codespaces:dev": "bash scripts/codespaces-dev.sh",
     "gateway:test": "pnpm --filter gateway test",
     "gateway:quality": "pnpm --filter gateway quality",
-    "gateway:smoke": "bash scripts/m4-gateway-smoke.sh"
+    "gateway:smoke": "bash scripts/m4-gateway-smoke.sh",
+    "rabbitmq:up": "docker compose up -d --wait rabbitmq",
+    "rabbitmq:down": "docker compose stop rabbitmq",
+    "notification:test": "pnpm --filter notification-service test",
+    "notification:quality": "pnpm --filter notification-service quality",
+    "m5:smoke": "bash scripts/m5-rabbitmq-notification-smoke.sh"
   },
   "pnpm": {
     "overrides": {
