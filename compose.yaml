@@ -1,50 +1,47 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: projet-indiv26-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: projet_indiv26
       POSTGRES_USER: app
       POSTGRES_PASSWORD: app_local_change_me
     ports:
-      - "127.0.0.1:5433:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
     volumes:
       - projet_indiv26_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U app -d projet_indiv26"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
 
   rabbitmq:
     image: rabbitmq:4.1-management-alpine
-    container_name: projet-indiv26-rabbitmq
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: app
       RABBITMQ_DEFAULT_PASS: rabbitmq_local_change_me_2026
     ports:
-      - "127.0.0.1:5672:5672"
-      - "127.0.0.1:15672:15672"
+      - "127.0.0.1:${RABBITMQ_AMQP_HOST_PORT:-5672}:5672"
+      - "127.0.0.1:${RABBITMQ_MANAGEMENT_HOST_PORT:-15672}:15672"
     volumes:
       - projet_indiv26_rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 5s
       timeout: 5s
-      retries: 20
+      retries: 30
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.7.4
-    container_name: projet-indiv26-keycloak
     restart: unless-stopped
     command: ["start-dev", "--import-realm"]
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin_local_change_me
     ports:
-      - "127.0.0.1:8081:8080"
+      - "127.0.0.1:${KEYCLOAK_HOST_PORT:-8081}:8080"
     volumes:
       - ./infra/keycloak/projet-indiv26-realm.json:/opt/keycloak/data/import/projet-indiv26-realm.json:ro
       - ./infra/keycloak/themes/petite-maison:/opt/keycloak/themes/petite-maison:ro
@@ -55,7 +52,6 @@ services:
       context: .
       dockerfile: infra/minio/Dockerfile.server
     image: projet-indiv26-minio:lot9b-local
-    container_name: projet-indiv26-minio
     restart: unless-stopped
     command:
       - server
@@ -66,8 +62,8 @@ services:
       MINIO_ROOT_USER: minio-root
       MINIO_ROOT_PASSWORD: minio_root_local_change_me_2026
     ports:
-      - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001"
+      - "127.0.0.1:${MINIO_API_HOST_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
     volumes:
       - projet_indiv26_minio_data:/data
     healthcheck:
@@ -78,17 +74,16 @@ services:
         ]
       interval: 5s
       timeout: 3s
-      retries: 20
+      retries: 30
 
   minio-init:
     build:
       context: .
       dockerfile: infra/minio/Dockerfile.mc-bootstrap
     image: projet-indiv26-minio-bootstrap:lot9b-local
-    container_name: projet-indiv26-minio-init
     depends_on:
       minio:
-        condition: service_started
+        condition: service_healthy
     environment:
       MINIO_ROOT_USER: minio-root
       MINIO_ROOT_PASSWORD: minio_root_local_change_me_2026
@@ -116,6 +111,250 @@ services:
         mc admin policy attach local listing-images-rw --user "$$S3_ACCESS_KEY"
         echo "MinIO listing-images bootstrap: PASS"
     restart: "no"
+
+  legacy-migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: migration
+    environment:
+      DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  catalog-migrate:
+    build:
+      context: .
+      dockerfile: apps/catalog-service/Dockerfile
+      target: migration
+    environment:
+      CATALOG_DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=catalog
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  marketplace-migrate:
+    build:
+      context: .
+      dockerfile: apps/marketplace-service/Dockerfile
+      target: migration
+    environment:
+      MARKETPLACE_DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=marketplace
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  legacy-api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3099"
+      DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=public
+      KEYCLOAK_ISSUER: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}/realms/projet-indiv26
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: api
+      WEB_ORIGIN: ${WEB_PUBLIC_URL:-http://localhost:3001}
+      METRICS_TOKEN: local_optional_metrics_token
+      SWAGGER_ENABLED: "true"
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: listing-images
+      S3_ACCESS_KEY: marketplace-api
+      S3_SECRET_KEY: marketplace_storage_local_change_me_2026
+      S3_FORCE_PATH_STYLE: "true"
+    ports:
+      - "127.0.0.1:${LEGACY_API_HOST_PORT:-3099}:3099"
+    depends_on:
+      legacy-migrate:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3099/api/health/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+
+  catalog-service:
+    build:
+      context: .
+      dockerfile: apps/catalog-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3101"
+      CATALOG_DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=catalog
+      KEYCLOAK_ISSUER: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}/realms/projet-indiv26
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: api
+      INTERNAL_SERVICE_TOKEN: local_internal_change_me_2026_very_long_token
+      SWAGGER_ENABLED: "true"
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: us-east-1
+      S3_BUCKET: listing-images
+      S3_ACCESS_KEY: marketplace-api
+      S3_SECRET_KEY: marketplace_storage_local_change_me_2026
+      S3_FORCE_PATH_STYLE: "true"
+    ports:
+      - "127.0.0.1:${CATALOG_HOST_PORT:-3101}:3101"
+    depends_on:
+      catalog-migrate:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3101/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+
+  marketplace-service:
+    build:
+      context: .
+      dockerfile: apps/marketplace-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3102"
+      MARKETPLACE_DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=marketplace
+      KEYCLOAK_ISSUER: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}/realms/projet-indiv26
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: api
+      CATALOG_INTERNAL_URL: http://catalog-service:3101
+      INTERNAL_SERVICE_TOKEN: local_internal_change_me_2026_very_long_token
+      RABBITMQ_URL: amqp://app:rabbitmq_local_change_me_2026@rabbitmq:5672
+      RABBITMQ_CONFIRM_TIMEOUT_MS: "5000"
+    ports:
+      - "127.0.0.1:${MARKETPLACE_HOST_PORT:-3102}:3102"
+    depends_on:
+      marketplace-migrate:
+        condition: service_completed_successfully
+      catalog-service:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3102/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3103"
+      RABBITMQ_URL: amqp://app:rabbitmq_local_change_me_2026@rabbitmq:5672
+    ports:
+      - "127.0.0.1:${NOTIFICATION_HOST_PORT:-3103}:3103"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3103/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3000"
+      CATALOG_SERVICE_URL: http://catalog-service:3101
+      MARKETPLACE_SERVICE_URL: http://marketplace-service:3102
+      LEGACY_API_URL: http://legacy-api:3099
+      WEB_ORIGIN: ${WEB_PUBLIC_URL:-http://localhost:3001}
+      METRICS_TOKEN: local_optional_metrics_token
+    ports:
+      - "127.0.0.1:${GATEWAY_HOST_PORT:-3000}:3000"
+    depends_on:
+      legacy-api:
+        condition: service_healthy
+      catalog-service:
+        condition: service_healthy
+      marketplace-service:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: /api
+        NEXT_PUBLIC_KEYCLOAK_URL: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}
+        NEXT_PUBLIC_KEYCLOAK_REALM: projet-indiv26
+        NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: web
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://gateway:3000
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT:-3001}:3001"
+    depends_on:
+      gateway:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 30
 
 volumes:
   projet_indiv26_pgdata:

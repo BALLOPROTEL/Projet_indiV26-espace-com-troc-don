@@ -1,7 +1,7 @@
 services:
   keycloak:
     environment:
-      KC_HOSTNAME: ${CODESPACE_KEYCLOAK_URL}
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL}
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: "true"
     volumes:
