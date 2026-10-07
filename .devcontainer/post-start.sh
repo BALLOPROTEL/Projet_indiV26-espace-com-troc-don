@@ -19,4 +19,4 @@ fi
 node .devcontainer/prepare-codespaces.mjs
 
 echo "[ProjetIndiv26] Codespaces configuration refreshed."
-echo "[ProjetIndiv26] Start with: pnpm codespaces:up"
+echo "[ProjetIndiv26] Start the full M6 stack with: pnpm codespaces:up"

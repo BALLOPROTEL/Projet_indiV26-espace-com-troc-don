@@ -15,30 +15,11 @@ compose=(
   -f .devcontainer/compose.codespaces.yml
 )
 
-echo "=== ProjetIndiv26 Codespaces infrastructure ==="
-"${compose[@]}" up -d --wait postgres rabbitmq keycloak minio
-"${compose[@]}" run --rm minio-init
+echo "=== ProjetIndiv26 Codespaces M6 stack ==="
+"${compose[@]}" up -d --build
 
-echo "[INFO] Waiting for Keycloak realm..."
-for attempt in $(seq 1 120); do
-  if curl -fsS http://127.0.0.1:8081/realms/projet-indiv26/.well-known/openid-configuration >/dev/null 2>&1; then
-    echo "[OK] Keycloak realm ready."
-    break
-  fi
-  if [[ "${attempt}" -eq 120 ]]; then
-    echo "[FAIL] Keycloak did not become ready."
-    "${compose[@]}" logs --tail=120 keycloak
-    exit 1
-  fi
-  sleep 2
-done
-
-pnpm db:deploy
-pnpm catalog:migrate:deploy
-pnpm --filter marketplace-service prisma:migrate:deploy
+bash scripts/m6-compose-check.sh
 
 echo
-echo "[OK] PostgreSQL public/catalog/marketplace, RabbitMQ, Keycloak and MinIO are ready."
-echo "Next:"
-echo "  pnpm codespaces:check"
-echo "  pnpm codespaces:dev"
+echo "[OK] Codespaces multi-service stack is ready."
+echo "Use: pnpm codespaces:dev  # follow application logs"

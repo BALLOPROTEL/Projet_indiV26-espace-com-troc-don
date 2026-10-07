@@ -14,8 +14,9 @@ echo "[ProjetIndiv26] pnpm $(pnpm -v)"
 
 pnpm install --frozen-lockfile
 pnpm db:generate
+node .devcontainer/prepare-codespaces.mjs
 
 echo
-echo "[ProjetIndiv26] Dependencies ready."
-echo "[ProjetIndiv26] Docker/Keycloak/PostgreSQL/MinIO and Minikube are NOT started automatically."
-echo "[ProjetIndiv26] Start the cloud stack with: pnpm codespaces:up"
+echo "[ProjetIndiv26] Dependencies and Codespaces URLs are ready."
+echo "[ProjetIndiv26] M6 containers are NOT started automatically to save quota."
+echo "[ProjetIndiv26] Start the complete stack with: pnpm codespaces:up"
