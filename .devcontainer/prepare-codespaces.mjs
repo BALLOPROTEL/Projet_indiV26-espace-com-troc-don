@@ -50,7 +50,7 @@ await writeFile(
 );
 
 const apiEnv = [
-  'PORT=3000',
+  'PORT=3099',
   'DATABASE_URL=postgresql://app:app_local_change_me@localhost:5433/projet_indiv26?schema=public',
   `KEYCLOAK_ISSUER=${keycloakIssuer}`,
   'KEYCLOAK_JWKS_URL=http://127.0.0.1:8081/realms/projet-indiv26/protocol/openid-connect/certs',
@@ -64,6 +64,15 @@ const apiEnv = [
   'S3_ACCESS_KEY=marketplace-api',
   'S3_SECRET_KEY=marketplace_storage_local_change_me_2026',
   'S3_FORCE_PATH_STYLE=true',
+  '',
+].join('\n');
+
+const gatewayEnv = [
+  'PORT=3000',
+  'CATALOG_SERVICE_URL=http://127.0.0.1:3101',
+  'MARKETPLACE_SERVICE_URL=http://127.0.0.1:3102',
+  'LEGACY_API_URL=http://127.0.0.1:3099',
+  `WEB_ORIGIN=${webUrl}`,
   '',
 ].join('\n');
 
@@ -97,6 +106,7 @@ const marketplaceEnv = [
 
 await writeFile('.env', apiEnv);
 await writeFile(path.join('apps', 'api', '.env'), apiEnv);
+await writeFile(path.join('apps', 'gateway', '.env'), gatewayEnv);
 await writeFile(path.join('apps', 'catalog-service', '.env'), catalogEnv);
 await writeFile(path.join('apps', 'marketplace-service', '.env'), marketplaceEnv);
 
@@ -114,6 +124,8 @@ await writeFile(
 
 console.log(`[ProjetIndiv26] Web: ${webUrl}`);
 console.log(`[ProjetIndiv26] Keycloak: ${keycloakUrl}`);
+console.log('[ProjetIndiv26] Gateway: http://127.0.0.1:3000');
+console.log('[ProjetIndiv26] Legacy API fallback: http://127.0.0.1:3099');
 console.log('[ProjetIndiv26] Catalog: http://127.0.0.1:3101');
 console.log('[ProjetIndiv26] Catalog DB schema: catalog');
 console.log('[ProjetIndiv26] Marketplace: http://127.0.0.1:3102');
