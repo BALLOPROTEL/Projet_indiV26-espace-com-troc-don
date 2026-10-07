@@ -96,7 +96,9 @@ export class RabbitMqConsumer
         factor: 2,
         jitter: 0.2,
         maxRetries: Number.POSITIVE_INFINITY,
-        setup: async (model) => {
+        setup: async (
+          model: { createChannel(): Promise<Channel> },
+        ) => {
           await this.installChannel(model);
         },
       },

@@ -168,7 +168,9 @@ export class MarketplaceEventPublisher
         factor: 2,
         jitter: 0.2,
         maxRetries: Number.POSITIVE_INFINITY,
-        setup: async (model) => {
+        setup: async (
+          model: { createConfirmChannel(): Promise<ConfirmChannel> },
+        ) => {
           await this.installChannel(model);
         },
       },
