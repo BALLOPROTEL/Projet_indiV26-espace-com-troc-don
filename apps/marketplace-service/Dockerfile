@@ -33,18 +33,16 @@ CMD ["pnpm", "--filter", "marketplace-service", "prisma:migrate:deploy"]
 
 FROM ${NODE_IMAGE} AS runtime
 
-RUN apk add --no-cache dumb-init openssl \
-  && addgroup -g 1000 -S app \
-  && adduser -u 1000 -S -G app -h /home/app app
+RUN apk add --no-cache dumb-init openssl
 
 ENV NODE_ENV=production
 ENV PORT=3102
 
 WORKDIR /app
 
-COPY --from=build --chown=app:app /runtime/marketplace/ ./
+COPY --from=build --chown=node:node /runtime/marketplace/ ./
 
-USER app
+USER node
 
 EXPOSE 3102
 

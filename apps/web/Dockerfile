@@ -34,9 +34,7 @@ RUN pnpm --filter web build \
 
 FROM ${NODE_IMAGE} AS runtime
 
-RUN apk add --no-cache dumb-init \
-  && addgroup -g 1000 -S app \
-  && adduser -u 1000 -S -G app -h /home/app app
+RUN apk add --no-cache dumb-init
 
 ENV NODE_ENV=production
 ENV PORT=3001
@@ -44,9 +42,9 @@ ENV HOSTNAME=0.0.0.0
 
 WORKDIR /app
 
-COPY --from=build --chown=app:app /runtime/web/ ./
+COPY --from=build --chown=node:node /runtime/web/ ./
 
-USER app
+USER node
 
 EXPOSE 3001
 

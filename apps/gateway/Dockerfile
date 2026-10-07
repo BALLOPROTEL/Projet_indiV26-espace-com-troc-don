@@ -23,18 +23,16 @@ RUN pnpm --filter gateway build \
 
 FROM ${NODE_IMAGE} AS runtime
 
-RUN apk add --no-cache dumb-init \
-  && addgroup -g 1000 -S app \
-  && adduser -u 1000 -S -G app -h /home/app app
+RUN apk add --no-cache dumb-init
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
 WORKDIR /app
 
-COPY --from=build --chown=app:app /runtime/gateway/ ./
+COPY --from=build --chown=node:node /runtime/gateway/ ./
 
-USER app
+USER node
 
 EXPOSE 3000
 
