@@ -30,10 +30,22 @@ jobs:
           --health-timeout 3s
           --health-retries 10
 
+      rabbitmq:
+        image: rabbitmq:4.1-management-alpine
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
     env:
       DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=public
       CATALOG_DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=catalog
       MARKETPLACE_DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=marketplace
+      RABBITMQ_URL: amqp://guest:guest@127.0.0.1:5672
       CATALOG_INTERNAL_URL: http://127.0.0.1:3101
       INTERNAL_SERVICE_TOKEN: ci_internal_service_token_2026_long_value
       KEYCLOAK_ISSUER: http://localhost:8081/realms/projet-indiv26
@@ -80,6 +92,16 @@ jobs:
           test -f apps/marketplace-service/prisma/schema.prisma
           test -d apps/marketplace-service/prisma/migrations
           test -f apps/marketplace-service/src/proposals/proposals.service.ts
+          test -f apps/marketplace-service/src/events/event-contract.ts
+          test -f apps/marketplace-service/src/events/event-publisher.service.ts
+          test -f apps/marketplace-service/src/events/events.module.ts
+          test -f apps/notification-service/src/app.module.ts
+          test -f apps/notification-service/src/rabbitmq/rabbitmq.consumer.ts
+          test -f apps/notification-service/src/notifications/event-contract.ts
+          test -f apps/notification-service/src/notifications/notification.store.ts
+          test -f apps/notification-service/src/notifications/notifications.controller.ts
+          test -f apps/notification-service/src/health/health.controller.ts
+          test -f scripts/m5-rabbitmq-notification-smoke.sh
           test -f apps/marketplace-service/src/transactions/transactions.service.ts
           test -f apps/marketplace-service/src/transactions/transactions.service.spec.ts
           test -f apps/gateway/src/proxy.ts
@@ -270,6 +292,12 @@ jobs:
       - name: Test Marketplace Service
         run: pnpm marketplace-service:test
 
+      - name: Test Notification Service
+        run: pnpm notification:quality
+
+      - name: Smoke test M5 RabbitMQ notifications
+        run: pnpm m5:smoke
+
       - name: Smoke test M4 API Gateway routing
         run: pnpm gateway:smoke
 
@@ -412,9 +440,11 @@ jobs:
                 new ConfigService(process.env),
               );
               const rules = new MarketplaceRulesService();
-              const proposals = new ProposalsService(prisma, catalog, rules);
+              const events = { publish: async () => true };
+              const proposals =
+                new ProposalsService(prisma, catalog, rules, events);
               const transactions =
-                new TransactionsService(prisma, catalog, rules);
+                new TransactionsService(prisma, catalog, rules, events);
 
               await prisma.marketplaceTransaction.deleteMany({
                 where: { proposalId: 'm3-ci-proposal' },
