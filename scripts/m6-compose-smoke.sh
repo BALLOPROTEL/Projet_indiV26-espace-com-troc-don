@@ -76,7 +76,7 @@ challenge="$(
 
 oidc_headers="${smoke_dir}/oidc-headers.txt"
 oidc_status="$(
-  curl -sS -o /dev/null -D "${oidc_headers}" -w '%{http_code}' -G     "http://127.0.0.1:${KEYCLOAK_HOST_PORT}/realms/projet-indiv26/protocol/openid-connect/auth"     --data-urlencode 'client_id=web'     --data-urlencode "redirect_uri=${WEB_PUBLIC_URL}/"     --data-urlencode 'response_type=code'     --data-urlencode 'scope=openid'     --data-urlencode 'prompt=none'     --data-urlencode "code_challenge=${challenge}"     --data-urlencode 'code_challenge_method=S256'
+  curl -sS -o /dev/null -D "${oidc_headers}" -w '%{http_code}' -G     "${KEYCLOAK_PUBLIC_URL}/realms/projet-indiv26/protocol/openid-connect/auth"     --data-urlencode 'client_id=web'     --data-urlencode "redirect_uri=${WEB_PUBLIC_URL}/"     --data-urlencode 'response_type=code'     --data-urlencode 'scope=openid'     --data-urlencode 'prompt=none'     --data-urlencode "code_challenge=${challenge}"     --data-urlencode 'code_challenge_method=S256'
 )"
 
 if [[ "${oidc_status}" != "302" ]]; then
@@ -95,7 +95,7 @@ echo "Web OIDC redirect URI: PASS"
 
 echo "[INFO] Validating a real Keycloak token through the Gateway..."
 token_response="$(
-  curl -fsS -X POST     "http://127.0.0.1:${KEYCLOAK_HOST_PORT}/realms/projet-indiv26/protocol/openid-connect/token"     -H 'content-type: application/x-www-form-urlencoded'     --data-urlencode 'grant_type=password'     --data-urlencode 'client_id=cli'     --data-urlencode 'username=demo-user'     --data-urlencode 'password=demo-user-local'
+  curl -fsS -X POST     "${KEYCLOAK_PUBLIC_URL}/realms/projet-indiv26/protocol/openid-connect/token"     -H 'content-type: application/x-www-form-urlencoded'     --data-urlencode 'grant_type=password'     --data-urlencode 'client_id=cli'     --data-urlencode 'username=demo-user'     --data-urlencode 'password=demo-user-local'
 )"
 
 access_token="$(
@@ -105,6 +105,23 @@ access_token="$(
     process.stdout.write(payload.access_token);
   "
 )"
+
+ACCESS_TOKEN="${access_token}" EXPECTED_ISSUER="${KEYCLOAK_PUBLIC_URL}/realms/projet-indiv26" node - <<'NODE'
+const token = process.env.ACCESS_TOKEN;
+const expectedIssuer = process.env.EXPECTED_ISSUER;
+const payload = JSON.parse(
+  Buffer.from(token.split('.')[1], 'base64url').toString('utf8'),
+);
+const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+
+if (payload.iss !== expectedIssuer) {
+  throw new Error(`Unexpected JWT issuer: ${payload.iss}`);
+}
+if (!audiences.includes('api')) {
+  throw new Error(`JWT audience does not include api: ${JSON.stringify(payload.aud)}`);
+}
+console.log('Keycloak JWT issuer/audience: PASS');
+NODE
 
 auth_status="$(
   curl -sS -o "${smoke_dir}/authenticated-proposals.json" -w '%{http_code}'     -H "Authorization: Bearer ${access_token}"     "http://127.0.0.1:${GATEWAY_HOST_PORT}/api/proposals/me"
