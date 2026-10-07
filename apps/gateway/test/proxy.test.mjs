@@ -4,6 +4,10 @@ import {
   get as httpGet,
 } from 'node:http';
 import test from 'node:test';
+import {
+  createGatewayObservabilityMiddleware,
+  GatewayMetrics,
+} from '../dist/observability.js';
 import { createProxyMiddleware } from '../dist/proxy.js';
 
 function listen(server) {
@@ -40,6 +44,25 @@ function createGateway(target) {
     middleware(request, response, () => {
       response.statusCode = 404;
       response.end('not routed');
+    });
+  });
+}
+
+function createObservedGateway(target, metrics) {
+  const observability =
+    createGatewayObservabilityMiddleware(metrics);
+  const proxy = createProxyMiddleware({
+    catalog: target,
+    marketplace: target,
+    legacy: target,
+  });
+
+  return createServer((request, response) => {
+    observability(request, response, () => {
+      proxy(request, response, () => {
+        response.statusCode = 404;
+        response.end('not routed');
+      });
     });
   });
 }
@@ -196,7 +219,7 @@ test('streams binary Catalog responses without re-encoding', async (t) => {
   );
 });
 
-test('terminates the downstream response when upstream aborts mid-body', async (t) => {
+test('terminates aborted upstream responses and records them as failures', async (t) => {
   const upstream = createServer((_request, response) => {
     response.writeHead(200, {
       'content-type': 'application/octet-stream',
@@ -208,7 +231,11 @@ test('terminates the downstream response when upstream aborts mid-body', async (
   const upstreamUrl = await listen(upstream);
   t.after(() => close(upstream));
 
-  const gateway = createGateway(upstreamUrl);
+  const metrics = new GatewayMetrics();
+  const gateway = createObservedGateway(
+    upstreamUrl,
+    metrics,
+  );
   const gatewayUrl = await listen(gateway);
   t.after(() => close(gateway));
 
@@ -239,4 +266,11 @@ test('terminates the downstream response when upstream aborts mid-body', async (
   ]);
 
   assert.notEqual(outcome, 'end');
+
+  await new Promise((resolve) => setTimeout(resolve, 20));
+
+  assert.match(
+    metrics.metrics(),
+    /projet_indiv26_http_requests_total\{method="GET",route="\/api\/listings\/\*",status_code="502"\} 1/,
+  );
 });

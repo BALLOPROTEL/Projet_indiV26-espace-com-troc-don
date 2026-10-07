@@ -16,6 +16,16 @@ type MetricState = {
   buckets: number[];
 };
 
+type GatewayFailure = {
+  statusCode: number;
+  outcome: string;
+};
+
+const gatewayFailures = new WeakMap<
+  ServerResponse,
+  GatewayFailure
+>();
+
 const HISTOGRAM_BUCKETS = [
   0.01,
   0.025,
@@ -156,6 +166,17 @@ export class GatewayMetrics {
   }
 }
 
+export function markGatewayFailure(
+  response: ServerResponse,
+  outcome: string,
+  statusCode = 502,
+): void {
+  gatewayFailures.set(response, {
+    statusCode,
+    outcome,
+  });
+}
+
 function resolveRequestId(
   candidate: string | string[] | undefined,
 ): string {
@@ -203,7 +224,14 @@ export function createGatewayObservabilityMiddleware(
       const durationSeconds =
         Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
       const durationMs = durationSeconds * 1_000;
-      const statusCode = response.statusCode || 0;
+      const failure = gatewayFailures.get(response);
+      const completed = response.writableEnded;
+      const statusCode =
+        failure?.statusCode ??
+        (completed ? response.statusCode || 0 : 499);
+      const outcome =
+        failure?.outcome ??
+        (completed ? 'completed' : 'downstream_closed');
 
       metrics.observe(
         method,
@@ -226,6 +254,8 @@ export function createGatewayObservabilityMiddleware(
           ).pathname,
           route,
           status_code: statusCode,
+          downstream_status_code: response.statusCode || 0,
+          outcome,
           duration_ms: Number(durationMs.toFixed(2)),
         })}\n`,
       );

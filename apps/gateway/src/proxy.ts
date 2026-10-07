@@ -7,6 +7,7 @@ import {
   type ServerResponse,
 } from 'node:http';
 import { request as httpsRequest } from 'node:https';
+import { markGatewayFailure } from './observability';
 import { resolveGatewayRoute } from './routes';
 import { applySecurityHeaders } from './security';
 
@@ -92,27 +93,33 @@ function proxyRequest(
 
     copyResponseHeaders(upstreamResponse, response);
 
-    const terminateDownstream = (error: Error): void => {
+    const terminateDownstream = (
+      outcome: string,
+      error: Error,
+    ): void => {
       if (response.writableEnded || response.destroyed) {
         return;
       }
 
+      markGatewayFailure(response, outcome, 502);
       response.destroy(error);
     };
 
     upstreamResponse.once('aborted', () => {
       terminateDownstream(
+        'upstream_aborted',
         new Error('Gateway upstream response aborted'),
       );
     });
 
     upstreamResponse.once('error', (error) => {
-      terminateDownstream(error);
+      terminateDownstream('upstream_error', error);
     });
 
     upstreamResponse.once('close', () => {
       if (!upstreamResponse.complete) {
         terminateDownstream(
+          'upstream_incomplete',
           new Error(
             'Gateway upstream response closed before completion',
           ),
@@ -131,6 +138,11 @@ function proxyRequest(
 
   upstreamRequest.on('error', (error) => {
     if (response.headersSent) {
+      markGatewayFailure(
+        response,
+        'upstream_request_error',
+        502,
+      );
       response.destroy(error);
       return;
     }

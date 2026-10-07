@@ -3,11 +3,16 @@ set -euo pipefail
 
 stack_log=/tmp/m4-services-dev.log
 
-cleanup() {
+stop_stack() {
   if [[ -n "${stack_pid:-}" ]]; then
     kill "${stack_pid}" >/dev/null 2>&1 || true
     wait "${stack_pid}" >/dev/null 2>&1 || true
+    stack_pid=""
   fi
+}
+
+cleanup() {
+  stop_stack
 }
 trap cleanup EXIT
 
@@ -65,6 +70,14 @@ if grep -iq '^x-powered-by:' /tmp/m4-gateway-headers.txt; then
 fi
 echo "Gateway -> Catalog /api/listings + security/request-id headers: PASS"
 
+curl -sS   -D /tmp/m4-preflight-headers.txt   -o /dev/null   -X OPTIONS   -H 'Origin: http://localhost:3001'   -H 'Access-Control-Request-Method: GET'   http://127.0.0.1:3000/api/listings
+
+grep -iq '^HTTP/.* 204' /tmp/m4-preflight-headers.txt
+grep -iq '^x-request-id:' /tmp/m4-preflight-headers.txt
+grep -iq '^x-content-type-options: nosniff' /tmp/m4-preflight-headers.txt
+grep -iq '^access-control-expose-headers:.*x-request-id' /tmp/m4-preflight-headers.txt
+echo "Gateway CORS preflight observability + exposed request-id: PASS"
+
 marketplace_status="$(
   curl -sS -o /tmp/m4-marketplace-denied.json -w '%{http_code}'     http://127.0.0.1:3000/api/proposals/me
 )"
@@ -88,6 +101,31 @@ unknown_status="$(
 )"
 test "${unknown_status}" = "404"
 echo "Gateway unknown-route rejection: PASS"
+
+stop_stack
+
+for attempt in $(seq 1 30); do
+  alive=0
+
+  for url in     http://127.0.0.1:3000/api/health/live     http://127.0.0.1:3099/api/health/live     http://127.0.0.1:3101/health/live     http://127.0.0.1:3102/health/live     http://127.0.0.1:3103/health/live; do
+    if curl -fsS --max-time 1 "${url}" >/dev/null 2>&1; then
+      alive=1
+    fi
+  done
+
+  if [[ "${alive}" -eq 0 ]]; then
+    echo "services:dev process-group cleanup: PASS"
+    break
+  fi
+
+  if [[ "${attempt}" -eq 30 ]]; then
+    echo "[FAIL] services:dev left backend descendants alive"
+    dump_logs
+    exit 1
+  fi
+
+  sleep 0.2
+done
 
 echo
 echo "M4 Codex review smoke: PASS"

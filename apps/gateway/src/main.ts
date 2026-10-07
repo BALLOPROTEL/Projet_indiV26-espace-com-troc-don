@@ -28,16 +28,6 @@ async function bootstrap(): Promise<void> {
     .map((origin) => origin.trim())
     .filter(Boolean);
 
-  app.enableCors({
-    origin: webOrigins,
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Request-ID',
-    ],
-  });
-
   const httpAdapter = app.getHttpAdapter().getInstance() as {
     disable?: (setting: string) => void;
     use: (
@@ -59,6 +49,17 @@ async function bootstrap(): Promise<void> {
       app.get(GatewayMetrics),
     ),
   );
+
+  app.enableCors({
+    origin: webOrigins,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Request-ID',
+    ],
+    exposedHeaders: ['X-Request-ID'],
+  });
 
   httpAdapter.use(
     createProxyMiddleware({
