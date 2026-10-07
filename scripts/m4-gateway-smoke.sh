@@ -72,7 +72,7 @@ NODE
 echo "Gateway -> Catalog /api/listings: PASS"
 
 marketplace_status="$(
-  curl -sS -o /tmp/m4-marketplace-denied.json -w '%{http_code}'     http://127.0.0.1:3000/api/proposals
+  curl -sS -o /tmp/m4-marketplace-denied.json -w '%{http_code}'     http://127.0.0.1:3000/api/proposals/me
 )"
 test "${marketplace_status}" = "401"
 echo "Gateway -> Marketplace unauthenticated protection: PASS"
