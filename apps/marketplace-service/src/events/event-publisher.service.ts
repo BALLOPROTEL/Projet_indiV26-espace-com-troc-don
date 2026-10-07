@@ -7,7 +7,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   connect,
-  type ChannelModel,
   type ConfirmChannel,
   type RecoveringChannelModel,
 } from 'amqplib';
@@ -169,7 +168,7 @@ export class MarketplaceEventPublisher
         factor: 2,
         jitter: 0.2,
         maxRetries: Number.POSITIVE_INFINITY,
-        setup: async (model: ChannelModel) => {
+        setup: async (model) => {
           await this.installChannel(model);
         },
       },
@@ -226,7 +225,9 @@ export class MarketplaceEventPublisher
     });
   }
 
-  private async installChannel(model: ChannelModel): Promise<void> {
+  private async installChannel(
+    model: { createConfirmChannel(): Promise<ConfirmChannel> },
+  ): Promise<void> {
     const channel = await model.createConfirmChannel();
 
     await channel.assertExchange(

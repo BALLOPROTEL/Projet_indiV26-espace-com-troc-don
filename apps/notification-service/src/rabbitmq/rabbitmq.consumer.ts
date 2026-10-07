@@ -8,7 +8,6 @@ import { ConfigService } from '@nestjs/config';
 import {
   connect,
   type Channel,
-  type ChannelModel,
   type ConsumeMessage,
   type RecoveringChannelModel,
 } from 'amqplib';
@@ -97,7 +96,7 @@ export class RabbitMqConsumer
         factor: 2,
         jitter: 0.2,
         maxRetries: Number.POSITIVE_INFINITY,
-        setup: async (model: ChannelModel) => {
+        setup: async (model) => {
           await this.installChannel(model);
         },
       },
@@ -136,7 +135,9 @@ export class RabbitMqConsumer
     });
   }
 
-  private async installChannel(model: ChannelModel): Promise<void> {
+  private async installChannel(
+    model: { createChannel(): Promise<Channel> },
+  ): Promise<void> {
     const channel = await model.createChannel();
 
     await channel.assertExchange(
