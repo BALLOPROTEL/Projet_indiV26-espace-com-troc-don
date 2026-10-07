@@ -60,7 +60,10 @@
     "codespaces:up": "bash scripts/codespaces-up.sh",
     "codespaces:down": "bash scripts/codespaces-down.sh",
     "codespaces:check": "bash scripts/codespaces-check.sh",
-    "codespaces:dev": "bash scripts/codespaces-dev.sh"
+    "codespaces:dev": "bash scripts/codespaces-dev.sh",
+    "gateway:test": "pnpm --filter gateway test",
+    "gateway:quality": "pnpm --filter gateway quality",
+    "gateway:smoke": "bash scripts/m4-gateway-smoke.sh"
   },
   "pnpm": {
     "overrides": {

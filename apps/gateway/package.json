@@ -6,7 +6,9 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
     "start:dev": "ts-node --transpile-only src/main.ts",
-    "start:prod": "node dist/main.js"
+    "start:prod": "node dist/main.js",
+    "test": "pnpm build && node --test test/*.test.mjs",
+    "quality": "pnpm typecheck && pnpm test"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

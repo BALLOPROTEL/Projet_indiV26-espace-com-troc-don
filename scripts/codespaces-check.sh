@@ -36,6 +36,8 @@ fi
 echo "Marketplace schema PASS"
 
 pnpm api:typecheck
+pnpm --filter gateway typecheck
+pnpm --filter gateway test
 pnpm web:typecheck
 pnpm catalog:prisma:validate
 pnpm --filter catalog-service typecheck
