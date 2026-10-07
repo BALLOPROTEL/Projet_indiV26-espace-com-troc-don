@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { EventsModule } from './events/events.module';
 import { HealthModule } from './health/health.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -15,6 +16,7 @@ import { TransactionsModule } from './transactions/transactions.module';
       envFilePath: ['.env', '../../.env'],
     }),
     PrismaModule,
+    EventsModule,
     AuthModule,
     CatalogModule,
     MarketplaceModule,

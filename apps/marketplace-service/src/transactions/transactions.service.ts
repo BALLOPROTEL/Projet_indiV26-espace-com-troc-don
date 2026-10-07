@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { MarketplaceTransactionStatus } from '../../generated/prisma';
 import { CatalogClientService } from '../catalog/catalog-client.service';
+import { MARKETPLACE_EVENT_TYPES } from '../events/event-contract';
+import { MarketplaceEventPublisher } from '../events/event-publisher.service';
 import { MarketplaceRulesService } from '../marketplace/marketplace-rules.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -10,6 +12,7 @@ export class TransactionsService {
     private readonly prisma: PrismaService,
     private readonly catalog: CatalogClientService,
     private readonly rules: MarketplaceRulesService,
+    private readonly events: MarketplaceEventPublisher,
   ) {}
 
   findMine(actorId: string) {
@@ -77,6 +80,18 @@ export class TransactionsService {
           completedAt: new Date(),
         },
       });
+
+      await this.events.publish(
+        MARKETPLACE_EVENT_TYPES.TRANSACTION_COMPLETED,
+        {
+          transactionId: transaction.id,
+          proposalId: transaction.proposalId,
+          targetListingId: transaction.targetListingId,
+          offeredListingId: transaction.offeredListingId,
+          ownerId: transaction.ownerId,
+          requesterId: transaction.requesterId,
+        },
+      );
     }
 
     return transaction;

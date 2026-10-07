@@ -1,5 +1,6 @@
 import { MarketplaceTransactionStatus } from '../../generated/prisma';
 import { CatalogClientService } from '../catalog/catalog-client.service';
+import { MarketplaceEventPublisher } from '../events/event-publisher.service';
 import { MarketplaceRulesService } from '../marketplace/marketplace-rules.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionsService } from './transactions.service';
@@ -17,7 +18,15 @@ describe('TransactionsService', () => {
     completeListing: jest.fn(),
   } as unknown as CatalogClientService;
   const rules = new MarketplaceRulesService();
-  const service = new TransactionsService(prisma, catalog, rules);
+  const events = {
+    publish: jest.fn(),
+  } as unknown as MarketplaceEventPublisher;
+  const service = new TransactionsService(
+    prisma,
+    catalog,
+    rules,
+    events,
+  );
 
   const baseTransaction = {
     id: 'tx-1',
@@ -37,6 +46,7 @@ describe('TransactionsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (events.publish as jest.Mock).mockResolvedValue(true);
   });
 
   it('records one participant confirmation without completing', async () => {
@@ -56,6 +66,7 @@ describe('TransactionsService', () => {
       data: { ownerConfirmedAt: expect.any(Date) },
     });
     expect(catalog.completeListing).not.toHaveBeenCalled();
+    expect(events.publish).not.toHaveBeenCalled();
     expect(result.status).toBe(MarketplaceTransactionStatus.IN_PROGRESS);
   });
 
@@ -87,6 +98,15 @@ describe('TransactionsService', () => {
     expect(catalog.completeListing).toHaveBeenNthCalledWith(1, 'target-1');
     expect(catalog.completeListing).toHaveBeenNthCalledWith(2, 'offer-1');
     expect(result.status).toBe(MarketplaceTransactionStatus.COMPLETED);
+    expect(events.publish).toHaveBeenCalledWith(
+      'transaction.completed',
+      expect.objectContaining({
+        transactionId: 'tx-1',
+        proposalId: 'proposal-1',
+        targetListingId: 'target-1',
+        offeredListingId: 'offer-1',
+      }),
+    );
   });
 
   it('lists transactions where the actor is a participant', async () => {

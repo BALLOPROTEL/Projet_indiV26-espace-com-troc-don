@@ -1,6 +1,6 @@
 {
   "name": "marketplace-service",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "scripts": {
     "build": "pnpm prisma:generate && tsc -p tsconfig.json",
@@ -19,6 +19,7 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@prisma/client": "^6.0.0",
+    "amqplib": "2.2.0",
     "jose": "^6.2.12",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"

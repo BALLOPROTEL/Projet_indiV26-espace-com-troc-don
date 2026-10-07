@@ -10,6 +10,7 @@ import {
   ListingOperationType,
   ListingStatus,
 } from '../catalog/catalog-contract';
+import { MarketplaceEventPublisher } from '../events/event-publisher.service';
 import { MarketplaceRulesService } from '../marketplace/marketplace-rules.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProposalsService } from './proposals.service';
@@ -40,7 +41,15 @@ describe('ProposalsService', () => {
     releaseListing: jest.fn(),
   } as unknown as CatalogClientService;
   const rules = new MarketplaceRulesService();
-  const service = new ProposalsService(prisma, catalog, rules);
+  const events = {
+    publish: jest.fn(),
+  } as unknown as MarketplaceEventPublisher;
+  const service = new ProposalsService(
+    prisma,
+    catalog,
+    rules,
+    events,
+  );
 
   const listing = (
     overrides: Partial<CatalogListingSnapshot> = {},
@@ -80,6 +89,7 @@ describe('ProposalsService', () => {
     }));
     (catalog.reserveListing as jest.Mock).mockResolvedValue({});
     (catalog.releaseListing as jest.Mock).mockResolvedValue({});
+    (events.publish as jest.Mock).mockResolvedValue(true);
   });
 
   it('creates a donation request after Catalog validation', async () => {
@@ -102,6 +112,14 @@ describe('ProposalsService', () => {
       },
     });
     expect(result.id).toBe('proposal-1');
+    expect(events.publish).toHaveBeenCalledWith(
+      'proposal.created',
+      expect.objectContaining({
+        proposalId: 'proposal-1',
+        targetListingId: 'target-1',
+        requesterId: 'requester-1',
+      }),
+    );
   });
 
   it('rejects an offered listing on donation requests', async () => {
@@ -185,6 +203,15 @@ describe('ProposalsService', () => {
       },
     });
     expect(result.id).toBe('tx-1');
+    expect(events.publish).toHaveBeenCalledWith(
+      'proposal.accepted',
+      expect.objectContaining({
+        proposalId: 'proposal-1',
+        transactionId: 'tx-1',
+        ownerId: 'owner-1',
+        requesterId: 'requester-1',
+      }),
+    );
   });
 
   it('prevents a non-owner from accepting a proposal', async () => {

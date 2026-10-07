@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { ProposalStatus, ProposalType } from '../../generated/prisma';
 import { CatalogClientService } from '../catalog/catalog-client.service';
+import { MARKETPLACE_EVENT_TYPES } from '../events/event-contract';
+import { MarketplaceEventPublisher } from '../events/event-publisher.service';
 import { MarketplaceRulesService } from '../marketplace/marketplace-rules.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -23,6 +25,7 @@ export class ProposalsService {
     private readonly prisma: PrismaService,
     private readonly catalog: CatalogClientService,
     private readonly rules: MarketplaceRulesService,
+    private readonly events: MarketplaceEventPublisher,
   ) {}
 
   async create(requesterId: string, input: CreateProposalInput) {
@@ -53,7 +56,7 @@ export class ProposalsService {
       this.rules.assertCanOfferTrade(target, offered, requesterId);
     }
 
-    return this.prisma.proposal.create({
+    const created = await this.prisma.proposal.create({
       data: {
         targetListingId,
         requesterId,
@@ -62,6 +65,19 @@ export class ProposalsService {
         message,
       },
     });
+
+    await this.events.publish(
+      MARKETPLACE_EVENT_TYPES.PROPOSAL_CREATED,
+      {
+        proposalId: created.id,
+        targetListingId,
+        requesterId,
+        proposalType: type,
+        offeredListingId,
+      },
+    );
+
+    return created;
   }
 
   findMine(requesterId: string) {
@@ -110,7 +126,7 @@ export class ProposalsService {
         offeredReserved = true;
       }
 
-      return await this.prisma.$transaction(async (tx) => {
+      const transaction = await this.prisma.$transaction(async (tx) => {
         const accepted = await tx.proposal.updateMany({
           where: {
             id: proposal.id,
@@ -150,6 +166,20 @@ export class ProposalsService {
           },
         });
       });
+
+      await this.events.publish(
+        MARKETPLACE_EVENT_TYPES.PROPOSAL_ACCEPTED,
+        {
+          proposalId: proposal.id,
+          transactionId: transaction.id,
+          targetListingId: proposal.targetListingId,
+          offeredListingId: proposal.offeredListingId,
+          ownerId,
+          requesterId: proposal.requesterId,
+        },
+      );
+
+      return transaction;
     } catch (error) {
       if (offeredReserved && offered) {
         await this.safeRelease(offered.id);
