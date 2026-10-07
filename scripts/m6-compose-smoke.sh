@@ -107,7 +107,7 @@ access_token="$(
 )"
 
 auth_status="$(
-  curl -sS -o "${smoke_dir}/authenticated-proposals.json" -w '%{http_code}'     -H "Authorization: Bearer ${access_token}"     "http://127.0.0.1:${GATEWAY_HOST_PORT}/api/proposals"
+  curl -sS -o "${smoke_dir}/authenticated-proposals.json" -w '%{http_code}'     -H "Authorization: Bearer ${access_token}"     "http://127.0.0.1:${GATEWAY_HOST_PORT}/api/proposals/me"
 )"
 
 if [[ "${auth_status}" != "200" ]]; then
