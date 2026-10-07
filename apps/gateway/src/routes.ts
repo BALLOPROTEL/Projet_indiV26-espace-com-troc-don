@@ -22,7 +22,8 @@ export function resolveGatewayRoute(
 
   if (
     path === '/api/health/live' ||
-    path === '/api/health/ready'
+    path === '/api/health/ready' ||
+    path === '/api/metrics'
   ) {
     return {
       target: 'gateway',
@@ -56,8 +57,7 @@ export function resolveGatewayRoute(
 
   if (
     path === '/api/auth' ||
-    path.startsWith('/api/auth/') ||
-    path === '/api/metrics'
+    path.startsWith('/api/auth/')
   ) {
     return {
       target: 'legacy',

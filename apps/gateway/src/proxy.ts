@@ -7,7 +7,9 @@ import {
   type ServerResponse,
 } from 'node:http';
 import { request as httpsRequest } from 'node:https';
+import { markGatewayFailure } from './observability';
 import { resolveGatewayRoute } from './routes';
+import { applySecurityHeaders } from './security';
 
 type Next = () => void;
 
@@ -55,11 +57,14 @@ function copyResponseHeaders(
   for (const [name, value] of Object.entries(upstream.headers)) {
     if (
       value !== undefined &&
-      !HOP_BY_HOP_HEADERS.has(name.toLowerCase())
+      !HOP_BY_HOP_HEADERS.has(name.toLowerCase()) &&
+      name.toLowerCase() !== 'x-powered-by'
     ) {
       response.setHeader(name, value);
     }
   }
+
+  applySecurityHeaders(response);
 }
 
 function proxyRequest(
@@ -87,6 +92,41 @@ function proxyRequest(
     }
 
     copyResponseHeaders(upstreamResponse, response);
+
+    const terminateDownstream = (
+      outcome: string,
+      error: Error,
+    ): void => {
+      if (response.writableEnded || response.destroyed) {
+        return;
+      }
+
+      markGatewayFailure(response, outcome, 502);
+      response.destroy(error);
+    };
+
+    upstreamResponse.once('aborted', () => {
+      terminateDownstream(
+        'upstream_aborted',
+        new Error('Gateway upstream response aborted'),
+      );
+    });
+
+    upstreamResponse.once('error', (error) => {
+      terminateDownstream('upstream_error', error);
+    });
+
+    upstreamResponse.once('close', () => {
+      if (!upstreamResponse.complete) {
+        terminateDownstream(
+          'upstream_incomplete',
+          new Error(
+            'Gateway upstream response closed before completion',
+          ),
+        );
+      }
+    });
+
     upstreamResponse.pipe(response);
   });
 
@@ -98,12 +138,18 @@ function proxyRequest(
 
   upstreamRequest.on('error', (error) => {
     if (response.headersSent) {
+      markGatewayFailure(
+        response,
+        'upstream_request_error',
+        502,
+      );
       response.destroy(error);
       return;
     }
 
     response.statusCode = 502;
     response.setHeader('Content-Type', 'application/json');
+    applySecurityHeaders(response);
     response.end(
       JSON.stringify({
         statusCode: 502,
@@ -114,6 +160,11 @@ function proxyRequest(
   });
 
   request.on('aborted', () => upstreamRequest.destroy());
+  response.on('close', () => {
+    if (!response.writableEnded) {
+      upstreamRequest.destroy();
+    }
+  });
   request.pipe(upstreamRequest);
 
   return upstreamRequest;

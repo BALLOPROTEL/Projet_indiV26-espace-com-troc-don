@@ -30,21 +30,21 @@ test('routes Marketplace public contracts', () => {
   );
 });
 
-test('keeps temporary legacy routes prefixed with /api', () => {
+test('keeps temporary auth fallback prefixed with /api', () => {
   assert.deepEqual(resolveGatewayRoute('/api/auth/user'), {
     target: 'legacy',
     upstreamPath: '/api/auth/user',
   });
-  assert.deepEqual(resolveGatewayRoute('/api/metrics'), {
-    target: 'legacy',
-    upstreamPath: '/api/metrics',
-  });
 });
 
-test('keeps gateway health local and rejects unknown routes', () => {
+test('keeps Gateway-owned health and metrics local', () => {
   assert.deepEqual(resolveGatewayRoute('/api/health/live'), {
     target: 'gateway',
     upstreamPath: '/api/health/live',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/metrics'), {
+    target: 'gateway',
+    upstreamPath: '/api/metrics',
   });
   assert.equal(resolveGatewayRoute('/api/unknown'), null);
 });
