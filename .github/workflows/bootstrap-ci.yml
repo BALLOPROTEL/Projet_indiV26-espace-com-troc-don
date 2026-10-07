@@ -120,6 +120,15 @@ jobs:
           test -f pnpm-workspace.yaml
           test -f pnpm-lock.yaml
           test -f compose.yaml
+          test -f apps/gateway/Dockerfile
+          test -f apps/catalog-service/Dockerfile
+          test -f apps/marketplace-service/Dockerfile
+          test -f apps/notification-service/Dockerfile
+          test -f apps/web/Dockerfile
+          test -f scripts/m6-compose-up.sh
+          test -f scripts/m6-compose-check.sh
+          test -f scripts/m6-compose-smoke.sh
+          test -f docs/18-codespaces.md
           test -f .dockerignore
           test -f apps/api/Dockerfile
           test -f apps/api/package.json
@@ -173,6 +182,17 @@ jobs:
           test -d infra/k8s
           test -d tests/load
           echo "Repository baseline: OK"
+
+      - name: Validate M6 Compose model
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f compose.yaml config --quiet
+          docker compose -f compose.yaml config --services > /tmp/m6-services.txt
+          for service in             postgres rabbitmq keycloak minio minio-init             legacy-migrate catalog-migrate marketplace-migrate             legacy-api catalog-service marketplace-service             notification-service gateway web; do
+            grep -qx "${service}" /tmp/m6-services.txt
+          done
+          echo "M6 Compose model: PASS"
 
       - name: Ensure no tracked dotenv secrets
         shell: bash
@@ -568,6 +588,10 @@ jobs:
 
       - name: Build Web
         run: pnpm web:build
+
+      - name: Smoke test M6 Docker Compose stack
+        shell: bash
+        run: pnpm m6:smoke
 
       - name: Audit production dependencies
         shell: bash
