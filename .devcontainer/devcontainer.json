@@ -5,18 +5,22 @@
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {}
   },
-  "forwardPorts": [3001, 3000, 8081, 9001],
+  "forwardPorts": [3001, 3000, 8081, 15672, 9001],
   "portsAttributes": {
     "3001": {
       "label": "Web",
       "onAutoForward": "openBrowser"
     },
     "3000": {
-      "label": "API / Swagger",
+      "label": "API Gateway",
       "onAutoForward": "silent"
     },
     "8081": {
       "label": "Keycloak",
+      "onAutoForward": "silent"
+    },
+    "15672": {
+      "label": "RabbitMQ Management",
       "onAutoForward": "silent"
     },
     "9001": {

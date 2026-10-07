@@ -68,7 +68,12 @@
     "rabbitmq:down": "docker compose stop rabbitmq",
     "notification:test": "pnpm --filter notification-service test",
     "notification:quality": "pnpm --filter notification-service quality",
-    "m5:smoke": "bash scripts/m5-rabbitmq-notification-smoke.sh"
+    "m5:smoke": "bash scripts/m5-rabbitmq-notification-smoke.sh",
+    "compose:up": "bash scripts/m6-compose-up.sh",
+    "compose:check": "bash scripts/m6-compose-check.sh",
+    "compose:logs": "docker compose logs -f --tail=100 gateway legacy-api catalog-service marketplace-service notification-service web",
+    "compose:down": "docker compose down --remove-orphans",
+    "m6:smoke": "bash scripts/m6-compose-smoke.sh"
   },
   "pnpm": {
     "overrides": {

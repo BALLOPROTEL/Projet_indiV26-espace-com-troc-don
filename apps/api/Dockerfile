@@ -32,6 +32,12 @@ RUN pnpm db:generate \
   && cp -a "${GENERATED_PRISMA_CLIENT}/." "${RUNTIME_PACKAGE_NODE_MODULES}/.prisma/client/" \
   && test -f "${RUNTIME_PACKAGE_NODE_MODULES}/.prisma/client/default.js"
 
+FROM build AS migration
+
+ENV NODE_ENV=production
+
+CMD ["pnpm", "db:deploy"]
+
 FROM ${ALPINE_IMAGE} AS runtime
 
 RUN apk add --no-cache \

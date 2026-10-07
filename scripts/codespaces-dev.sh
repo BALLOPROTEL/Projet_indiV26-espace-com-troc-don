@@ -1,67 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cleaned_up=0
+if [[ "${CODESPACES:-}" != "true" ]]; then
+  echo "[FAIL] This command is reserved for GitHub Codespaces."
+  exit 1
+fi
 
-cleanup() {
-  if [[ "${cleaned_up}" -eq 1 ]]; then
-    return
-  fi
-  cleaned_up=1
+node .devcontainer/prepare-codespaces.mjs
 
-  local pids=(
-    "${gateway_pid:-}"
-    "${api_pid:-}"
-    "${catalog_pid:-}"
-    "${marketplace_pid:-}"
-    "${notification_pid:-}"
-    "${web_pid:-}"
-  )
+compose=(
+  docker compose
+  --env-file .codespaces/codespace.env
+  -f compose.yaml
+  -f .devcontainer/compose.codespaces.yml
+)
 
-  for pid in "${pids[@]}"; do
-    if [[ -n "${pid}" ]]; then
-      kill -TERM -- "-${pid}" >/dev/null 2>&1 || true
-    fi
-  done
+if [[ -z "$("${compose[@]}" ps -q gateway)" ]]; then
+  echo "[FAIL] M6 stack is not running. Start it with: pnpm codespaces:up"
+  exit 1
+fi
 
-  for pid in "${pids[@]}"; do
-    if [[ -n "${pid}" ]]; then
-      wait "${pid}" >/dev/null 2>&1 || true
-    fi
-  done
-}
-
-trap cleanup EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
-
-setsid bash -lc 'exec pnpm gateway:dev' &
-gateway_pid=$!
-
-setsid bash -lc 'PORT=3099 exec pnpm api:dev' &
-api_pid=$!
-
-setsid bash -lc 'exec pnpm catalog:dev' &
-catalog_pid=$!
-
-setsid bash -lc 'exec pnpm marketplace-service:dev' &
-marketplace_pid=$!
-
-setsid bash -lc 'exec pnpm notification:dev' &
-notification_pid=$!
-
-setsid bash -lc 'exec pnpm web:dev' &
-web_pid=$!
-
-echo "[ProjetIndiv26] M5 stack started."
-echo "[ProjetIndiv26] Gateway: http://127.0.0.1:3000"
-echo "[ProjetIndiv26] Legacy fallback: http://127.0.0.1:3099"
-echo "[ProjetIndiv26] Catalog: http://127.0.0.1:3101"
-echo "[ProjetIndiv26] Marketplace: http://127.0.0.1:3102"
-echo "[ProjetIndiv26] Notification: http://127.0.0.1:3103"
-echo "[ProjetIndiv26] Web: http://127.0.0.1:3001"
-echo "[ProjetIndiv26] RabbitMQ AMQP: amqp://127.0.0.1:5672"
-echo "[ProjetIndiv26] RabbitMQ UI: http://127.0.0.1:15672"
-echo "[ProjetIndiv26] Keep this terminal open. Ctrl+C stops the stack."
-
-wait -n   "${gateway_pid}"   "${api_pid}"   "${catalog_pid}"   "${marketplace_pid}"   "${notification_pid}"   "${web_pid}"
+echo "[ProjetIndiv26] Following M6 application logs. Ctrl+C stops log streaming only."
+"${compose[@]}" logs -f --tail=100 \
+  gateway \
+  legacy-api \
+  catalog-service \
+  marketplace-service \
+  notification-service \
+  web

@@ -131,8 +131,9 @@ docker compose up -d postgres minio minio-init
 
 BOOTSTRAP_OK=false
 for attempt in $(seq 1 60); do
-  state="$(docker inspect -f '{{.State.Status}}' projet-indiv26-minio-init 2>/dev/null || true)"
-  exit_code="$(docker inspect -f '{{.State.ExitCode}}' projet-indiv26-minio-init 2>/dev/null || true)"
+  minio_init_id="$(docker compose ps -aq minio-init | head -n 1)"
+  state="$(docker inspect -f '{{.State.Status}}' "${minio_init_id}" 2>/dev/null || true)"
+  exit_code="$(docker inspect -f '{{.State.ExitCode}}' "${minio_init_id}" 2>/dev/null || true)"
 
   if [ "${state}" = "exited" ]; then
     if [ "${exit_code}" = "0" ]; then
@@ -141,7 +142,7 @@ for attempt in $(seq 1 60); do
     fi
 
     echo "[FAIL] MinIO bootstrap exited with code ${exit_code}."
-    docker logs projet-indiv26-minio-init || true
+    docker compose logs minio-init || true
     exit 1
   fi
 
@@ -151,7 +152,7 @@ done
 
 if [ "${BOOTSTRAP_OK}" != "true" ]; then
   echo "[FAIL] MinIO bootstrap did not complete in time."
-  docker logs projet-indiv26-minio-init || true
+  docker compose logs minio-init || true
   exit 1
 fi
 

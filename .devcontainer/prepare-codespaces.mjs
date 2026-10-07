@@ -46,9 +46,15 @@ await writeFile(
 
 await writeFile(
   path.join('.codespaces', 'codespace.env'),
-  `CODESPACE_KEYCLOAK_URL=${keycloakUrl}\n`,
+  [
+    `KEYCLOAK_PUBLIC_URL=${keycloakUrl}`,
+    `WEB_PUBLIC_URL=${webUrl}`,
+    '',
+  ].join('\n'),
 );
 
+// Host-run fallback remains available for debugging, but M6 reference runtime
+// is the Docker Compose stack.
 const apiEnv = [
   'PORT=3099',
   'DATABASE_URL=postgresql://app:app_local_change_me@localhost:5433/projet_indiv26?schema=public',
@@ -73,6 +79,7 @@ const gatewayEnv = [
   'MARKETPLACE_SERVICE_URL=http://127.0.0.1:3102',
   'LEGACY_API_URL=http://127.0.0.1:3099',
   `WEB_ORIGIN=${webUrl}`,
+  'METRICS_TOKEN=local_optional_metrics_token',
   '',
 ].join('\n');
 
@@ -101,6 +108,14 @@ const marketplaceEnv = [
   'KEYCLOAK_AUDIENCE=api',
   'CATALOG_INTERNAL_URL=http://127.0.0.1:3101',
   `INTERNAL_SERVICE_TOKEN=${internalServiceToken}`,
+  'RABBITMQ_URL=amqp://app:rabbitmq_local_change_me_2026@127.0.0.1:5672',
+  'RABBITMQ_CONFIRM_TIMEOUT_MS=5000',
+  '',
+].join('\n');
+
+const notificationEnv = [
+  'PORT=3103',
+  'RABBITMQ_URL=amqp://app:rabbitmq_local_change_me_2026@127.0.0.1:5672',
   '',
 ].join('\n');
 
@@ -109,6 +124,7 @@ await writeFile(path.join('apps', 'api', '.env'), apiEnv);
 await writeFile(path.join('apps', 'gateway', '.env'), gatewayEnv);
 await writeFile(path.join('apps', 'catalog-service', '.env'), catalogEnv);
 await writeFile(path.join('apps', 'marketplace-service', '.env'), marketplaceEnv);
+await writeFile(path.join('apps', 'notification-service', '.env'), notificationEnv);
 
 await writeFile(
   path.join('apps', 'web', '.env.local'),
@@ -122,11 +138,6 @@ await writeFile(
   ].join('\n'),
 );
 
-console.log(`[ProjetIndiv26] Web: ${webUrl}`);
-console.log(`[ProjetIndiv26] Keycloak: ${keycloakUrl}`);
-console.log('[ProjetIndiv26] Gateway: http://127.0.0.1:3000');
-console.log('[ProjetIndiv26] Legacy API fallback: http://127.0.0.1:3099');
-console.log('[ProjetIndiv26] Catalog: http://127.0.0.1:3101');
-console.log('[ProjetIndiv26] Catalog DB schema: catalog');
-console.log('[ProjetIndiv26] Marketplace: http://127.0.0.1:3102');
-console.log('[ProjetIndiv26] Marketplace DB schema: marketplace');
+console.log(`[ProjetIndiv26] Web public URL: ${webUrl}`);
+console.log(`[ProjetIndiv26] Keycloak public URL: ${keycloakUrl}`);
+console.log('[ProjetIndiv26] M6 runtime: Docker Compose multi-services');
