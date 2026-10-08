@@ -56,9 +56,16 @@ done
 echo "[INFO] Applying the complete M7 Kustomize stack..."
 kubectl apply -k "${K8S_DIR}" >/dev/null
 
-for deployment in \
-  legacy-api catalog-service marketplace-service notification-service \
-  gateway web prometheus grafana; do
+deployments=(
+  legacy-api catalog-service marketplace-service notification-service
+  gateway web
+)
+
+if [ "${M7_SKIP_OBSERVABILITY:-false}" != "true" ]; then
+  deployments+=(prometheus grafana)
+fi
+
+for deployment in "${deployments[@]}"; do
   kubectl -n "${NAMESPACE}" rollout status "deployment/${deployment}" --timeout=240s
 done
 
