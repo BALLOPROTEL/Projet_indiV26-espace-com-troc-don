@@ -4,6 +4,7 @@ metadata:
   name: notification-service
   namespace: projet-indiv26
 spec:
+  type: ClusterIP
   selector:
     app.kubernetes.io/name: notification-service
   ports:

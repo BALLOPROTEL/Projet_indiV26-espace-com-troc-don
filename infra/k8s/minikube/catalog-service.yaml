@@ -4,6 +4,7 @@ metadata:
   name: catalog-service
   namespace: projet-indiv26
 spec:
+  type: ClusterIP
   selector:
     app.kubernetes.io/name: catalog-service
   ports:

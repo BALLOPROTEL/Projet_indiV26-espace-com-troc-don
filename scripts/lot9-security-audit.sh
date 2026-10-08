@@ -153,36 +153,61 @@ grep -q "X-Powered-By"   apps/api/src/security-headers.middleware.ts
 grep -q "Content-Security-Policy"   apps/web/next.config.ts
 grep -q "Permissions-Policy"   apps/web/next.config.ts
 grep -q "SWAGGER_ENABLED" apps/api/src/main.ts
-grep -q 'SWAGGER_ENABLED: "false"'   infra/k8s/minikube/api-configmap.yaml
+grep -q 'SWAGGER_ENABLED: "false"'   infra/k8s/minikube/legacy-api-configmap.yaml
+grep -q 'SWAGGER_ENABLED: "false"'   infra/k8s/minikube/catalog-configmap.yaml
 grep -q "Valid metrics bearer token is required"   apps/api/src/observability/metrics-access.service.ts
 
 echo "[CHECK] Kubernetes hardening / network exposure"
 RENDERED="$(mktemp)"
 kubectl kustomize infra/k8s/minikube > "${RENDERED}"
 
-grep -q 'secretName: api-tls'   infra/k8s/minikube/api-ingress.yaml
-grep -q 'ssl-redirect: "true"'   infra/k8s/minikube/api-ingress.yaml
+grep -q 'secretName: platform-tls' infra/k8s/minikube/platform-ingress.yaml
+grep -q 'ssl-redirect: "true"' infra/k8s/minikube/platform-ingress.yaml
 
-for service in api postgres prometheus grafana minio; do
-  grep -q 'type: ClusterIP'     "infra/k8s/minikube/${service}-service.yaml"
+for service in \
+  gateway legacy-api catalog-service marketplace-service notification-service \
+  web postgres rabbitmq keycloak prometheus grafana minio; do
+  grep -q 'type: ClusterIP' "infra/k8s/minikube/${service}-service.yaml"
 done
 
-grep -q 'automountServiceAccountToken: false'   infra/k8s/minikube/api-deployment.yaml
-grep -q 'runAsNonRoot: true'   infra/k8s/minikube/api-deployment.yaml
-grep -q 'readOnlyRootFilesystem: true'   infra/k8s/minikube/api-deployment.yaml
-grep -q 'allowPrivilegeEscalation: false'   infra/k8s/minikube/api-deployment.yaml
-grep -q 'drop:' infra/k8s/minikube/api-deployment.yaml
-grep -q 'ALL' infra/k8s/minikube/api-deployment.yaml
-
-grep -q   'credentials_file: /etc/prometheus/secrets/metrics-token'   infra/k8s/minikube/prometheus-configmap.yaml
-grep -q 'key: METRICS_TOKEN'   infra/k8s/minikube/prometheus-deployment.yaml
-grep -q 'name: S3_ACCESS_KEY' infra/k8s/minikube/api-deployment.yaml
-grep -q 'name: S3_SECRET_KEY' infra/k8s/minikube/api-deployment.yaml
-
-if grep -q 'MINIO_ROOT_' infra/k8s/minikube/api-deployment.yaml; then
-  echo "[FAIL] API deployment must not receive MinIO root credentials."
+if grep -Eq '^[[:space:]]*type:[[:space:]]*(NodePort|LoadBalancer)[[:space:]]*$' "${RENDERED}"; then
+  echo "[FAIL] M7 must not expose a NodePort or LoadBalancer directly."
   exit 1
 fi
+
+for deployment in \
+  gateway legacy-api catalog-service marketplace-service notification-service web; do
+  file="infra/k8s/minikube/${deployment}-deployment.yaml"
+  grep -q 'automountServiceAccountToken: false' "${file}"
+  grep -q 'runAsNonRoot: true' "${file}"
+  grep -q 'allowPrivilegeEscalation: false' "${file}"
+  grep -q 'drop:' "${file}"
+  grep -q 'ALL' "${file}"
+done
+
+for deployment in gateway legacy-api catalog-service marketplace-service notification-service; do
+  grep -q 'readOnlyRootFilesystem: true' "infra/k8s/minikube/${deployment}-deployment.yaml"
+done
+
+grep -q 'credentials_file: /etc/prometheus/secrets/metrics-token' \
+  infra/k8s/minikube/prometheus-configmap.yaml
+grep -q 'secretName: gateway-secrets' \
+  infra/k8s/minikube/prometheus-deployment.yaml
+grep -q 'key: METRICS_TOKEN' \
+  infra/k8s/minikube/prometheus-deployment.yaml
+
+grep -q 'name: S3_ACCESS_KEY' infra/k8s/minikube/catalog-deployment.yaml
+grep -q 'name: S3_SECRET_KEY' infra/k8s/minikube/catalog-deployment.yaml
+grep -q 'name: S3_ACCESS_KEY' infra/k8s/minikube/legacy-api-deployment.yaml
+grep -q 'name: S3_SECRET_KEY' infra/k8s/minikube/legacy-api-deployment.yaml
+
+for deployment in catalog legacy-api gateway marketplace notification web; do
+  file="infra/k8s/minikube/${deployment}-deployment.yaml"
+  if grep -q 'MINIO_ROOT_' "${file}"; then
+    echo "[FAIL] Application deployment ${deployment} must not receive MinIO root credentials."
+    exit 1
+  fi
+done
 
 python3 - <<'PY'
 import json
@@ -204,13 +229,23 @@ assert "arn:aws:s3:::listing-images" in serialized
 print("[OK] Object-storage app policy is bucket-scoped and non-admin.")
 PY
 
-INGRESS_COUNT="$(
-  grep -Rl '^kind: Ingress$' infra/k8s/minikube     | wc -l     | tr -d ' '
-)"
+INGRESS_COUNT="$(grep -c '^kind: Ingress$' "${RENDERED}")"
 if [ "${INGRESS_COUNT}" != "1" ]; then
-  echo "[FAIL] Expected exactly one Ingress (API), found ${INGRESS_COUNT}."
+  echo "[FAIL] Expected exactly one rendered platform Ingress, found ${INGRESS_COUNT}."
   exit 1
 fi
+
+for backend in web gateway keycloak; do
+  grep -q "name: ${backend}$" "${RENDERED}"
+done
+
+if grep -Eq 'name: api$|name: api-config$|app\.kubernetes\.io/name: api$' "${RENDERED}"; then
+  echo "[FAIL] Obsolete monolith API resources are still part of the rendered M7 deployment."
+  exit 1
+fi
+
+echo "[OK] M7 Kubernetes services remain ClusterIP-only behind one TLS Ingress."
+echo "[OK] Microservice pod hardening and least-privilege object-storage credentials detected."
 
 echo "[CHECK] Prometheus RBAC remains namespace-scoped"
 python3 - <<'PY'

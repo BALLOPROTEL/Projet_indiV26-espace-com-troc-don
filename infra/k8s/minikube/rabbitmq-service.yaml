@@ -4,6 +4,7 @@ metadata:
   name: rabbitmq
   namespace: projet-indiv26
 spec:
+  type: ClusterIP
   selector:
     app.kubernetes.io/name: rabbitmq
   ports:

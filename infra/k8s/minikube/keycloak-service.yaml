@@ -4,6 +4,7 @@ metadata:
   name: keycloak
   namespace: projet-indiv26
 spec:
+  type: ClusterIP
   selector:
     app.kubernetes.io/name: keycloak
   ports:
