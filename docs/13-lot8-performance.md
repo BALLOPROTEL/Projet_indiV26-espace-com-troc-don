@@ -308,3 +308,45 @@ Cette expérience démontre donc :
 - la capacité du service à absorber la charge sans erreurs HTTP dans ce bac à sable ;
 - l'existence d'une limite de performance locale avant erreur applicative ;
 - la nécessité de ne pas extrapoler ces chiffres à un environnement de production.
+
+
+## 12. Résultat mesuré — M7 microservices, 8 octobre 2026
+
+Environnement : GitHub Codespaces (4 vCPU, 15 Gio RAM, disque de 32 Go) ;
+Minikube mono-nœud, Gateway M7 derrière les Services internes, HPA cible CPU
+60 %, 1 à 4 réplicas. Test JMeter **effectivement exécuté** depuis un
+Job Kubernetes vers `GET /api/listings`. Rapport brut :
+`reports/load/20261008-185806/report.md` dans le Codespace (ignoré par Git).
+
+| Mesure | Baseline (5 threads, 30 s) | Stress (80 threads, 120 s) |
+|---|---:|---:|
+| Échantillons | 8 767 | 35 962 |
+| Débit | 293,810 req/s | 299,726 req/s |
+| Taux d'erreur | 0 % | 0,067 % |
+| Erreurs | 0 | **24** |
+| p50 | 8 ms | 252 ms |
+| p95 | 47 ms | 399 ms |
+| p99 | 65 ms | 440 ms |
+| Maximum | 138 ms | 508 ms |
+
+**Autoscaling observé :** le HPA a atteint **4 réplicas actuels et
+4 réplicas désirés**, et le Deployment Gateway affichait **4/4 prêts**
+après le stress. Cela démontre la montée en charge dynamique du Gateway,
+pas une simple validation de la configuration HPA.
+
+**Limites et anomalies :**
+- le HPA est passé à 2 réplicas pendant la baseline et n'est pas revenu
+  à 1 pendant l'attente précédant le stress ; la comparaison ne part donc
+  pas d'un état strictement mono-réplica ;
+- les 24 erreurs correspondent à
+  `org.apache.http.NoHttpResponseException`, à analyser avant toute
+  prétention à une haute disponibilité sans erreur ;
+- le débit n'a que légèrement augmenté pendant que la latence p95
+  est passée de 47 à 399 ms. Ces chiffres sont spécifiques à ce
+  cluster de démonstration, pas à une capacité de production ;
+- l'image JMeter a fait monter l'utilisation du stockage Codespaces à
+  93 % (2,4 Go libres). Après conservation du rapport, ne nettoyer
+  que les artefacts JMeter et le cache de build ; ne jamais supprimer
+  le volume Minikube ni les PVC du projet pour « libérer de la place ».
+
+**Résultat du script :** `LOT 8 load experiment: PASS`.
