@@ -188,9 +188,17 @@ if grep -Eq '^[[:space:]]*type:[[:space:]]*(NodePort|LoadBalancer)[[:space:]]*$'
   exit 1
 fi
 
-for deployment in \
-  gateway legacy-api catalog-service marketplace-service notification-service web; do
-  file="infra/k8s/minikube/${deployment}-deployment.yaml"
+app_deployment_files=(
+  gateway-deployment.yaml
+  legacy-api-deployment.yaml
+  catalog-deployment.yaml
+  marketplace-deployment.yaml
+  notification-deployment.yaml
+  web-deployment.yaml
+)
+
+for deployment_file in "${app_deployment_files[@]}"; do
+  file="infra/k8s/minikube/${deployment_file}"
   grep -q 'automountServiceAccountToken: false' "${file}"
   grep -q 'runAsNonRoot: true' "${file}"
   grep -q 'allowPrivilegeEscalation: false' "${file}"
@@ -198,8 +206,16 @@ for deployment in \
   grep -q 'ALL' "${file}"
 done
 
-for deployment in gateway legacy-api catalog-service marketplace-service notification-service; do
-  grep -q 'readOnlyRootFilesystem: true' "infra/k8s/minikube/${deployment}-deployment.yaml"
+readonly_deployment_files=(
+  gateway-deployment.yaml
+  legacy-api-deployment.yaml
+  catalog-deployment.yaml
+  marketplace-deployment.yaml
+  notification-deployment.yaml
+)
+
+for deployment_file in "${readonly_deployment_files[@]}"; do
+  grep -q 'readOnlyRootFilesystem: true' "infra/k8s/minikube/${deployment_file}"
 done
 
 grep -q 'credentials_file: /etc/prometheus/secrets/metrics-token' \
