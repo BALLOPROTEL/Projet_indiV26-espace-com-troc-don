@@ -123,6 +123,8 @@ Lancer l'expérimentation :
 pnpm load:run
 ```
 
+Le runner refuse de démarrer une construction avec moins de **3 Gio libres** et contrôle le stockage après la construction ainsi qu'avant le chargement Minikube (réserve de **2 Gio** plus la taille déclarée de l'image JMeter). Il ne supprime aucune image, aucun volume ni aucune donnée persistante. Si l'image JMeter est déjà présente sur l'hôte, `LOT8_REUSE_JMETER_IMAGE=true pnpm load:run` permet une reprise sans reconstruire. Si la garde disque bloque l'opération, ne lancez pas `docker system prune -a` ni `minikube delete` pour la contourner : agrandissez le stockage ou effectuez le test dans un environnement disposant de plus d'espace.
+
 Le runner :
 
 1. vérifie API / Prometheus / Grafana / HPA ;
