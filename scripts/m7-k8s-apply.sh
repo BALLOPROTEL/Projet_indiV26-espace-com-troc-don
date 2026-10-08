@@ -64,6 +64,13 @@ done
 echo "[INFO] Applying the complete M7 Kustomize stack..."
 kubectl apply -k "${K8S_DIR}" >/dev/null
 
+# Disable observability workloads in resource-limited kind smoke runs.
+if [ "${M7_SKIP_OBSERVABILITY:-false}" = "true" ]; then
+  echo "[INFO] Disabling Prometheus/Grafana for kind smoke..."
+  kubectl -n "${NAMESPACE}" delete deployment prometheus grafana \
+    --ignore-not-found=true --wait=true --timeout=120s
+fi
+
 if [ "${M7_FORCE_ROLLOUT:-false}" = "true" ]; then
   for deployment in legacy-api catalog-service marketplace-service notification-service gateway web; do
     kubectl -n "${NAMESPACE}" rollout restart "deployment/${deployment}" >/dev/null

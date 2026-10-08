@@ -31,40 +31,7 @@ MINIKUBE_IP="$(minikube ip)"
 HOSTS_MARKER="# projet-indiv26-m7"
 HOSTS_LINE="${MINIKUBE_IP} app.projet-indiv26.test api.projet-indiv26.test auth.projet-indiv26.test ${HOSTS_MARKER}"
 HOSTS_TMP="$(mktemp)"
-grep -v '# projet-indiv26-m7
-minikube addons enable ingress >/dev/null
-minikube addons enable metrics-server >/dev/null
-
-bash scripts/m7-build-images.sh
-
-images=(
-  projet-indiv26-legacy-api:m7-local
-  projet-indiv26-legacy-migrate:m7-local
-  projet-indiv26-gateway:m7-local
-  projet-indiv26-catalog-service:m7-local
-  projet-indiv26-catalog-migrate:m7-local
-  projet-indiv26-marketplace-service:m7-local
-  projet-indiv26-marketplace-migrate:m7-local
-  projet-indiv26-notification-service:m7-local
-  projet-indiv26-web:m7-local
-  projet-indiv26-keycloak:m7-local
-  projet-indiv26-minio:lot9b-local
-  projet-indiv26-minio-bootstrap:lot9b-local
-)
-
-echo "[INFO] Loading local images into Minikube..."
-for image in "${images[@]}"; do
-  minikube image load "${image}"
-done
-
-M7_FORCE_ROLLOUT=true bash scripts/m7-k8s-apply.sh
-bash scripts/m7-k8s-validate.sh
-
-echo
-echo "[OK] M7 Minikube stack is ready."
-echo "[INFO] Jury hosts: app.projet-indiv26.test, api.projet-indiv26.test, auth.projet-indiv26.test"
-echo "[INFO] Minikube IP: ${MINIKUBE_IP}"
- /etc/hosts > "${HOSTS_TMP}" || true
+grep -vF "${HOSTS_MARKER}" /etc/hosts > "${HOSTS_TMP}" || true
 printf '%s\n' "${HOSTS_LINE}" >> "${HOSTS_TMP}"
 
 if [ -w /etc/hosts ]; then

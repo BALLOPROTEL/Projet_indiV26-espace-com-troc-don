@@ -3,8 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLUSTER_NAME="${M7_KIND_CLUSTER:-projet-indiv26-m7-ci}"
-KIND_VERSION="${KIND_VERSION:-v0.30.0}"
-KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.37.0}"
+KIND_VERSION="${KIND_VERSION:-v0.33.0}"
+KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5}"
 KIND_BIN=""
 CLUSTER_CREATED=false
 GATEWAY_PF_PID=""
@@ -12,6 +12,8 @@ KEYCLOAK_PF_PID=""
 WEB_PF_PID=""
 
 cleanup() {
+  local exit_code=$?
+  trap - EXIT INT TERM
   for pid in "${GATEWAY_PF_PID}" "${KEYCLOAK_PF_PID}" "${WEB_PF_PID}"; do
     if [ -n "${pid}" ]; then
       kill "${pid}" >/dev/null 2>&1 || true
@@ -20,12 +22,45 @@ cleanup() {
   done
 
   if [ "${CLUSTER_CREATED}" = "true" ]; then
+    if [ "${exit_code}" -ne 0 ]; then
+      local report="/tmp/m7-kind-debug.log"
+      echo "[DIAG] Collecting Kubernetes diagnostics..."
+
+      {
+        echo "=== Pods ==="
+        kubectl -n projet-indiv26 get pods -o wide || true
+
+        echo "=== Web deployment ==="
+        kubectl -n projet-indiv26 describe deployment web || true
+
+        echo "=== Web Pod diagnostics ==="
+        for pod in $(kubectl -n projet-indiv26 get pods -l app.kubernetes.io/name=web -o name 2>/dev/null); do
+          kubectl -n projet-indiv26 describe "${pod}" || true
+          kubectl -n projet-indiv26 logs "${pod}" --tail=100 || true
+          kubectl -n projet-indiv26 logs "${pod}" --previous --tail=100 || true
+        done
+
+        echo "=== Kubernetes events ==="
+        kubectl -n projet-indiv26 get events --sort-by=.lastTimestamp || true
+
+        echo "=== Disk ==="
+        df -h /workspaces || true
+
+        echo "=== Memory ==="
+        free -h || true
+      } > "${report}" 2>&1
+
+      echo "[DIAG] Report saved: ${report}"
+    fi
+
     "${KIND_CMD[@]}" delete cluster --name "${CLUSTER_NAME}" >/dev/null 2>&1 || true
   fi
 
   [ -z "${KIND_BIN}" ] || rm -f "${KIND_BIN}"
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 cd "${ROOT_DIR}"
 
