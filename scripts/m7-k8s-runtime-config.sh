@@ -95,6 +95,16 @@ kubectl -n "${NAMESPACE}" create secret generic keycloak-admin \
   --from-literal=KC_BOOTSTRAP_ADMIN_PASSWORD="${KEYCLOAK_ADMIN_PASSWORD}" \
   --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
+# Preserve previously issued Keycloak subject UUIDs BEFORE a new database
+# is attached to this deployment. Unknown/custom user accounts stop the
+# transition rather than silently orphaning their existing Marketplace data.
+bash "${ROOT_DIR}/scripts/m7-keycloak-identity-snapshot.sh"
+
+KEYCLOAK_USER_IDS_JSON=""
+if kubectl -n "${NAMESPACE}" get secret keycloak-user-ids >/dev/null 2>&1; then
+  KEYCLOAK_USER_IDS_JSON="$(secret_value keycloak-user-ids KEYCLOAK_USER_IDS_JSON)"
+fi
+
 if kubectl -n "${NAMESPACE}" get secret catalog-secrets >/dev/null 2>&1; then
   INTERNAL_SERVICE_TOKEN="$(secret_value catalog-secrets INTERNAL_SERVICE_TOKEN)"
 else
@@ -150,13 +160,20 @@ cleanup() {
 }
 trap cleanup EXIT
 
-APP_PUBLIC_URL="${APP_PUBLIC_URL}" node - "${ROOT_DIR}/infra/keycloak/projet-indiv26-realm.json" "${realm_tmp}" <<'NODE'
+APP_PUBLIC_URL="${APP_PUBLIC_URL}" KEYCLOAK_USER_IDS_JSON="${KEYCLOAK_USER_IDS_JSON}" node - "${ROOT_DIR}/infra/keycloak/projet-indiv26-realm.json" "${realm_tmp}" <<'NODE'
 const fs = require('node:fs');
 
 const source = process.argv[2];
 const destination = process.argv[3];
 const webUrl = process.env.APP_PUBLIC_URL;
 const realm = JSON.parse(fs.readFileSync(source, 'utf8'));
+const persistedIds = JSON.parse(process.env.KEYCLOAK_USER_IDS_JSON || '{}');
+for (const user of realm.users ?? []) {
+  if (persistedIds[user.username]) {
+    // Initial migration only: keep the JWT sub already used by Marketplace.
+    user.id = persistedIds[user.username];
+  }
+}
 const web = realm.clients?.find((client) => client.clientId === 'web');
 
 if (!web || !webUrl) {
