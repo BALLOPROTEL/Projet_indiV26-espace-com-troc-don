@@ -74,11 +74,43 @@ kubectl -n "${NAMESPACE}" get hpa gateway >/dev/null 2>&1 || {
   exit 1
 }
 
-echo "[INFO] Building dedicated JMeter image..."
-docker build --pull   -f tests/load/Dockerfile.jmeter   -t "${IMAGE}"   .
+# Codespaces can be tight on disk after importing all M7 images into
+# Minikube's separate containerd store. Never prune images or volumes here.
+# Require 3 GiB before building and reserve 2 GiB plus the image's full
+# declared size before importing it.
+disk_available_kib() {
+  df -Pk "${ROOT_DIR}" | awk 'NR == 2 { print $4 }'
+}
+
+require_disk_kib() {
+  local required="${1}" operation="${2}" available
+  available="$(disk_available_kib)"
+  echo "[INFO] Disk before ${operation}: $((available / 1024)) MiB available."
+  if [ "${available}" -lt "${required}" ]; then
+    echo "[FAIL] Insufficient disk before ${operation}: $((required / 1024)) MiB required."
+    echo "[INFO] No Docker images or Minikube volumes have been deleted."
+    exit 1
+  fi
+}
+
+if [ "${LOT8_REUSE_JMETER_IMAGE:-false}" = "true" ] &&
+  docker image inspect "${IMAGE}" >/dev/null 2>&1; then
+  echo "[SKIP] Reusing existing local JMeter image: ${IMAGE}"
+else
+  require_disk_kib 3145728 "JMeter image build"
+  echo "[INFO] Building dedicated JMeter image..."
+  docker build --pull -f tests/load/Dockerfile.jmeter -t "${IMAGE}" .
+fi
+
+image_bytes="$(docker image inspect "${IMAGE}" --format '{{.Size}}')"
+image_kib=$(( (image_bytes + 1023) / 1024 ))
+required_kib=$(( image_kib + 2097152 ))
+require_disk_kib "${required_kib}" "JMeter image load into Minikube"
 
 echo "[INFO] Loading JMeter image into Minikube..."
 minikube image load "${IMAGE}"
+
+require_disk_kib 2097152 "JMeter baseline and stress experiment"
 
 run_phase() {
   local phase="$1"
