@@ -20,6 +20,13 @@ if ! minikube status >/dev/null 2>&1; then
   minikube start --cpus=4 --memory=6144
 fi
 
+minikube update-context >/dev/null
+kubectl config use-context minikube >/dev/null
+if [ "$(kubectl config current-context)" != "minikube" ]; then
+  echo "[FAIL] kubectl context is not pinned to Minikube."
+  exit 1
+fi
+
 echo "[INFO] Enabling ingress and metrics-server..."
 minikube addons enable ingress >/dev/null
 minikube addons enable metrics-server >/dev/null
@@ -46,7 +53,7 @@ for image in "${images[@]}"; do
   minikube image load "${image}"
 done
 
-bash scripts/m7-k8s-apply.sh
+M7_FORCE_ROLLOUT=true bash scripts/m7-k8s-apply.sh
 bash scripts/m7-k8s-validate.sh
 
 echo

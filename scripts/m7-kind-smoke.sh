@@ -6,6 +6,7 @@ CLUSTER_NAME="${M7_KIND_CLUSTER:-projet-indiv26-m7-ci}"
 KIND_VERSION="${KIND_VERSION:-v0.30.0}"
 KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.37.0}"
 KIND_BIN=""
+CLUSTER_CREATED=false
 GATEWAY_PF_PID=""
 KEYCLOAK_PF_PID=""
 WEB_PF_PID=""
@@ -18,10 +19,8 @@ cleanup() {
     fi
   done
 
-  if command -v kind >/dev/null 2>&1; then
-    kind delete cluster --name "${CLUSTER_NAME}" >/dev/null 2>&1 || true
-  elif [ -n "${KIND_BIN}" ] && [ -x "${KIND_BIN}" ]; then
-    "${KIND_BIN}" delete cluster --name "${CLUSTER_NAME}" >/dev/null 2>&1 || true
+  if [ "${CLUSTER_CREATED}" = "true" ]; then
+    "${KIND_CMD[@]}" delete cluster --name "${CLUSTER_NAME}" >/dev/null 2>&1 || true
   fi
 
   [ -z "${KIND_BIN}" ] || rm -f "${KIND_BIN}"
@@ -47,7 +46,14 @@ else
 fi
 
 echo "=== M7 - kind Kubernetes smoke ==="
+if "${KIND_CMD[@]}" get clusters | grep -Fxq "${CLUSTER_NAME}"; then
+  echo "[FAIL] kind cluster already exists: ${CLUSTER_NAME}"
+  echo "[INFO] Refusing to delete or reuse a cluster not created by this smoke run."
+  exit 1
+fi
+
 "${KIND_CMD[@]}" create cluster   --name "${CLUSTER_NAME}"   --image "${KIND_NODE_IMAGE}"   --wait 120s
+CLUSTER_CREATED=true
 
 bash scripts/m7-build-images.sh
 
@@ -72,7 +78,7 @@ done
 
 kubectl apply -f infra/k8s/minikube/namespace.yaml >/dev/null
 kubectl -n projet-indiv26 create secret generic postgres-credentials \
-  --from-literal=POSTGRES_DB=projet_indiv26 \
+  --from-literal='POSTGRES_DB=projet#ci?db' \
   --from-literal=POSTGRES_USER=app \
   --from-literal='POSTGRES_PASSWORD=m7:db@reserved/?#value' \
   --dry-run=client -o yaml | kubectl apply -f - >/dev/null

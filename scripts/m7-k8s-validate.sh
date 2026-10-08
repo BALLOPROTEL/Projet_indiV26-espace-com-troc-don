@@ -89,6 +89,163 @@ require_rendered 'RABBITMQ_NODENAME' 'stable RabbitMQ node identity'
 grep -A 4 'readinessProbe:' "${K8S_DIR}/gateway-deployment.yaml" | grep -q '/api/health/live'
 grep -q 'delete deployment/api service/api hpa/api ingress/api' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
 grep -q 'encodeURIComponent' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
+grep -q 'POSTGRES_DB_URL=' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
+grep -q 'M7_FORCE_ROLLOUT=true' "${ROOT_DIR}/scripts/m7-minikube-up.sh"
+grep -q 'kubectl config use-context minikube' "${ROOT_DIR}/scripts/m7-minikube-up.sh"
+grep -q 'CLUSTER_CREATED=false' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+
+if grep -A 5 '^spec:
+
+if grep -Eq 'http://(localhost|127\.0\.0\.1)' "${RENDERED}"; then
+  echo "[FAIL] A Kubernetes runtime manifest still contains localhost/127.0.0.1."
+  grep -En 'http://(localhost|127\.0\.0\.1)' "${RENDERED}" || true
+  exit 1
+fi
+
+if grep -Eq 'app\.kubernetes\.io/name: api$|name: api-config$|name: api$' "${RENDERED}"; then
+  echo "[FAIL] Obsolete monolith API resource is still rendered in M7."
+  exit 1
+fi
+
+startup_count="$(grep -c 'startupProbe:' "${RENDERED}")"
+readiness_count="$(grep -c 'readinessProbe:' "${RENDERED}")"
+requests_count="$(grep -c 'requests:' "${RENDERED}")"
+limits_count="$(grep -c 'limits:' "${RENDERED}")"
+
+[ "${startup_count}" -ge 8 ]
+[ "${readiness_count}" -ge 10 ]
+[ "${requests_count}" -ge 10 ]
+[ "${limits_count}" -ge 10 ]
+
+echo "[OK] Kustomize renders the M7 microservice topology."
+echo "[OK] Kubernetes DNS, probes, resources, HPA, TLS and migration Jobs are declared."
+echo "[OK] No obsolete monolith API or localhost inter-service dependency is rendered."
+
+if [ "${MANIFEST_ONLY}" = true ]; then
+  echo "M7 Kubernetes manifest validation: PASS"
+  exit 0
+fi
+
+command -v curl >/dev/null 2>&1 || {
+  echo "[FAIL] curl is required for live validation."
+  exit 1
+}
+
+for deployment in   postgres rabbitmq minio keycloak   legacy-api catalog-service marketplace-service notification-service   gateway web prometheus grafana; do
+  kubectl -n "${NAMESPACE}" rollout status "deployment/${deployment}" --timeout=240s
+done
+
+for job in minio-bootstrap legacy-migrate catalog-migrate marketplace-migrate; do
+  kubectl -n "${NAMESPACE}" wait --for=condition=complete "job/${job}" --timeout=180s
+done
+
+kubectl -n "${NAMESPACE}" exec deployment/rabbitmq -- rabbitmq-diagnostics -q ping >/dev/null
+echo "[OK] RabbitMQ pod responds to diagnostics."
+
+kubectl -n "${NAMESPACE}" exec deployment/gateway -- node -e "
+const targets = [
+  ['legacy', 'http://legacy-api:3099/api/health/live'],
+  ['catalog', 'http://catalog-service:3101/health/ready'],
+  ['marketplace', 'http://marketplace-service:3102/health/ready'],
+];
+(async () => {
+  for (const [name, url] of targets) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(name + ' -> ' + response.status);
+  }
+})().catch((error) => { console.error(error); process.exit(1); });
+"
+echo "[OK] Gateway -> Legacy/Catalog/Marketplace Kubernetes DNS."
+
+kubectl -n "${NAMESPACE}" exec deployment/marketplace-service -- node -e "
+fetch('http://catalog-service:3101/health/ready')
+  .then((response) => {
+    if (!response.ok) throw new Error(String(response.status));
+  })
+  .catch((error) => { console.error(error); process.exit(1); });
+"
+echo "[OK] Marketplace -> Catalog Kubernetes DNS."
+
+MIN_REPLICAS="$(kubectl -n "${NAMESPACE}" get hpa gateway -o jsonpath='{.spec.minReplicas}')"
+MAX_REPLICAS="$(kubectl -n "${NAMESPACE}" get hpa gateway -o jsonpath='{.spec.maxReplicas}')"
+TARGET_CPU="$(kubectl -n "${NAMESPACE}" get hpa gateway -o jsonpath='{.spec.metrics[0].resource.target.averageUtilization}')"
+[ "${MIN_REPLICAS}" = "1" ]
+[ "${MAX_REPLICAS}" = "4" ]
+[ "${TARGET_CPU}" = "60" ]
+echo "[OK] Gateway HPA spec: 1..4 replicas at 60% CPU."
+
+kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=180s
+INGRESS_PF_LOG="$(mktemp)"
+kubectl -n ingress-nginx port-forward service/ingress-nginx-controller 8443:443 >"${INGRESS_PF_LOG}" 2>&1 &
+INGRESS_PF_PID=$!
+
+for attempt in $(seq 1 45); do
+  if curl -kfsS --connect-timeout 2 --max-time 5     --resolve "${API_HOST}:8443:127.0.0.1"     "https://${API_HOST}:8443/api/health/live" >/dev/null 2>&1; then
+    break
+  fi
+  if [ "${attempt}" -eq 45 ]; then
+    echo "[FAIL] M7 TLS Ingress did not become reachable."
+    cat "${INGRESS_PF_LOG}" || true
+    exit 1
+  fi
+  sleep 2
+done
+
+curl -kfsS --resolve "${APP_HOST}:8443:127.0.0.1"   "https://${APP_HOST}:8443/" >/dev/null
+curl -kfsS --resolve "${API_HOST}:8443:127.0.0.1"   "https://${API_HOST}:8443/api/health/ready" >/dev/null
+curl -kfsS --resolve "${AUTH_HOST}:8443:127.0.0.1"   "https://${AUTH_HOST}:8443/realms/projet-indiv26/.well-known/openid-configuration" >/dev/null
+echo "[OK] Web, Gateway and Keycloak answer through HTTPS Ingress."
+
+token_response="$(
+  curl -kfsS --resolve "${AUTH_HOST}:8443:127.0.0.1"     -X POST "https://${AUTH_HOST}:8443/realms/projet-indiv26/protocol/openid-connect/token"     -H 'content-type: application/x-www-form-urlencoded'     --data-urlencode 'grant_type=password'     --data-urlencode 'client_id=cli'     --data-urlencode 'username=demo-user'     --data-urlencode 'password=demo-user-local'
+)"
+
+access_token="$(
+  TOKEN_RESPONSE="${token_response}" node -e "
+    const payload = JSON.parse(process.env.TOKEN_RESPONSE);
+    if (!payload.access_token) process.exit(1);
+    process.stdout.write(payload.access_token);
+  "
+)"
+
+ACCESS_TOKEN="${access_token}" EXPECTED_ISSUER="https://${AUTH_HOST}/realms/projet-indiv26" node - <<'NODE'
+const token = process.env.ACCESS_TOKEN;
+const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
+const expected = process.env.EXPECTED_ISSUER;
+const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+if (payload.iss !== expected) throw new Error('Unexpected issuer: ' + payload.iss);
+if (!audiences.includes('api')) throw new Error('Missing api audience');
+NODE
+
+auth_status="$(
+  curl -ksS -o /tmp/m7-proposals.json -w '%{http_code}'     --resolve "${API_HOST}:8443:127.0.0.1"     -H "Authorization: Bearer ${access_token}"     "https://${API_HOST}:8443/api/proposals/me"
+)"
+[ "${auth_status}" = "200" ]
+echo "[OK] Real Keycloak JWT reaches Marketplace through the Gateway Ingress."
+
+echo "[INFO] Waiting for Gateway HPA metrics..."
+metrics_ok=false
+for attempt in $(seq 1 24); do
+  targets="$(kubectl -n "${NAMESPACE}" get hpa gateway --no-headers 2>/dev/null | awk '{print $3}')"
+  if [ -n "${targets}" ] && [[ "${targets}" != *"<unknown>"* ]]; then
+    metrics_ok=true
+    echo "[OK] HPA metrics available: ${targets}"
+    break
+  fi
+  sleep 5
+done
+if [ "${metrics_ok}" != "true" ]; then
+  echo "[FAIL] Gateway HPA metrics are still unknown."
+  kubectl -n "${NAMESPACE}" get hpa gateway || true
+  exit 1
+fi
+
+kubectl -n "${NAMESPACE}" get pods,svc,ingress,hpa,pvc,jobs
+echo "M7 Kubernetes multi-services validation: PASS"
+ "${K8S_DIR}/gateway-deployment.yaml" | grep -q 'replicas:'; then
+  echo "[FAIL] Gateway Deployment must not declare replicas while HPA owns scaling."
+  exit 1
+fi
 
 if grep -Eq 'http://(localhost|127\.0\.0\.1)' "${RENDERED}"; then
   echo "[FAIL] A Kubernetes runtime manifest still contains localhost/127.0.0.1."

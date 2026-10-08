@@ -107,14 +107,15 @@ else
   METRICS_TOKEN="$(rand_hex 32)"
 fi
 
+POSTGRES_DB_URL="$(url_encode "${POSTGRES_DB}")"
 POSTGRES_USER_URL="$(url_encode "${POSTGRES_USER}")"
 POSTGRES_PASSWORD_URL="$(url_encode "${POSTGRES_PASSWORD}")"
 RABBITMQ_USER_URL="$(url_encode "${RABBITMQ_USER}")"
 RABBITMQ_PASSWORD_URL="$(url_encode "${RABBITMQ_PASSWORD}")"
 
-DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB}?schema=public"
-CATALOG_DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB}?schema=catalog"
-MARKETPLACE_DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB}?schema=marketplace"
+DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB_URL}?schema=public"
+CATALOG_DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB_URL}?schema=catalog"
+MARKETPLACE_DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB_URL}?schema=marketplace"
 RABBITMQ_URL="amqp://${RABBITMQ_USER_URL}:${RABBITMQ_PASSWORD_URL}@rabbitmq:5672"
 
 kubectl -n "${NAMESPACE}" create secret generic legacy-api-secrets \

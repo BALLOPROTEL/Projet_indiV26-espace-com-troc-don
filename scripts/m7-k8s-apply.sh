@@ -30,6 +30,14 @@ for manifest in \
   kubectl apply -f "${K8S_DIR}/${manifest}" >/dev/null
 done
 
+if [ "${M7_FORCE_ROLLOUT:-false}" = "true" ]; then
+  for deployment in minio keycloak; do
+    if kubectl -n "${NAMESPACE}" get "deployment/${deployment}" >/dev/null 2>&1; then
+      kubectl -n "${NAMESPACE}" rollout restart "deployment/${deployment}" >/dev/null
+    fi
+  done
+fi
+
 kubectl -n "${NAMESPACE}" rollout status deployment/postgres --timeout=180s
 kubectl -n "${NAMESPACE}" rollout status deployment/rabbitmq --timeout=180s
 kubectl -n "${NAMESPACE}" rollout status deployment/minio --timeout=180s
@@ -55,6 +63,12 @@ done
 
 echo "[INFO] Applying the complete M7 Kustomize stack..."
 kubectl apply -k "${K8S_DIR}" >/dev/null
+
+if [ "${M7_FORCE_ROLLOUT:-false}" = "true" ]; then
+  for deployment in legacy-api catalog-service marketplace-service notification-service gateway web; do
+    kubectl -n "${NAMESPACE}" rollout restart "deployment/${deployment}" >/dev/null
+  done
+fi
 
 deployments=(
   legacy-api catalog-service marketplace-service notification-service
