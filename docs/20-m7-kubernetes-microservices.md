@@ -106,11 +106,12 @@ Le HPA est maintenant appliqué au Gateway, le véritable point d'entrée backen
 
 Un seul Ingress `platform` expose :
 
-- `app.projet-indiv26.test` -> Web ;
+- `app.projet-indiv26.test/` -> Web ;
+- `app.projet-indiv26.test/api/*` -> **Gateway directement**, y compris pour les uploads multipart ;
 - `api.projet-indiv26.test` -> Gateway ;
 - `auth.projet-indiv26.test` -> Keycloak.
 
-Le certificat local contient les trois SAN DNS. L'Ingress autorise jusqu'à 50 MiB par requête afin de couvrir les uploads multipart valides.
+Le certificat local contient les trois SAN DNS. L'Ingress autorise jusqu'à 50 MiB par requête afin de couvrir les uploads multipart valides. En dirigeant `/api` depuis le host de l'application **directement vers Gateway**, il contourne la limite de mise en tampon du proxy Next.js autonome (10 MB par défaut), sans nécessiter de reconstruire l'image Web. Le rewrite Next.js reste disponible hors Ingress pour le développement local. L'application du manifest `kubectl apply -f infra/k8s/minikube/platform-ingress.yaml` suffit pour mettre à jour le routage du cluster existant.
 
 Les hosts M7 sont volontairement fixes dans ce sandbox (`app.projet-indiv26.test`, `api.projet-indiv26.test`, `auth.projet-indiv26.test`) afin que realm Keycloak, issuer JWT, CORS, TLS et Ingress restent cohérents. Le suffixe réservé `.test` est utilisé à la place de `.local` pour éviter le conflit mDNS.
 
@@ -126,7 +127,7 @@ pnpm m7:k8s:up
 
 Cette commande :
 
-1. démarre Minikube si nécessaire et force le contexte `kubectl` sur `minikube` ;
+1. démarre Minikube si nécessaire avec le profil explicite `-p minikube` et force le contexte `kubectl` sur `minikube` (toutes les actions Minikube utilisent ce même profil) ;
 2. inscrit les trois hosts `.test` dans `/etc/hosts` avec l'IP Minikube et vérifie leur résolution ;
 3. active Ingress et metrics-server ;
 4. build les images runtime et migration ;
