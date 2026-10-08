@@ -35,3 +35,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Validate API, authorization, asynchronous event and Ingress contracts
         run: pnpm m8:contracts:validate
+      - name: Verify Marketplace to Catalog HTTP failure contracts
+        run: pnpm m8:integration:unit
