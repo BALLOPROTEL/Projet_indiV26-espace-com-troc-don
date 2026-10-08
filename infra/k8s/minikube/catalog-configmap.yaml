@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalog-config
+  namespace: projet-indiv26
+data:
+  PORT: "3101"
+  KEYCLOAK_ISSUER: "https://auth.projet-indiv26.local/realms/projet-indiv26"
+  KEYCLOAK_JWKS_URL: "http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs"
+  KEYCLOAK_AUDIENCE: "api"
+  SWAGGER_ENABLED: "false"
+  S3_ENDPOINT: "http://minio:9000"
+  S3_REGION: "us-east-1"
+  S3_BUCKET: "listing-images"
+  S3_FORCE_PATH_STYLE: "true"
