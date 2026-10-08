@@ -99,6 +99,28 @@ grep -q 'HOSTS_MARKER="# projet-indiv26-m7"' "${ROOT_DIR}/scripts/m7-minikube-up
 grep -q 'CLUSTER_CREATED=false' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
 grep -Fq 'for deployment in prometheus grafana; do' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
 grep -Fq 'status.currentMetrics[0].resource.current.averageUtilization' "${ROOT_DIR}/scripts/m7-k8s-validate.sh"
+# Codex P1: never operate on an unrelated Minikube profile.
+for command in status start update-context ip 'addons enable' 'image load'; do
+  grep -Fq "minikube -p minikube ${command}" "${ROOT_DIR}/scripts/m7-minikube-up.sh"
+done
+if grep -Eq '^[[:space:]]*(if ! )?minikube (status|start|update-context|addons|image)' "${ROOT_DIR}/scripts/m7-minikube-up.sh"; then
+  echo "[FAIL] M7 must pin Minikube commands to the selected profile."
+  exit 1
+fi
+
+# Codex P1: relative /api uploads must bypass the limited Next.js Web proxy.
+node - "${K8S_DIR}/platform-ingress.yaml" <<'NODE'
+const fs = require('node:fs');
+const text = fs.readFileSync(process.argv[2], 'utf8');
+const app = text.split('    - host: app.projet-indiv26.test')[1]?.split('    - host: api.projet-indiv26.test')[0];
+if (!app || !/- path: \/api\s+pathType: Prefix\s+backend:\s+service:\s+name: gateway\s+port:\s+name: http[\s\S]*?- path: \/\s+pathType: Prefix\s+backend:\s+service:\s+name: web/.test(app)) {
+  throw new Error('App Ingress must send /api to Gateway directly and / to Web');
+}
+NODE
+
+# Codex P2: kind fallback must select the architecture of the host.
+grep -Fq 'aarch64|arm64)' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+grep -Fq 'kind-linux-${KIND_HOST_ARCH}' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
 grep -Fq 'createdb -U' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
 grep -Fq 'scripts/m7-keycloak-identity-snapshot.sh' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
 grep -Fq 'KEYCLOAK_USER_IDS_JSON' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
