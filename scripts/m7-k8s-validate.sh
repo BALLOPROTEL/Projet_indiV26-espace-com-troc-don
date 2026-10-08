@@ -253,6 +253,28 @@ if (payload.iss !== expected) throw new Error('Unexpected issuer: ' + payload.is
 if (!audiences.includes('api')) throw new Error('Missing api audience');
 NODE
 
+# Confirm the JWT subject matches the old H2 identity snapshot, if one was
+# taken, or the fixed fresh-cluster realm UUID. This catches orphaned
+# Marketplace records during the first PostgreSQL-based Keycloak rollout.
+saved_user_ids_b64=""
+if kubectl -n "${NAMESPACE}" get secret keycloak-user-ids >/dev/null 2>&1; then
+  saved_user_ids_b64="$(kubectl -n "${NAMESPACE}" get secret keycloak-user-ids -o jsonpath='{.data.KEYCLOAK_USER_IDS_JSON}')"
+fi
+
+ACCESS_TOKEN="${access_token}" SAVED_USER_IDS_B64="${saved_user_ids_b64}" node - "${ROOT_DIR}/infra/keycloak/projet-indiv26-realm.json" <<'NODE'
+const fs = require('node:fs');
+const payload = JSON.parse(Buffer.from(process.env.ACCESS_TOKEN.split('.')[1], 'base64url'));
+const preserved = process.env.SAVED_USER_IDS_B64
+  ? JSON.parse(Buffer.from(process.env.SAVED_USER_IDS_B64, 'base64').toString('utf8'))
+  : Object.fromEntries(
+      JSON.parse(fs.readFileSync(process.argv[2], 'utf8')).users.map(({ username, id }) => [username, id]),
+    );
+if (!preserved['demo-user'] || payload.sub !== preserved['demo-user']) {
+  throw new Error('Keycloak demo-user subject changed; existing Marketplace data would be orphaned');
+}
+console.log('[OK] Keycloak JWT subject matches persisted or fixed demo identity.');
+NODE
+
 auth_status="$(
   curl -ksS -o /tmp/m7-proposals.json -w '%{http_code}'     --resolve "${API_HOST}:8443:127.0.0.1"     -H "Authorization: Bearer ${access_token}"     "https://${API_HOST}:8443/api/proposals/me"
 )"
