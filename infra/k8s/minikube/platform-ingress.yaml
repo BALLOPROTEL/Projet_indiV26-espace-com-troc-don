@@ -18,6 +18,16 @@ spec:
     - host: app.projet-indiv26.test
       http:
         paths:
+          # Browser uploads use relative /api paths. Route those straight to
+          # Gateway so that Next.js does not truncate multipart bodies at its
+          # 10 MB self-hosted proxy buffer limit.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  name: http
           - path: /
             pathType: Prefix
             backend:
