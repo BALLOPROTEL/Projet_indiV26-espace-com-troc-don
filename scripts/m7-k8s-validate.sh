@@ -96,6 +96,14 @@ grep -q 'HOSTS_MARKER="# projet-indiv26-m7"' "${ROOT_DIR}/scripts/m7-minikube-up
 grep -q 'CLUSTER_CREATED=false' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
 grep -Fq 'for deployment in prometheus grafana; do' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
 
+# Codex regressions: Minikube may change IP after an interrupted image build,
+# and WSL2 Windows browsers require a reachable localhost HTTPS endpoint.
+bash -n "${ROOT_DIR}/scripts/m7-minikube-up.sh"
+bash -n "${ROOT_DIR}/scripts/m7-wsl-browser-access.sh"
+test "$(grep -Fc 'refresh_m7_browser_hosts' "${ROOT_DIR}/scripts/m7-minikube-up.sh")" -eq 3
+grep -Fq 'service/ingress-nginx-controller 443:443' "${ROOT_DIR}/scripts/m7-wsl-browser-access.sh"
+grep -Fq '127.0.0.1 app.projet-indiv26.test' "${ROOT_DIR}/docs/20-m7-kubernetes-microservices.md"
+
 
 if grep -A 5 '^spec:' "${K8S_DIR}/gateway-deployment.yaml" | grep -q 'replicas:'; then
   echo "[FAIL] Gateway Deployment must not declare replicas while HPA owns scaling."
