@@ -1,0 +1,4 @@
+ARG KEYCLOAK_IMAGE=quay.io/keycloak/keycloak:26.7.4
+FROM ${KEYCLOAK_IMAGE}
+
+COPY --chown=1000:0 infra/keycloak/themes/petite-maison /opt/keycloak/themes/petite-maison
