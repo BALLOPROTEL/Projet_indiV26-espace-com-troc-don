@@ -27,36 +27,45 @@ if [ "$(kubectl config current-context)" != "minikube" ]; then
   exit 1
 fi
 
-MINIKUBE_IP="$(minikube ip)"
 HOSTS_MARKER="# projet-indiv26-m7"
-HOSTS_LINE="${MINIKUBE_IP} app.projet-indiv26.test api.projet-indiv26.test auth.projet-indiv26.test ${HOSTS_MARKER}"
-HOSTS_TMP="$(mktemp)"
-grep -vF "${HOSTS_MARKER}" /etc/hosts > "${HOSTS_TMP}" || true
-printf '%s\n' "${HOSTS_LINE}" >> "${HOSTS_TMP}"
 
-if [ -w /etc/hosts ]; then
-  cat "${HOSTS_TMP}" > /etc/hosts
-elif command -v sudo >/dev/null 2>&1; then
-  sudo sh -c "cat '${HOSTS_TMP}' > /etc/hosts"
-else
-  rm -f "${HOSTS_TMP}"
-  echo "[FAIL] Cannot update /etc/hosts and sudo is unavailable."
-  echo "[INFO] Add: ${HOSTS_LINE}"
-  exit 1
-fi
-rm -f "${HOSTS_TMP}"
+refresh_m7_browser_hosts() {
+  # Refresh host mappings even if Minikube received another node IP
+  # during a long build or Codespaces restart.
+  local minikube_ip hosts_line hosts_tmp host resolved_ip
+  minikube_ip="$(minikube ip)"
+  hosts_line="${minikube_ip} app.projet-indiv26.test api.projet-indiv26.test auth.projet-indiv26.test ${HOSTS_MARKER}"
+  hosts_tmp="$(mktemp)"
+  grep -vF "${HOSTS_MARKER}" /etc/hosts > "${hosts_tmp}" || true
+  printf '%s\n' "${hosts_line}" >> "${hosts_tmp}"
 
-for host in app.projet-indiv26.test api.projet-indiv26.test auth.projet-indiv26.test; do
-  resolved_ip="$(getent ahostsv4 "${host}" | awk 'NR == 1 { print $1 }')"
-  if [ "${resolved_ip}" != "${MINIKUBE_IP}" ]; then
-    echo "[FAIL] ${host} resolves to ${resolved_ip:-nothing}, expected ${MINIKUBE_IP}."
+  if [ -w /etc/hosts ]; then
+    cat "${hosts_tmp}" > /etc/hosts
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo sh -c "cat '${hosts_tmp}' > /etc/hosts"
+  else
+    rm -f "${hosts_tmp}"
+    echo "[FAIL] Cannot update /etc/hosts and sudo is unavailable."
+    echo "[INFO] Add: ${hosts_line}"
     exit 1
   fi
-done
+  rm -f "${hosts_tmp}"
 
-echo "[OK] M7 browser hosts resolve to Minikube IP ${MINIKUBE_IP}."
-if grep -qi microsoft /proc/version 2>/dev/null; then
-  echo "[WARN] WSL detected: a browser running on Windows may also require the same entries in the Windows hosts file."
+  for host in app.projet-indiv26.test api.projet-indiv26.test auth.projet-indiv26.test; do
+    resolved_ip="$(getent ahostsv4 "${host}" | awk 'NR == 1 { print $1 }')"
+    if [ "${resolved_ip}" != "${minikube_ip}" ]; then
+      echo "[FAIL] ${host} resolves to ${resolved_ip:-nothing}, expected ${minikube_ip}."
+      exit 1
+    fi
+  done
+
+  echo "[OK] M7 Linux hosts resolve to current Minikube IP ${minikube_ip}."
+}
+
+refresh_m7_browser_hosts
+if grep -Eqi '(microsoft|wsl)' /proc/version /proc/sys/kernel/osrelease 2>/dev/null; then
+  echo "[WARN] WSL2 Docker driver: the Minikube IP is NOT a Windows browser endpoint."
+  echo "[INFO] For Windows browser access, see scripts/m7-wsl-browser-access.sh and docs/20-m7-kubernetes-microservices.md."
 fi
 
 echo "[INFO] Enabling ingress and metrics-server..."
@@ -102,6 +111,10 @@ if ! minikube status >/dev/null 2>&1; then
   kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=300s
   kubectl -n kube-system rollout status deployment/metrics-server --timeout=240s
 fi
+
+# A restart can change the node IP. Rebuild and verify Linux host mappings
+# after recovery, before loading images or advertising browser endpoints.
+refresh_m7_browser_hosts
 
 echo "[INFO] Loading local images into Minikube..."
 for image in "${images[@]}"; do
