@@ -49,6 +49,22 @@ pull request. Il s'agit d'une **première régression de compatibilité**, pas
 d'une certification de bout en bout du comportement réseau, des données,
 des rôles ou des transactions.
 
+## M8-A.2 — Contrat HTTP Marketplace → Catalog (en cours)
+
+Les tests de l'implémentation réelle `CatalogClientService`, avec `fetch`
+simulé et assertions sur les requêtes, sont dans
+`apps/marketplace-service/src/catalog/catalog-client.service.spec.ts`.
+
+```bash
+pnpm m8:integration:unit
+```
+
+Ils valident l'authentification interne, l'encodage des IDs, les appels
+GET/POST snapshot/reserve/complete/release, la correspondance 404/409,
+les erreurs upstream 5xx, une réponse mal formée et une panne réseau.
+Ce sont des **tests de contrat du client exécuté avec transport mocké**,
+non un test réseau complet impliquant PostgreSQL, Keycloak ou RabbitMQ.
+
 ## M8-B — Intégrations réelles (à implémenter)
 
 - Test HTTP vrai Gateway → Catalog/Marketplace/Legacy, avec réponses 200/401/404
