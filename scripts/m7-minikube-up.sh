@@ -63,7 +63,18 @@ echo "[INFO] Enabling ingress and metrics-server..."
 minikube addons enable ingress >/dev/null
 minikube addons enable metrics-server >/dev/null
 
+# Restarted Codespaces may report addon pods as 0/1 while Kubernetes recovers.
+kubectl wait --for=condition=Ready node/minikube --timeout=240s
+kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=300s
+kubectl -n kube-system rollout status deployment/metrics-server --timeout=240s
+
 bash scripts/m7-build-images.sh
+
+# Only prune build cache when explicitly requested; tagged images are retained.
+if [ "${M7_PRUNE_BUILD_CACHE:-false}" = "true" ]; then
+  echo "[INFO] Pruning Docker build cache (preserving tagged images)..."
+  docker builder prune -af
+fi
 
 images=(
   projet-indiv26-legacy-api:m7-local
@@ -82,6 +93,23 @@ images=(
 
 echo "[INFO] Loading local images into Minikube..."
 for image in "${images[@]}"; do
+  if ! docker image inspect "${image}" >/dev/null 2>&1; then
+    echo "[FAIL] Missing local image: ${image}"
+    exit 1
+  fi
+
+  # Leave at least 3 GiB after the image's declared size before each load.
+  available_kib="$(df -Pk "${ROOT_DIR}" | awk 'NR == 2 { print $4 }')"
+  image_bytes="$(docker image inspect "${image}" --format '{{.Size}}')"
+  required_kib=$(( (image_bytes + 1023) / 1024 + 3145728 ))
+  if [ "${available_kib}" -lt "${required_kib}" ]; then
+    echo "[FAIL] Not enough disk space to load ${image} safely."
+    echo "[INFO] Available: $((available_kib / 1024)) MiB; required: $((required_kib / 1024)) MiB."
+    echo "[INFO] Already loaded images remain in Minikube. Re-run after freeing space."
+    exit 1
+  fi
+
+  echo "[INFO] Loading ${image}..."
   minikube image load "${image}"
 done
 
