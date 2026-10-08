@@ -82,8 +82,18 @@ done
 if command -v kind >/dev/null 2>&1; then
   KIND_CMD=(kind)
 else
+  # Official kind releases provide separate Linux AMD64 and ARM64 binaries.
+  case "$(uname -m)" in
+    x86_64|amd64) KIND_HOST_ARCH="amd64" ;;
+    aarch64|arm64) KIND_HOST_ARCH="arm64" ;;
+    *)
+      echo "[FAIL] Unsupported host architecture for kind: $(uname -m)"
+      exit 1
+      ;;
+  esac
   KIND_BIN="$(mktemp)"
-  curl -fsSL -o "${KIND_BIN}"     "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+  curl -fsSL -o "${KIND_BIN}" \
+    "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-${KIND_HOST_ARCH}"
   chmod +x "${KIND_BIN}"
   KIND_CMD=("${KIND_BIN}")
 fi
