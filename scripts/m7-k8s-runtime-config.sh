@@ -30,6 +30,10 @@ rand_hex() {
   openssl rand -hex "$1"
 }
 
+url_encode() {
+  node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$1"
+}
+
 if kubectl -n "${NAMESPACE}" get secret postgres-credentials >/dev/null 2>&1; then
   POSTGRES_DB="$(secret_value postgres-credentials POSTGRES_DB)"
   POSTGRES_USER="$(secret_value postgres-credentials POSTGRES_USER)"
@@ -103,10 +107,15 @@ else
   METRICS_TOKEN="$(rand_hex 32)"
 fi
 
-DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public"
-CATALOG_DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=catalog"
-MARKETPLACE_DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=marketplace"
-RABBITMQ_URL="amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+POSTGRES_USER_URL="$(url_encode "${POSTGRES_USER}")"
+POSTGRES_PASSWORD_URL="$(url_encode "${POSTGRES_PASSWORD}")"
+RABBITMQ_USER_URL="$(url_encode "${RABBITMQ_USER}")"
+RABBITMQ_PASSWORD_URL="$(url_encode "${RABBITMQ_PASSWORD}")"
+
+DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB}?schema=public"
+CATALOG_DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB}?schema=catalog"
+MARKETPLACE_DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB}?schema=marketplace"
+RABBITMQ_URL="amqp://${RABBITMQ_USER_URL}:${RABBITMQ_PASSWORD_URL}@rabbitmq:5672"
 
 kubectl -n "${NAMESPACE}" create secret generic legacy-api-secrets \
   --from-literal=DATABASE_URL="${DATABASE_URL}" \
