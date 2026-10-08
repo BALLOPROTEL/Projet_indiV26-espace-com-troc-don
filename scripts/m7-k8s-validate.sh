@@ -95,6 +95,7 @@ grep -q 'kubectl config use-context minikube' "${ROOT_DIR}/scripts/m7-minikube-u
 grep -q 'HOSTS_MARKER="# projet-indiv26-m7"' "${ROOT_DIR}/scripts/m7-minikube-up.sh"
 grep -q 'CLUSTER_CREATED=false' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
 grep -Fq 'for deployment in prometheus grafana; do' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
+grep -Fq 'status.currentMetrics[0].resource.current.averageUtilization' "${ROOT_DIR}/scripts/m7-k8s-validate.sh"
 
 # Codex regressions: Minikube may change IP after an interrupted image build,
 # and WSL2 Windows browsers require a reachable localhost HTTPS endpoint.
@@ -237,20 +238,24 @@ auth_status="$(
 [ "${auth_status}" = "200" ]
 echo "[OK] Real Keycloak JWT reaches Marketplace through the Gateway Ingress."
 
-echo "[INFO] Waiting for Gateway HPA metrics..."
+echo "[INFO] Waiting for Gateway HPA numeric CPU utilization..."
 metrics_ok=false
 for attempt in $(seq 1 24); do
-  targets="$(kubectl -n "${NAMESPACE}" get hpa gateway --no-headers 2>/dev/null | awk '{print $3}')"
-  if [ -n "${targets}" ] && [[ "${targets}" != *"<unknown>"* ]]; then
+  # kubectl table output may split "cpu: <unknown>/60%" into columns;
+  # never infer metrics readiness from awk on the human-readable TARGETS column.
+  cpu_percent="$(kubectl -n "${NAMESPACE}" get hpa gateway \
+    -o jsonpath='{.status.currentMetrics[0].resource.current.averageUtilization}' 2>/dev/null || true)"
+  if [[ "${cpu_percent}" =~ ^[0-9]+$ ]]; then
     metrics_ok=true
-    echo "[OK] HPA metrics available: ${targets}"
+    echo "[OK] HPA CPU metrics available: ${cpu_percent}%/60%"
     break
   fi
   sleep 5
 done
 if [ "${metrics_ok}" != "true" ]; then
-  echo "[FAIL] Gateway HPA metrics are still unknown."
+  echo "[FAIL] Gateway HPA CPU utilization remains unknown; numeric measurement required."
   kubectl -n "${NAMESPACE}" get hpa gateway || true
+  kubectl -n "${NAMESPACE}" describe hpa gateway || true
   exit 1
 fi
 
