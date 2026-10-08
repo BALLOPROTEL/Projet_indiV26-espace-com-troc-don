@@ -164,10 +164,23 @@ kubectl kustomize infra/k8s/minikube > "${RENDERED}"
 grep -q 'secretName: platform-tls' infra/k8s/minikube/platform-ingress.yaml
 grep -q 'ssl-redirect: "true"' infra/k8s/minikube/platform-ingress.yaml
 
-for service in \
-  gateway legacy-api catalog-service marketplace-service notification-service \
-  web postgres rabbitmq keycloak prometheus grafana minio; do
-  grep -q 'type: ClusterIP' "infra/k8s/minikube/${service}-service.yaml"
+service_files=(
+  gateway-service.yaml
+  legacy-api-service.yaml
+  catalog-service.yaml
+  marketplace-service.yaml
+  notification-service.yaml
+  web-service.yaml
+  postgres-service.yaml
+  rabbitmq-service.yaml
+  keycloak-service.yaml
+  prometheus-service.yaml
+  grafana-service.yaml
+  minio-service.yaml
+)
+
+for service_file in "${service_files[@]}"; do
+  grep -q 'type: ClusterIP' "infra/k8s/minikube/${service_file}"
 done
 
 if grep -Eq '^[[:space:]]*type:[[:space:]]*(NodePort|LoadBalancer)[[:space:]]*$' "${RENDERED}"; then
