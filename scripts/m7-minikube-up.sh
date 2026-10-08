@@ -91,6 +91,18 @@ images=(
   projet-indiv26-minio-bootstrap:lot9b-local
 )
 
+# A long Docker build can be interrupted by a Codespaces/Minikube restart.
+# Recover the existing profile once before importing images; never delete it.
+if ! minikube status >/dev/null 2>&1; then
+  echo "[WARN] Minikube stopped during image builds; restarting existing profile..."
+  minikube start --cpus=4 --memory=6144
+  minikube update-context >/dev/null
+  kubectl config use-context minikube >/dev/null
+  kubectl wait --for=condition=Ready node/minikube --timeout=240s
+  kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=300s
+  kubectl -n kube-system rollout status deployment/metrics-server --timeout=240s
+fi
+
 echo "[INFO] Loading local images into Minikube..."
 for image in "${images[@]}"; do
   if ! docker image inspect "${image}" >/dev/null 2>&1; then
