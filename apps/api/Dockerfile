@@ -36,6 +36,8 @@ FROM build AS migration
 
 ENV NODE_ENV=production
 
+USER node
+
 CMD ["pnpm", "db:deploy"]
 
 FROM ${ALPINE_IMAGE} AS runtime

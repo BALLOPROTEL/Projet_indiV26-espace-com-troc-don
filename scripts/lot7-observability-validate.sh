@@ -8,22 +8,22 @@ MANIFEST_ONLY=false
 
 RENDERED=""
 KUBECTL_SHIM_DIR=""
-API_PF_PID=""
+GATEWAY_PF_PID=""
 PROM_PF_PID=""
 GRAFANA_PF_PID=""
-API_PF_LOG=""
+GATEWAY_PF_LOG=""
 PROM_PF_LOG=""
 GRAFANA_PF_LOG=""
 
 cleanup() {
-  for pid in "${API_PF_PID}" "${PROM_PF_PID}" "${GRAFANA_PF_PID}"; do
+  for pid in "${GATEWAY_PF_PID}" "${PROM_PF_PID}" "${GRAFANA_PF_PID}"; do
     if [ -n "${pid}" ]; then
       kill "${pid}" >/dev/null 2>&1 || true
       wait "${pid}" 2>/dev/null || true
     fi
   done
 
-  for file in "${RENDERED}" "${API_PF_LOG}" "${PROM_PF_LOG}" "${GRAFANA_PF_LOG}"; do
+  for file in "${RENDERED}" "${GATEWAY_PF_LOG}" "${PROM_PF_LOG}" "${GRAFANA_PF_LOG}"; do
     [ -z "${file}" ] || rm -f "${file}"
   done
 
@@ -61,7 +61,7 @@ grep -q "name: grafana" "${RENDERED}"
 grep -q "kind: RoleBinding" "${RENDERED}"
 grep -q "metrics_path: /api/metrics" "${RENDERED}"
 grep -q "credentials_file: /etc/prometheus/secrets/metrics-token" "${RENDERED}"
-grep -q "LOT 7 — API Observabilité" "${RENDERED}"
+grep -q "LOT 7 — Gateway Observabilité" "${RENDERED}"
 grep -q "readOnlyRootFilesystem: true" "${RENDERED}"
 
 echo "[OK] Prometheus, Grafana, RBAC and dashboard render through Kustomize."
@@ -76,37 +76,37 @@ command -v curl >/dev/null 2>&1 || {
   exit 1
 }
 
-kubectl -n "${NAMESPACE}" rollout status deployment/api --timeout=120s
+kubectl -n "${NAMESPACE}" rollout status deployment/gateway --timeout=120s
 kubectl -n "${NAMESPACE}" rollout status deployment/prometheus --timeout=120s
 kubectl -n "${NAMESPACE}" rollout status deployment/grafana --timeout=120s
 
-API_PF_LOG="$(mktemp)"
-kubectl -n "${NAMESPACE}" port-forward service/api 3002:80 >"${API_PF_LOG}" 2>&1 &
-API_PF_PID=$!
+GATEWAY_PF_LOG="$(mktemp)"
+kubectl -n "${NAMESPACE}" port-forward service/gateway 3002:3000 >"${GATEWAY_PF_LOG}" 2>&1 &
+GATEWAY_PF_PID=$!
 
-API_OK=false
+GATEWAY_OK=false
 for attempt in $(seq 1 30); do
   if curl --connect-timeout 2 --max-time 5 -fsS     http://127.0.0.1:3002/api/health/live >/dev/null 2>&1; then
-    API_OK=true
+    GATEWAY_OK=true
     break
   fi
-  echo "[WAIT] API metrics endpoint: attempt ${attempt}/30"
+  echo "[WAIT] Gateway metrics endpoint: attempt ${attempt}/30"
   sleep 1
 done
 
-if [ "${API_OK}" != "true" ]; then
-  echo "[FAIL] API port-forward did not become reachable."
-  cat "${API_PF_LOG}" || true
+if [ "${GATEWAY_OK}" != "true" ]; then
+  echo "[FAIL] Gateway port-forward did not become reachable."
+  cat "${GATEWAY_PF_LOG}" || true
   exit 1
 fi
 
 curl -fsS   -H "x-request-id: lot7-validation"   http://127.0.0.1:3002/api/health/live >/dev/null
 
-METRICS_TOKEN="$(kubectl -n "${NAMESPACE}" get secret api-secrets \
+METRICS_TOKEN="$(kubectl -n "${NAMESPACE}" get secret gateway-secrets \
   -o jsonpath='{.data.METRICS_TOKEN}' | base64 -d)"
 
 if [ -z "${METRICS_TOKEN}" ]; then
-  echo "[FAIL] METRICS_TOKEN is missing from api-secrets."
+  echo "[FAIL] METRICS_TOKEN is missing from gateway-secrets."
   exit 1
 fi
 
@@ -125,11 +125,11 @@ printf '%s' "${METRICS}" | grep -q "projet_indiv26_http_requests_total"
 printf '%s' "${METRICS}" | grep -q "projet_indiv26_http_request_duration_seconds_bucket"
 printf '%s' "${METRICS}" | grep -q "projet_indiv26_process_resident_memory_bytes"
 
-echo "[OK] API metrics require authentication and expose HTTP, latency and process metrics."
+echo "[OK] Gateway metrics require authentication and expose HTTP, latency and process metrics."
 
 LOG_OK=false
 for attempt in $(seq 1 10); do
-  if kubectl -n "${NAMESPACE}" logs     -l app.kubernetes.io/name=api     --tail=100 2>/dev/null |     grep -q '"request_id":"lot7-validation"'; then
+  if kubectl -n "${NAMESPACE}" logs     -l app.kubernetes.io/name=gateway     --tail=100 2>/dev/null |     grep -q '"request_id":"lot7-validation"'; then
     LOG_OK=true
     break
   fi
@@ -166,20 +166,20 @@ fi
 TARGETS_OK=false
 for attempt in $(seq 1 30); do
   TARGETS="$(curl -fsS http://127.0.0.1:9090/api/v1/targets)"
-  if printf '%s' "${TARGETS}" | grep -q '"job":"api-pods"' &&      printf '%s' "${TARGETS}" | grep -q '"health":"up"'; then
+  if printf '%s' "${TARGETS}" | grep -q '"job":"gateway-pods"' &&      printf '%s' "${TARGETS}" | grep -q '"health":"up"'; then
     TARGETS_OK=true
     break
   fi
-  echo "[WAIT] Prometheus API target: attempt ${attempt}/30"
+  echo "[WAIT] Prometheus Gateway target: attempt ${attempt}/30"
   sleep 2
 done
 
 if [ "${TARGETS_OK}" != "true" ]; then
-  echo "[FAIL] Prometheus has no healthy api-pods target."
+  echo "[FAIL] Prometheus has no healthy gateway-pods target."
   exit 1
 fi
 
-echo "[OK] Prometheus discovers and scrapes the API pod."
+echo "[OK] Prometheus discovers and scrapes the Gateway pod."
 
 GRAFANA_PF_LOG="$(mktemp)"
 kubectl -n "${NAMESPACE}" port-forward service/grafana 3003:3000 >"${GRAFANA_PF_LOG}" 2>&1 &

@@ -29,6 +29,8 @@ FROM build AS migration
 
 ENV NODE_ENV=production
 
+USER node
+
 CMD ["pnpm", "--filter", "catalog-service", "prisma:migrate:deploy"]
 
 FROM ${NODE_IMAGE} AS runtime

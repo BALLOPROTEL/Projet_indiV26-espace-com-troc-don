@@ -41,12 +41,12 @@ data:
       "panels": [
         {
           "type": "stat",
-          "title": "Pods API observés",
+          "title": "Pods Gateway observés",
           "id": 1,
           "gridPos": {"h": 5, "w": 4, "x": 0, "y": 0},
           "targets": [
             {
-              "expr": "sum(up{job=\"api-pods\"})",
+              "expr": "sum(up{job=\"gateway-pods\"})",
               "legendFormat": "pods",
               "refId": "A"
             }
@@ -67,7 +67,7 @@ data:
         },
         {
           "type": "stat",
-          "title": "Mémoire process API",
+          "title": "Mémoire process Gateway",
           "id": 3,
           "gridPos": {"h": 5, "w": 5, "x": 9, "y": 0},
           "fieldConfig": {
@@ -76,7 +76,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(projet_indiv26_process_resident_memory_bytes{job=\"api-pods\"})",
+              "expr": "sum(projet_indiv26_process_resident_memory_bytes{job=\"gateway-pods\"})",
               "legendFormat": "RSS",
               "refId": "A"
             }
@@ -84,7 +84,7 @@ data:
         },
         {
           "type": "stat",
-          "title": "CPU process API",
+          "title": "CPU process Gateway",
           "id": 4,
           "gridPos": {"h": 5, "w": 5, "x": 14, "y": 0},
           "fieldConfig": {
@@ -93,7 +93,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(projet_indiv26_process_cpu_seconds_total{job=\"api-pods\"}[1m]))",
+              "expr": "sum(rate(projet_indiv26_process_cpu_seconds_total{job=\"gateway-pods\"}[1m]))",
               "legendFormat": "CPU",
               "refId": "A"
             }
@@ -145,12 +145,12 @@ data:
       ],
       "refresh": "5s",
       "schemaVersion": 39,
-      "tags": ["lot7", "observability", "api"],
+      "tags": ["lot7", "observability", "gateway"],
       "templating": {"list": []},
       "time": {"from": "now-15m", "to": "now"},
       "timepicker": {},
       "timezone": "browser",
-      "title": "LOT 7 — API Observabilité",
-      "uid": "lot7-api-observability",
+      "title": "LOT 7 — Gateway Observabilité",
+      "uid": "lot7-gateway-observability",
       "version": 1
     }
