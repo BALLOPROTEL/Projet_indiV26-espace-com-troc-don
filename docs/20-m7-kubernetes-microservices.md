@@ -188,12 +188,37 @@ M7 reste un sandbox de soutenance :
 Ces sujets ne sont pas présentés comme des garanties de production.
 
 
-### Résolution navigateur sous WSL/Windows
+### Accès navigateur : Codespaces et WSL2 / Windows
 
-Le script configure automatiquement `/etc/hosts` dans l'environnement Linux qui exécute Minikube. Si le navigateur tourne côté Windows tandis que Minikube tourne dans WSL, ajoutez également dans `C:\\Windows\\System32\\drivers\\etc\\hosts` (en administrateur) la ligne affichée par `pnpm m7:k8s:up` :
+**Codespaces (sandbox distant)** : `pnpm m7:k8s:validate` est la preuve fonctionnelle du TLS Ingress, du JWT Keycloak et du routage depuis le cluster. Le nom `*.projet-indiv26.test` pointe vers le réseau privé du Minikube **distant** : ajouter une entrée dans le fichier `hosts` de Windows ne suffit pas pour y accéder depuis le navigateur du PC. Ne présentez donc pas ces URL comme des liens publics. Pour une démonstration navigateur avec ces domaines, utilisez un Minikube **local** sous Linux/WSL2 et la procédure ci-dessous, ou préparez séparément un déploiement avec des domaines accessibles.
 
-```text
-<MINIKUBE_IP> app.projet-indiv26.test api.projet-indiv26.test auth.projet-indiv26.test
-```
+**WSL2 local + navigateur Windows (pilote Docker)** : l'adresse IP du nœud Minikube n'est **pas directement accessible** depuis Windows. Le fichier `/etc/hosts` sous WSL est configuré par `pnpm m7:k8s:up` pour la validation Linux ; il est **incorrect de recopier cette IP dans le fichier hosts de Windows**. Il faut un point d'entrée TCP sur `127.0.0.1:443` transmis vers le Service Kubernetes Ingress, avec les trois noms d'origine inchangés (TLS, issuer Keycloak, CORS et cookies attendent le port HTTPS standard).
 
-Cela évite qu'une validation terminal réussisse alors que le navigateur hôte ne sait pas résoudre les noms de démonstration.
+1. Sur la machine WSL2 **locale**, démarrez et validez la stack : `pnpm m7:k8s:up`.
+2. Dans **un autre terminal WSL2** (à laisser ouvert), lancez :
+
+   ```bash
+   bash scripts/m7-wsl-browser-access.sh
+   ```
+
+   La commande vérifie le contexte Minikube et attend Ingress puis exécute `kubectl port-forward` sur `127.0.0.1:443`. Si votre Linux refuse les ports privilégiés, utilisez plutôt `sudo env KUBECONFIG="$HOME/.kube/config" bash scripts/m7-wsl-browser-access.sh`. Ne redirigez pas le port vers `8443` : le frontend et les tokens Keycloak sont configurés pour `https://...test` sur **443**.
+
+3. Dans **Windows**, éditez `C:\\Windows\\System32\\drivers\\etc\\hosts` avec des droits administrateur et ajoutez :
+
+   ```text
+   127.0.0.1 app.projet-indiv26.test api.projet-indiv26.test auth.projet-indiv26.test
+   ```
+
+4. Depuis **PowerShell Windows**, vérifiez le réseau Windows (pas seulement le shell Linux) :
+
+   ```powershell
+   curl.exe -k -I https://app.projet-indiv26.test/
+   curl.exe -k -I https://api.projet-indiv26.test/api/health/live
+   curl.exe -k -I https://auth.projet-indiv26.test/realms/projet-indiv26/.well-known/openid-configuration
+   ```
+
+   Le certificat de démonstration est autosigné : `-k` ne sert **qu'au contrôle local**, pas à une recommandation de sécurité en production. Un navigateur peut demander d'accepter le certificat de test. Validez ensuite le parcours Web/Keycloak.
+
+**Si le transfert Windows → WSL localhost est désactivé** : vérifiez les paramètres réseau WSL (ou le mode *mirrored* sur Windows 11). En dernier recours, relancez l'outil avec `M7_WSL_BIND_ADDRESS=0.0.0.0` (écoute sur toutes les interfaces WSL, uniquement dans un environnement de confiance), puis créez un `netsh interface portproxy` Windows reliant `127.0.0.1:443` à l'adresse IP de la **distribution WSL** (obtenue par `wsl.exe hostname -I`), **pas** à celle du nœud Minikube. Vérifiez les règles du pare-feu, puis supprimez cette redirection après la démonstration. Si le port 443 est déjà occupé sur Windows, libérez-le avant la démo plutôt que de changer les origines de l'application.
+
+Références officielles : [Minikube Docker driver](https://minikube.sigs.k8s.io/docs/drivers/docker/) (IP du nœud non accessible directement depuis Windows/WSL2) et [Microsoft WSL networking](https://learn.microsoft.com/windows/wsl/networking) (transfert localhost et mode mirrored).
