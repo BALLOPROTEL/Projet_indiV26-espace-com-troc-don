@@ -85,6 +85,9 @@ require_rendered 'job_name: gateway-pods' 'Prometheus Gateway discovery'
 require_rendered 'proxy-body-size: 50m' 'Ingress upload body size'
 require_rendered 'hostname: rabbitmq' 'stable RabbitMQ hostname'
 require_rendered 'RABBITMQ_NODENAME' 'stable RabbitMQ node identity'
+require_rendered 'name: KC_DB' 'Keycloak PostgreSQL backend'
+require_rendered 'jdbc:postgresql://postgres:5432/keycloak' 'isolated persistent Keycloak database'
+require_rendered 'name: KC_DB_PASSWORD' 'Keycloak PostgreSQL credentials'
 
 grep -A 4 'readinessProbe:' "${K8S_DIR}/gateway-deployment.yaml" | grep -q '/api/health/live'
 grep -q 'delete deployment/api service/api hpa/api ingress/api' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
@@ -96,6 +99,24 @@ grep -q 'HOSTS_MARKER="# projet-indiv26-m7"' "${ROOT_DIR}/scripts/m7-minikube-up
 grep -q 'CLUSTER_CREATED=false' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
 grep -Fq 'for deployment in prometheus grafana; do' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
 grep -Fq 'status.currentMetrics[0].resource.current.averageUtilization' "${ROOT_DIR}/scripts/m7-k8s-validate.sh"
+grep -Fq 'createdb -U' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
+grep -Fq 'scripts/m7-keycloak-identity-snapshot.sh' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
+grep -Fq 'KEYCLOAK_USER_IDS_JSON' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
+grep -Fq 'export KUBECONFIG=' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+grep -Fq -- '--kubeconfig "${KUBECONFIG}"' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+grep -Fq 'Keycloak JWT sub persists across pod recreation.' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+bash -n "${ROOT_DIR}/scripts/m7-keycloak-identity-snapshot.sh"
+bash -n "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+bash -n "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
+node - "${ROOT_DIR}/infra/keycloak/projet-indiv26-realm.json" <<'NODE'
+const fs = require('node:fs');
+const realm = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const ids = (realm.users || []).map(user => user.id);
+if (ids.length !== 3 || new Set(ids).size !== ids.length ||
+    ids.some(id => !/^[a-f0-9-]{36}$/i.test(id))) {
+  throw new Error('Keycloak demo users require three distinct fixed UUIDs');
+}
+NODE
 
 # Codex regressions: Minikube may change IP after an interrupted image build,
 # and WSL2 Windows browsers require a reachable localhost HTTPS endpoint.
