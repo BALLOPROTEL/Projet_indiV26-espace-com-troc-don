@@ -25,10 +25,30 @@ for manifest in \
   postgres-pvc.yaml postgres-deployment.yaml postgres-service.yaml \
   rabbitmq-pvc.yaml rabbitmq-deployment.yaml rabbitmq-service.yaml \
   minio-pvc.yaml minio-deployment.yaml minio-service.yaml \
-  minio-bootstrap-configmap.yaml \
-  keycloak-deployment.yaml keycloak-service.yaml; do
+  minio-bootstrap-configmap.yaml; do
   kubectl apply -f "${K8S_DIR}/${manifest}" >/dev/null
 done
+
+# Keycloak must not start until its persistent, isolated PostgreSQL database
+# exists. The same PostgreSQL PVC survives Kubernetes pod replacements.
+kubectl -n "${NAMESPACE}" rollout status deployment/postgres --timeout=180s
+echo "[INFO] Provisioning persistent Keycloak PostgreSQL database if absent..."
+kubectl -n "${NAMESPACE}" exec deployment/postgres -- sh -eu -c '
+  existing="$(PGPASSWORD="${POSTGRES_PASSWORD}" psql -X -A -t \
+    -U "${POSTGRES_USER}" -d postgres \
+    -c "SELECT 1 FROM pg_database WHERE datname = '\''keycloak'\''")"
+  if [ "${existing}" != "1" ]; then
+    PGPASSWORD="${POSTGRES_PASSWORD}" createdb -U "${POSTGRES_USER}" \
+      -O "${POSTGRES_USER}" keycloak
+  fi
+  PGPASSWORD="${POSTGRES_PASSWORD}" psql -X -A -t \
+    -U "${POSTGRES_USER}" -d keycloak -c "SELECT current_database()" \
+    | grep -qx keycloak
+'
+echo "[OK] Dedicated Keycloak PostgreSQL database is available."
+
+kubectl apply -f "${K8S_DIR}/keycloak-deployment.yaml" >/dev/null
+kubectl apply -f "${K8S_DIR}/keycloak-service.yaml" >/dev/null
 
 if [ "${M7_FORCE_ROLLOUT:-false}" = "true" ]; then
   for deployment in minio keycloak; do
