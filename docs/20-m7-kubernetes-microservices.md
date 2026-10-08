@@ -64,9 +64,20 @@ Les Secrets ne sont pas versionnés. `scripts/m7-k8s-runtime-config.sh` les cré
 - encodage URL des credentials PostgreSQL/RabbitMQ réutilisés avant construction des DSN ;
 - token de métriques Gateway ;
 - credentials Keycloak ;
+- UUID des comptes de démonstration Keycloak existants (snapshot préalable au premier changement de base) ;
 - credentials MinIO ;
 - realm Keycloak adapté aux URLs Kubernetes ;
 - certificat TLS local pour les trois hosts de démonstration.
+
+## Persistance Keycloak et conservation des identités
+
+Keycloak utilise désormais une base PostgreSQL dédiée `keycloak` sur le **même serveur PostgreSQL persistant**, mais **sans partager** les schémas Prisma `public`, `catalog` et `marketplace`. Le script de déploiement crée cette base de manière idempotente avant de démarrer Keycloak ; les credentials restent dans le Secret `postgres-credentials`. La recréation du pod Keycloak n'efface donc plus ses utilisateurs ni leurs identifiants JWT `sub`.
+
+**Migration d'un Minikube M7 existant** : l'ancien Keycloak utilisait un stockage H2 embarqué éphémère. Avant de changer sa configuration, le script `scripts/m7-keycloak-identity-snapshot.sh` interroge l'API Admin du Keycloak encore actif et enregistre les UUID des trois comptes `demo-user`, `demo-moderator` et `demo-admin` dans le Secret Kubernetes `keycloak-user-ids`. Le générateur de realm réutilise ces UUID lors de l'import dans PostgreSQL. Sans ancien déploiement, le realm possède des UUID fixes pour ses comptes de démonstration. Le snapshot n'est pas régénéré après chaque déploiement.
+
+**Protection contre une migration partielle** : si l'ancien Keycloak contient des comptes hors de ces trois démonstrations, ou si l'API Admin / la sauvegarde des UUID échoue, le déploiement s'arrête **avant** de changer de stockage. Une migration complète et contrôlée des comptes, rôles et credentials est alors nécessaire. Les personnalisations préexistantes (par exemple une modification manuelle du mot de passe d'un compte de démonstration) ne sont pas transférées par ce snapshot d'UUID : ne présentez pas cette procédure comme un export complet d'un Keycloak de production.
+
+Le smoke CI kind redémarre réellement le déploiement Keycloak après obtention d'un premier JWT, renouvelle le token, puis exige le **même `sub`** après recréation du pod. Il exécute toutes ses commandes avec un kubeconfig temporaire, qui est supprimé après le test sans modifier le contexte Kubernetes habituel du développeur.
 
 ## Probes et ressources
 
