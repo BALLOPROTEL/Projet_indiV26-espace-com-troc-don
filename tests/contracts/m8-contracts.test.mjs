@@ -39,12 +39,8 @@ test('M8 security contract: no public routing to Catalog internal APIs or privat
     '/api/internal/listings/abc-123',
     '/api/internal/listings/abc-123/reserve',
     '/api/notifications/recent',
-    '/api/proposals/abc-123/private',
     '/api/other',
   ]) {
-    // Private paths must not be exposed directly by Gateway; the proposals
-    // prefix is intentionally public, with JWT guards enforced downstream.
-    if (route.startsWith('/api/proposals/')) continue;
     assert.equal(resolveGatewayRoute(route), null, route);
   }
 
