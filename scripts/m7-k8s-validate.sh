@@ -232,6 +232,21 @@ TARGET_CPU="$(kubectl -n "${NAMESPACE}" get hpa gateway -o jsonpath='{.spec.metr
 [ "${TARGET_CPU}" = "60" ]
 echo "[OK] Gateway HPA spec: 1..4 replicas at 60% CPU."
 
+# Confirm the running app-host routing also bypasses Next.js for /api,
+# not only that the source YAML renders correctly.
+kubectl -n "${NAMESPACE}" get ingress platform -o json | node -e '
+const fs = require("node:fs");
+const ingress = JSON.parse(fs.readFileSync(0, "utf8"));
+const app = ingress.spec.rules.find(rule => rule.host === "app.projet-indiv26.test");
+const routes = Object.fromEntries((app?.http?.paths || []).map(path => [
+  path.path, path.backend?.service?.name,
+]));
+if (routes["/api"] !== "gateway" || routes["/"] !== "web") {
+  throw new Error("Live app-host Ingress must route /api -> gateway and / -> web");
+}
+'
+echo "[OK] App-host /api routes directly to Gateway (Web upload proxy bypassed)."
+
 kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=180s
 INGRESS_PF_LOG="$(mktemp)"
 kubectl -n ingress-nginx port-forward service/ingress-nginx-controller 8443:443 >"${INGRESS_PF_LOG}" 2>&1 &
