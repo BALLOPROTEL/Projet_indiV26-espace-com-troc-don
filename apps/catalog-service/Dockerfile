@@ -6,9 +6,12 @@ RUN apk add --no-cache openssl
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=${PNPM_HOME}:${PATH}
+ENV COREPACK_HOME=/opt/corepack
 
-RUN corepack enable \
-  && corepack prepare pnpm@10.24.0 --activate
+RUN mkdir -p "${COREPACK_HOME}" \
+  && corepack enable \
+  && corepack prepare pnpm@10.24.0 --activate \
+  && chmod -R a+rX "${COREPACK_HOME}"
 
 WORKDIR /workspace
 
@@ -28,6 +31,9 @@ RUN pnpm --filter catalog-service build \
 FROM build AS migration
 
 ENV NODE_ENV=production
+ENV COREPACK_ENABLE_NETWORK=0
+
+USER node
 
 CMD ["pnpm", "--filter", "catalog-service", "prisma:migrate:deploy"]
 

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: marketplace-config
+  namespace: projet-indiv26
+data:
+  PORT: "3102"
+  KEYCLOAK_ISSUER: "https://auth.projet-indiv26.test/realms/projet-indiv26"
+  KEYCLOAK_JWKS_URL: "http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs"
+  KEYCLOAK_AUDIENCE: "api"
+  CATALOG_INTERNAL_URL: "http://catalog-service:3101"
+  RABBITMQ_CONFIRM_TIMEOUT_MS: "5000"

@@ -129,6 +129,24 @@ jobs:
           test -f scripts/m6-compose-check.sh
           test -f scripts/m6-compose-smoke.sh
           test -f docs/18-codespaces.md
+          test -f docs/20-m7-kubernetes-microservices.md
+          test -f scripts/m7-build-images.sh
+          test -f scripts/m7-k8s-runtime-config.sh
+          test -f scripts/m7-k8s-apply.sh
+          test -f scripts/m7-minikube-up.sh
+          test -f scripts/m7-k8s-validate.sh
+          test -f scripts/m7-kind-smoke.sh
+          test -f infra/keycloak/Dockerfile.k8s
+          test -f infra/k8s/minikube/gateway-deployment.yaml
+          test -f infra/k8s/minikube/catalog-deployment.yaml
+          test -f infra/k8s/minikube/marketplace-deployment.yaml
+          test -f infra/k8s/minikube/notification-deployment.yaml
+          test -f infra/k8s/minikube/legacy-api-deployment.yaml
+          test -f infra/k8s/minikube/web-deployment.yaml
+          test -f infra/k8s/minikube/rabbitmq-deployment.yaml
+          test -f infra/k8s/minikube/keycloak-deployment.yaml
+          test -f infra/k8s/minikube/migration-jobs.yaml
+          test -f infra/k8s/minikube/platform-ingress.yaml
           test -f .dockerignore
           test -f apps/api/Dockerfile
           test -f apps/api/package.json
@@ -204,9 +222,9 @@ jobs:
           fi
           echo "No tracked dotenv secret files detected."
 
-      - name: Validate Kubernetes manifests
+      - name: Validate M7 Kubernetes manifests
         shell: bash
-        run: bash scripts/lot6-k8s-validate.sh --manifest-only
+        run: bash scripts/m7-k8s-validate.sh --manifest-only
 
       - name: Validate Observability manifests
         shell: bash
@@ -592,6 +610,11 @@ jobs:
       - name: Smoke test M6 Docker Compose stack
         shell: bash
         run: pnpm m6:smoke
+
+      - name: Smoke test M7 Kubernetes multi-services
+        shell: bash
+        timeout-minutes: 25
+        run: pnpm m7:k8s:smoke
 
       - name: Audit production dependencies
         shell: bash

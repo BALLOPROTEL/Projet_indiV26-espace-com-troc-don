@@ -1,0 +1,343 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+K8S_DIR="${ROOT_DIR}/infra/k8s/minikube"
+NAMESPACE="projet-indiv26"
+APP_HOST="app.projet-indiv26.test"
+API_HOST="api.projet-indiv26.test"
+AUTH_HOST="auth.projet-indiv26.test"
+MANIFEST_ONLY=false
+RENDERED=""
+KUBECTL_SHIM_DIR=""
+INGRESS_PF_PID=""
+INGRESS_PF_LOG=""
+
+cleanup() {
+  if [ -n "${INGRESS_PF_PID}" ]; then
+    kill "${INGRESS_PF_PID}" >/dev/null 2>&1 || true
+    wait "${INGRESS_PF_PID}" 2>/dev/null || true
+  fi
+  [ -z "${RENDERED}" ] || rm -f "${RENDERED}"
+  [ -z "${KUBECTL_SHIM_DIR}" ] || rm -rf "${KUBECTL_SHIM_DIR}"
+  [ -z "${INGRESS_PF_LOG}" ] || rm -f "${INGRESS_PF_LOG}"
+}
+trap cleanup EXIT INT TERM
+
+if [ "${1:-}" = "--manifest-only" ]; then
+  MANIFEST_ONLY=true
+fi
+
+if ! command -v kubectl >/dev/null 2>&1; then
+  if command -v minikube >/dev/null 2>&1; then
+    KUBECTL_SHIM_DIR="$(mktemp -d)"
+    cat > "${KUBECTL_SHIM_DIR}/kubectl" <<'EOF'
+#!/usr/bin/env bash
+exec minikube kubectl -- "$@"
+EOF
+    chmod +x "${KUBECTL_SHIM_DIR}/kubectl"
+    export PATH="${KUBECTL_SHIM_DIR}:${PATH}"
+  else
+    echo "[FAIL] kubectl or minikube is required."
+    exit 1
+  fi
+fi
+
+echo "=== M7 - Kubernetes multi-services validation ==="
+
+RENDERED="$(mktemp)"
+kubectl kustomize "${K8S_DIR}" > "${RENDERED}"
+
+require_rendered() {
+  local pattern="$1"
+  local label="$2"
+  if ! grep -Eq "${pattern}" "${RENDERED}"; then
+    echo "[FAIL] Missing rendered contract: ${label}"
+    exit 1
+  fi
+}
+
+for name in gateway legacy-api catalog-service marketplace-service notification-service web rabbitmq keycloak postgres minio; do
+  require_rendered "name: ${name}$" "resource ${name}"
+done
+
+for image in   projet-indiv26-gateway:m7-local   projet-indiv26-legacy-api:m7-local   projet-indiv26-catalog-service:m7-local   projet-indiv26-marketplace-service:m7-local   projet-indiv26-notification-service:m7-local   projet-indiv26-web:m7-local; do
+  require_rendered "image: ${image}" "image ${image}"
+done
+
+for job in legacy-migrate catalog-migrate marketplace-migrate minio-bootstrap; do
+  require_rendered "name: ${job}$" "job ${job}"
+done
+
+require_rendered 'CATALOG_SERVICE_URL: http://catalog-service:3101' 'Gateway -> Catalog DNS'
+require_rendered 'MARKETPLACE_SERVICE_URL: http://marketplace-service:3102' 'Gateway -> Marketplace DNS'
+require_rendered 'LEGACY_API_URL: http://legacy-api:3099' 'Gateway -> legacy DNS'
+require_rendered 'CATALOG_INTERNAL_URL: http://catalog-service:3101' 'Marketplace -> Catalog DNS'
+require_rendered 'KEYCLOAK_JWKS_URL: http://keycloak:8080/' 'internal Keycloak JWKS'
+require_rendered 'app.projet-indiv26.test' 'Web ingress host'
+require_rendered 'api.projet-indiv26.test' 'Gateway ingress host'
+require_rendered 'auth.projet-indiv26.test' 'Keycloak ingress host'
+require_rendered 'secretName: platform-tls' 'platform TLS secret'
+require_rendered 'kind: HorizontalPodAutoscaler' 'Gateway HPA'
+require_rendered 'maxReplicas: 4' 'Gateway HPA max replicas'
+require_rendered 'averageUtilization: 60' 'Gateway HPA CPU target'
+require_rendered 'job_name: gateway-pods' 'Prometheus Gateway discovery'
+require_rendered 'proxy-body-size: 50m' 'Ingress upload body size'
+require_rendered 'hostname: rabbitmq' 'stable RabbitMQ hostname'
+require_rendered 'RABBITMQ_NODENAME' 'stable RabbitMQ node identity'
+require_rendered 'name: KC_DB' 'Keycloak PostgreSQL backend'
+require_rendered 'jdbc:postgresql://postgres:5432/keycloak' 'isolated persistent Keycloak database'
+require_rendered 'name: KC_DB_PASSWORD' 'Keycloak PostgreSQL credentials'
+
+grep -A 4 'readinessProbe:' "${K8S_DIR}/gateway-deployment.yaml" | grep -q '/api/health/live'
+grep -q 'delete deployment/api service/api hpa/api ingress/api' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
+grep -q 'encodeURIComponent' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
+grep -q 'POSTGRES_DB_URL=' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
+grep -q 'M7_FORCE_ROLLOUT=true' "${ROOT_DIR}/scripts/m7-minikube-up.sh"
+grep -q 'kubectl config use-context minikube' "${ROOT_DIR}/scripts/m7-minikube-up.sh"
+grep -q 'HOSTS_MARKER="# projet-indiv26-m7"' "${ROOT_DIR}/scripts/m7-minikube-up.sh"
+grep -q 'CLUSTER_CREATED=false' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+grep -Fq 'for deployment in prometheus grafana; do' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
+grep -Fq 'status.currentMetrics[0].resource.current.averageUtilization' "${ROOT_DIR}/scripts/m7-k8s-validate.sh"
+# Codex P1: never operate on an unrelated Minikube profile.
+for command in status start update-context ip 'addons enable' 'image load'; do
+  grep -Fq "minikube -p minikube ${command}" "${ROOT_DIR}/scripts/m7-minikube-up.sh"
+done
+if grep -Eq '^[[:space:]]*(if ! )?minikube (status|start|update-context|addons|image)' "${ROOT_DIR}/scripts/m7-minikube-up.sh"; then
+  echo "[FAIL] M7 must pin Minikube commands to the selected profile."
+  exit 1
+fi
+
+# Codex P1: relative /api uploads must bypass the limited Next.js Web proxy.
+node - "${K8S_DIR}/platform-ingress.yaml" <<'NODE'
+const fs = require('node:fs');
+const text = fs.readFileSync(process.argv[2], 'utf8');
+const app = text.split('    - host: app.projet-indiv26.test')[1]?.split('    - host: api.projet-indiv26.test')[0];
+if (!app || !/- path: \/api\s+pathType: Prefix\s+backend:\s+service:\s+name: gateway\s+port:\s+name: http[\s\S]*?- path: \/\s+pathType: Prefix\s+backend:\s+service:\s+name: web/.test(app)) {
+  throw new Error('App Ingress must send /api to Gateway directly and / to Web');
+}
+NODE
+
+# Codex P2: kind fallback must select the architecture of the host.
+grep -Fq 'aarch64|arm64)' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+grep -Fq 'kind-linux-${KIND_HOST_ARCH}' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+grep -Fq 'createdb -U' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
+grep -Fq 'scripts/m7-keycloak-identity-snapshot.sh' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
+grep -Fq 'KEYCLOAK_USER_IDS_JSON' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
+grep -Fq 'export KUBECONFIG=' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+grep -Fq -- '--kubeconfig "${KUBECONFIG}"' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+grep -Fq 'Keycloak JWT sub persists across pod recreation.' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+bash -n "${ROOT_DIR}/scripts/m7-keycloak-identity-snapshot.sh"
+bash -n "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+bash -n "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
+node - "${ROOT_DIR}/infra/keycloak/projet-indiv26-realm.json" <<'NODE'
+const fs = require('node:fs');
+const realm = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const ids = (realm.users || []).map(user => user.id);
+if (ids.length !== 3 || new Set(ids).size !== ids.length ||
+    ids.some(id => !/^[a-f0-9-]{36}$/i.test(id))) {
+  throw new Error('Keycloak demo users require three distinct fixed UUIDs');
+}
+NODE
+
+# Codex regressions: Minikube may change IP after an interrupted image build,
+# and WSL2 Windows browsers require a reachable localhost HTTPS endpoint.
+bash -n "${ROOT_DIR}/scripts/m7-minikube-up.sh"
+bash -n "${ROOT_DIR}/scripts/m7-wsl-browser-access.sh"
+test "$(grep -Fc 'refresh_m7_browser_hosts' "${ROOT_DIR}/scripts/m7-minikube-up.sh")" -eq 3
+grep -Fq 'service/ingress-nginx-controller 443:443' "${ROOT_DIR}/scripts/m7-wsl-browser-access.sh"
+grep -Fq '127.0.0.1 app.projet-indiv26.test' "${ROOT_DIR}/docs/20-m7-kubernetes-microservices.md"
+
+
+if grep -A 5 '^spec:' "${K8S_DIR}/gateway-deployment.yaml" | grep -q 'replicas:'; then
+  echo "[FAIL] Gateway Deployment must not declare replicas while HPA owns scaling."
+  exit 1
+fi
+
+if grep -Eq 'http://(localhost|127\.0\.0\.1)' "${RENDERED}"; then
+  echo "[FAIL] A Kubernetes runtime manifest still contains localhost/127.0.0.1."
+  grep -En 'http://(localhost|127\.0\.0\.1)' "${RENDERED}" || true
+  exit 1
+fi
+
+if grep -Eq 'app\.kubernetes\.io/name: api$|name: api-config$|name: api$' "${RENDERED}"; then
+  echo "[FAIL] Obsolete monolith API resource is still rendered in M7."
+  exit 1
+fi
+
+startup_count="$(grep -c 'startupProbe:' "${RENDERED}")"
+readiness_count="$(grep -c 'readinessProbe:' "${RENDERED}")"
+requests_count="$(grep -c 'requests:' "${RENDERED}")"
+limits_count="$(grep -c 'limits:' "${RENDERED}")"
+
+[ "${startup_count}" -ge 8 ]
+[ "${readiness_count}" -ge 10 ]
+[ "${requests_count}" -ge 10 ]
+[ "${limits_count}" -ge 10 ]
+
+echo "[OK] Kustomize renders the M7 microservice topology."
+echo "[OK] Kubernetes DNS, probes, resources, HPA, TLS and migration Jobs are declared."
+echo "[OK] No obsolete monolith API or localhost inter-service dependency is rendered."
+
+if [ "${MANIFEST_ONLY}" = true ]; then
+  echo "M7 Kubernetes manifest validation: PASS"
+  exit 0
+fi
+
+command -v curl >/dev/null 2>&1 || {
+  echo "[FAIL] curl is required for live validation."
+  exit 1
+}
+
+for deployment in   postgres rabbitmq minio keycloak   legacy-api catalog-service marketplace-service notification-service   gateway web prometheus grafana; do
+  kubectl -n "${NAMESPACE}" rollout status "deployment/${deployment}" --timeout=240s
+done
+
+for job in minio-bootstrap legacy-migrate catalog-migrate marketplace-migrate; do
+  kubectl -n "${NAMESPACE}" wait --for=condition=complete "job/${job}" --timeout=180s
+done
+
+kubectl -n "${NAMESPACE}" exec deployment/rabbitmq -- rabbitmq-diagnostics -q ping >/dev/null
+echo "[OK] RabbitMQ pod responds to diagnostics."
+
+kubectl -n "${NAMESPACE}" exec deployment/gateway -- node -e "
+const targets = [
+  ['legacy', 'http://legacy-api:3099/api/health/live'],
+  ['catalog', 'http://catalog-service:3101/health/ready'],
+  ['marketplace', 'http://marketplace-service:3102/health/ready'],
+];
+(async () => {
+  for (const [name, url] of targets) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(name + ' -> ' + response.status);
+  }
+})().catch((error) => { console.error(error); process.exit(1); });
+"
+echo "[OK] Gateway -> Legacy/Catalog/Marketplace Kubernetes DNS."
+
+kubectl -n "${NAMESPACE}" exec deployment/marketplace-service -- node -e "
+fetch('http://catalog-service:3101/health/ready')
+  .then((response) => {
+    if (!response.ok) throw new Error(String(response.status));
+  })
+  .catch((error) => { console.error(error); process.exit(1); });
+"
+echo "[OK] Marketplace -> Catalog Kubernetes DNS."
+
+MIN_REPLICAS="$(kubectl -n "${NAMESPACE}" get hpa gateway -o jsonpath='{.spec.minReplicas}')"
+MAX_REPLICAS="$(kubectl -n "${NAMESPACE}" get hpa gateway -o jsonpath='{.spec.maxReplicas}')"
+TARGET_CPU="$(kubectl -n "${NAMESPACE}" get hpa gateway -o jsonpath='{.spec.metrics[0].resource.target.averageUtilization}')"
+[ "${MIN_REPLICAS}" = "1" ]
+[ "${MAX_REPLICAS}" = "4" ]
+[ "${TARGET_CPU}" = "60" ]
+echo "[OK] Gateway HPA spec: 1..4 replicas at 60% CPU."
+
+# Confirm the running app-host routing also bypasses Next.js for /api,
+# not only that the source YAML renders correctly.
+kubectl -n "${NAMESPACE}" get ingress platform -o json | node -e '
+const fs = require("node:fs");
+const ingress = JSON.parse(fs.readFileSync(0, "utf8"));
+const app = ingress.spec.rules.find(rule => rule.host === "app.projet-indiv26.test");
+const routes = Object.fromEntries((app?.http?.paths || []).map(path => [
+  path.path, path.backend?.service?.name,
+]));
+if (routes["/api"] !== "gateway" || routes["/"] !== "web") {
+  throw new Error("Live app-host Ingress must route /api -> gateway and / -> web");
+}
+'
+echo "[OK] App-host /api routes directly to Gateway (Web upload proxy bypassed)."
+
+kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=180s
+INGRESS_PF_LOG="$(mktemp)"
+kubectl -n ingress-nginx port-forward service/ingress-nginx-controller 8443:443 >"${INGRESS_PF_LOG}" 2>&1 &
+INGRESS_PF_PID=$!
+
+for attempt in $(seq 1 45); do
+  if curl -kfsS --connect-timeout 2 --max-time 5     --resolve "${API_HOST}:8443:127.0.0.1"     "https://${API_HOST}:8443/api/health/live" >/dev/null 2>&1; then
+    break
+  fi
+  if [ "${attempt}" -eq 45 ]; then
+    echo "[FAIL] M7 TLS Ingress did not become reachable."
+    cat "${INGRESS_PF_LOG}" || true
+    exit 1
+  fi
+  sleep 2
+done
+
+curl -kfsS --resolve "${APP_HOST}:8443:127.0.0.1"   "https://${APP_HOST}:8443/" >/dev/null
+curl -kfsS --resolve "${API_HOST}:8443:127.0.0.1"   "https://${API_HOST}:8443/api/health/ready" >/dev/null
+curl -kfsS --resolve "${AUTH_HOST}:8443:127.0.0.1"   "https://${AUTH_HOST}:8443/realms/projet-indiv26/.well-known/openid-configuration" >/dev/null
+echo "[OK] Web, Gateway and Keycloak answer through HTTPS Ingress."
+
+token_response="$(
+  curl -kfsS --resolve "${AUTH_HOST}:8443:127.0.0.1"     -X POST "https://${AUTH_HOST}:8443/realms/projet-indiv26/protocol/openid-connect/token"     -H 'content-type: application/x-www-form-urlencoded'     --data-urlencode 'grant_type=password'     --data-urlencode 'client_id=cli'     --data-urlencode 'username=demo-user'     --data-urlencode 'password=demo-user-local'
+)"
+
+access_token="$(
+  TOKEN_RESPONSE="${token_response}" node -e "
+    const payload = JSON.parse(process.env.TOKEN_RESPONSE);
+    if (!payload.access_token) process.exit(1);
+    process.stdout.write(payload.access_token);
+  "
+)"
+
+ACCESS_TOKEN="${access_token}" EXPECTED_ISSUER="https://${AUTH_HOST}/realms/projet-indiv26" node - <<'NODE'
+const token = process.env.ACCESS_TOKEN;
+const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
+const expected = process.env.EXPECTED_ISSUER;
+const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+if (payload.iss !== expected) throw new Error('Unexpected issuer: ' + payload.iss);
+if (!audiences.includes('api')) throw new Error('Missing api audience');
+NODE
+
+# Confirm the JWT subject matches the old H2 identity snapshot, if one was
+# taken, or the fixed fresh-cluster realm UUID. This catches orphaned
+# Marketplace records during the first PostgreSQL-based Keycloak rollout.
+saved_user_ids_b64=""
+if kubectl -n "${NAMESPACE}" get secret keycloak-user-ids >/dev/null 2>&1; then
+  saved_user_ids_b64="$(kubectl -n "${NAMESPACE}" get secret keycloak-user-ids -o jsonpath='{.data.KEYCLOAK_USER_IDS_JSON}')"
+fi
+
+ACCESS_TOKEN="${access_token}" SAVED_USER_IDS_B64="${saved_user_ids_b64}" node - "${ROOT_DIR}/infra/keycloak/projet-indiv26-realm.json" <<'NODE'
+const fs = require('node:fs');
+const payload = JSON.parse(Buffer.from(process.env.ACCESS_TOKEN.split('.')[1], 'base64url'));
+const preserved = process.env.SAVED_USER_IDS_B64
+  ? JSON.parse(Buffer.from(process.env.SAVED_USER_IDS_B64, 'base64').toString('utf8'))
+  : Object.fromEntries(
+      JSON.parse(fs.readFileSync(process.argv[2], 'utf8')).users.map(({ username, id }) => [username, id]),
+    );
+if (!preserved['demo-user'] || payload.sub !== preserved['demo-user']) {
+  throw new Error('Keycloak demo-user subject changed; existing Marketplace data would be orphaned');
+}
+console.log('[OK] Keycloak JWT subject matches persisted or fixed demo identity.');
+NODE
+
+auth_status="$(
+  curl -ksS -o /tmp/m7-proposals.json -w '%{http_code}'     --resolve "${API_HOST}:8443:127.0.0.1"     -H "Authorization: Bearer ${access_token}"     "https://${API_HOST}:8443/api/proposals/me"
+)"
+[ "${auth_status}" = "200" ]
+echo "[OK] Real Keycloak JWT reaches Marketplace through the Gateway Ingress."
+
+echo "[INFO] Waiting for Gateway HPA numeric CPU utilization..."
+metrics_ok=false
+for attempt in $(seq 1 24); do
+  # kubectl table output may split "cpu: <unknown>/60%" into columns;
+  # never infer metrics readiness from awk on the human-readable TARGETS column.
+  cpu_percent="$(kubectl -n "${NAMESPACE}" get hpa gateway \
+    -o jsonpath='{.status.currentMetrics[0].resource.current.averageUtilization}' 2>/dev/null || true)"
+  if [[ "${cpu_percent}" =~ ^[0-9]+$ ]]; then
+    metrics_ok=true
+    echo "[OK] HPA CPU metrics available: ${cpu_percent}%/60%"
+    break
+  fi
+  sleep 5
+done
+if [ "${metrics_ok}" != "true" ]; then
+  echo "[FAIL] Gateway HPA CPU utilization remains unknown; numeric measurement required."
+  kubectl -n "${NAMESPACE}" get hpa gateway || true
+  kubectl -n "${NAMESPACE}" describe hpa gateway || true
+  exit 1
+fi
+
+kubectl -n "${NAMESPACE}" get pods,svc,ingress,hpa,pvc,jobs
+echo "M7 Kubernetes multi-services validation: PASS"

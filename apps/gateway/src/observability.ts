@@ -162,7 +162,17 @@ export class GatewayMetrics {
       );
     }
 
-    return `${counterLines.join('\n')}\n${histogramLines.join('\n')}\n`;
+    const cpu = process.cpuUsage();
+    const processLines = [
+      '# HELP projet_indiv26_process_resident_memory_bytes Resident memory in bytes.',
+      '# TYPE projet_indiv26_process_resident_memory_bytes gauge',
+      `projet_indiv26_process_resident_memory_bytes ${process.memoryUsage().rss}`,
+      '# HELP projet_indiv26_process_cpu_seconds_total Cumulative CPU time in seconds.',
+      '# TYPE projet_indiv26_process_cpu_seconds_total counter',
+      `projet_indiv26_process_cpu_seconds_total ${(cpu.user + cpu.system) / 1_000_000}`,
+    ];
+
+    return `${counterLines.join('\n')}\n${histogramLines.join('\n')}\n${processLines.join('\n')}\n`;
   }
 }
 

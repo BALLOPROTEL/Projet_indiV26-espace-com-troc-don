@@ -20,9 +20,9 @@
     "api:image:build": "docker build --pull -f apps/api/Dockerfile -t projet-indiv26-api:lot5-local .",
     "api:image:smoke": "bash scripts/lot5-image-smoke.sh projet-indiv26-api:lot5-local",
     "k8s:render": "kubectl kustomize infra/k8s/minikube",
-    "k8s:validate:manifests": "bash scripts/lot6-k8s-validate.sh --manifest-only",
-    "k8s:up": "bash scripts/lot6-minikube-up.sh",
-    "k8s:validate": "bash scripts/lot6-k8s-validate.sh",
+    "k8s:validate:manifests": "bash scripts/m7-k8s-validate.sh --manifest-only",
+    "k8s:up": "bash scripts/m7-minikube-up.sh",
+    "k8s:validate": "bash scripts/m7-k8s-validate.sh",
     "web:dev": "pnpm --filter web dev",
     "web:build": "pnpm --filter web build",
     "web:lint": "pnpm --filter web lint",
@@ -73,7 +73,12 @@
     "compose:check": "bash scripts/m6-compose-check.sh",
     "compose:logs": "docker compose logs -f --tail=100 gateway legacy-api catalog-service marketplace-service notification-service web",
     "compose:down": "docker compose down --remove-orphans",
-    "m6:smoke": "bash scripts/m6-compose-smoke.sh"
+    "m6:smoke": "bash scripts/m6-compose-smoke.sh",
+    "m7:k8s:render": "kubectl kustomize infra/k8s/minikube",
+    "m7:k8s:validate:manifests": "bash scripts/m7-k8s-validate.sh --manifest-only",
+    "m7:k8s:up": "bash scripts/m7-minikube-up.sh",
+    "m7:k8s:validate": "bash scripts/m7-k8s-validate.sh",
+    "m7:k8s:smoke": "bash scripts/m7-kind-smoke.sh"
   },
   "pnpm": {
     "overrides": {

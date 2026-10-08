@@ -114,7 +114,8 @@
       ],
       "firstName": "Demo",
       "lastName": "User",
-      "requiredActions": []
+      "requiredActions": [],
+      "id": "6c6ebf11-7af2-4a9b-a942-33a424e55110"
     },
     {
       "username": "demo-moderator",
@@ -133,7 +134,8 @@
       ],
       "firstName": "Demo",
       "lastName": "Moderator",
-      "requiredActions": []
+      "requiredActions": [],
+      "id": "9e663f93-7c54-435d-88a0-1da1753b3d11"
     },
     {
       "username": "demo-admin",
@@ -152,7 +154,8 @@
       ],
       "firstName": "Demo",
       "lastName": "Admin",
-      "requiredActions": []
+      "requiredActions": [],
+      "id": "64887f58-3866-44bd-a7e5-845b6de7de4b"
     }
   ],
   "displayNameHtml": "La Petite Maison de l’Épouvante",

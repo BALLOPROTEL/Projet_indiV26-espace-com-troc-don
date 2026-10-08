@@ -5,16 +5,37 @@ resources:
   - postgres-pvc.yaml
   - postgres-deployment.yaml
   - postgres-service.yaml
+  - rabbitmq-pvc.yaml
+  - rabbitmq-deployment.yaml
+  - rabbitmq-service.yaml
   - minio-pvc.yaml
   - minio-deployment.yaml
   - minio-service.yaml
   - minio-bootstrap-configmap.yaml
   - minio-bootstrap-job.yaml
-  - api-configmap.yaml
-  - api-deployment.yaml
-  - api-service.yaml
-  - api-ingress.yaml
-  - api-hpa.yaml
+  - keycloak-deployment.yaml
+  - keycloak-service.yaml
+  - migration-jobs.yaml
+  - legacy-api-configmap.yaml
+  - legacy-api-deployment.yaml
+  - legacy-api-service.yaml
+  - catalog-configmap.yaml
+  - catalog-deployment.yaml
+  - catalog-service.yaml
+  - marketplace-configmap.yaml
+  - marketplace-deployment.yaml
+  - marketplace-service.yaml
+  - notification-configmap.yaml
+  - notification-deployment.yaml
+  - notification-service.yaml
+  - gateway-configmap.yaml
+  - gateway-deployment.yaml
+  - gateway-service.yaml
+  - gateway-hpa.yaml
+  - web-configmap.yaml
+  - web-deployment.yaml
+  - web-service.yaml
+  - platform-ingress.yaml
   - prometheus-rbac.yaml
   - prometheus-configmap.yaml
   - prometheus-deployment.yaml

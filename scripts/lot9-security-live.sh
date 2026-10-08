@@ -45,10 +45,10 @@ echo "=== LOT 9 - live security validation ==="
 
 bash scripts/lot7-observability-validate.sh
 
-kubectl -n "${NAMESPACE}" rollout status deployment/api --timeout=120s
+kubectl -n "${NAMESPACE}" rollout status deployment/gateway --timeout=120s
 
 API_PF_LOG="$(mktemp)"
-kubectl -n "${NAMESPACE}" port-forward service/api 3002:80   >"${API_PF_LOG}" 2>&1 &
+kubectl -n "${NAMESPACE}" port-forward service/gateway 3002:3000   >"${API_PF_LOG}" 2>&1 &
 API_PF_PID=$!
 
 READY=false
@@ -57,12 +57,12 @@ for attempt in $(seq 1 30); do
     READY=true
     break
   fi
-  echo "[WAIT] API port-forward: ${attempt}/30"
+  echo "[WAIT] Gateway port-forward: ${attempt}/30"
   sleep 1
 done
 
 if [ "${READY}" != "true" ]; then
-  echo "[FAIL] API port-forward did not become ready."
+  echo "[FAIL] Gateway port-forward did not become ready."
   cat "${API_PF_LOG}" || true
   exit 1
 fi
@@ -84,7 +84,7 @@ fi
 rm -f "${HEADERS}"
 trap cleanup EXIT INT TERM
 
-echo "[OK] API security headers are present and X-Powered-By is absent."
+echo "[OK] Gateway security headers are present and X-Powered-By is absent."
 
 SWAGGER_STATUS="$(curl -sS -o /dev/null -w '%{http_code}'   http://127.0.0.1:3002/docs)"
 
@@ -102,7 +102,7 @@ if [ "${UNAUTH_STATUS}" != "401" ]; then
   exit 1
 fi
 
-METRICS_TOKEN="$(kubectl -n "${NAMESPACE}" get secret api-secrets   -o jsonpath='{.data.METRICS_TOKEN}' | base64 -d)"
+METRICS_TOKEN="$(kubectl -n "${NAMESPACE}" get secret gateway-secrets   -o jsonpath='{.data.METRICS_TOKEN}' | base64 -d)"
 
 AUTH_STATUS="$(curl -sS -o /dev/null -w '%{http_code}'   -H "Authorization: Bearer ${METRICS_TOKEN}"   http://127.0.0.1:3002/api/metrics)"
 

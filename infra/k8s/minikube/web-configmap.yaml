@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-config
+  namespace: projet-indiv26
+data:
+  API_INTERNAL_URL: "http://gateway:3000"

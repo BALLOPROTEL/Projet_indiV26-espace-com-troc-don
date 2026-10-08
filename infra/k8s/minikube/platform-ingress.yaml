@@ -1,0 +1,57 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: platform
+  namespace: projet-indiv26
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - app.projet-indiv26.test
+        - api.projet-indiv26.test
+        - auth.projet-indiv26.test
+      secretName: platform-tls
+  rules:
+    - host: app.projet-indiv26.test
+      http:
+        paths:
+          # Browser uploads use relative /api paths. Route those straight to
+          # Gateway so that Next.js does not truncate multipart bodies at its
+          # 10 MB self-hosted proxy buffer limit.
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  name: http
+    - host: api.projet-indiv26.test
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  name: http
+    - host: auth.projet-indiv26.test
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  name: http
