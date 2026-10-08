@@ -49,6 +49,7 @@ const expected = ['demo-user', 'demo-moderator', 'demo-admin'];
       });
       const response = await fetch(origin + '/realms/master/protocol/openid-connect/token', {
         method: 'POST',
+        headers: { host: 'auth.projet-indiv26.test' },
         body,
         signal: AbortSignal.timeout(4000),
       });
@@ -67,7 +68,7 @@ const expected = ['demo-user', 'demo-moderator', 'demo-admin'];
   }
 
   const response = await fetch(origin + '/admin/realms/projet-indiv26/users?max=1000', {
-    headers: { authorization: 'Bearer ' + token },
+    headers: { authorization: 'Bearer ' + token, host: 'auth.projet-indiv26.test' },
     signal: AbortSignal.timeout(8000),
   });
   if (!response.ok) throw new Error('Cannot list existing Keycloak users: HTTP ' + response.status);
