@@ -19,6 +19,7 @@ spec:
         app.kubernetes.io/name: rabbitmq
         app.kubernetes.io/part-of: projet-indiv26
     spec:
+      hostname: rabbitmq
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
@@ -31,6 +32,11 @@ spec:
         - name: rabbitmq
           image: rabbitmq:4.1-management-alpine
           imagePullPolicy: IfNotPresent
+          env:
+            - name: RABBITMQ_NODENAME
+              value: "rabbit@rabbitmq"
+            - name: RABBITMQ_USE_LONGNAME
+              value: "false"
           envFrom:
             - secretRef:
                 name: rabbitmq-credentials
