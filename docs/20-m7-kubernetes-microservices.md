@@ -61,6 +61,7 @@ Les Secrets ne sont pas versionnés. `scripts/m7-k8s-runtime-config.sh` les cré
 - URLs PostgreSQL par schéma ;
 - token inter-service Catalog/Marketplace ;
 - URL RabbitMQ ;
+- encodage URL des credentials PostgreSQL/RabbitMQ réutilisés avant construction des DSN ;
 - token de métriques Gateway ;
 - credentials Keycloak ;
 - credentials MinIO ;
@@ -75,7 +76,7 @@ Le Gateway utilise :
 
 - startup : `/api/health/live` ;
 - liveness : `/api/health/live` ;
-- readiness : `/api/health/ready`.
+- readiness Kubernetes : `/api/health/live`, afin qu'une panne d'un upstream indépendant ne retire pas le Gateway du Service ; l'endpoint agrégé `/api/health/ready` reste disponible pour le diagnostic global.
 
 Legacy utilise les mêmes chemins avec le préfixe `/api`. Catalog, Marketplace et Notification utilisent `/health/live` et `/health/ready`. Le Web est sondé sur `/`.
 
@@ -98,7 +99,11 @@ Un seul Ingress `platform` expose :
 - `api.projet-indiv26.local` -> Gateway ;
 - `auth.projet-indiv26.local` -> Keycloak.
 
-Le certificat local contient les trois SAN DNS.
+Le certificat local contient les trois SAN DNS. L'Ingress autorise jusqu'à 50 MiB par requête afin de couvrir les uploads multipart valides.
+
+Les hosts M7 sont volontairement fixes dans ce sandbox (`app.projet-indiv26.local`, `api.projet-indiv26.local`, `auth.projet-indiv26.local`) afin que realm Keycloak, issuer JWT, CORS, TLS et Ingress restent cohérents.
+
+RabbitMQ conserve un hostname et un `RABBITMQ_NODENAME` stables afin que son PVC réutilise le même répertoire Mnesia après recréation du pod.
 
 Le frontend conserve son contrat public `/api`; son image est compilée avec `API_INTERNAL_URL=http://gateway:3000`.
 

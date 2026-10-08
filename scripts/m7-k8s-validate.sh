@@ -82,6 +82,13 @@ require_rendered 'kind: HorizontalPodAutoscaler' 'Gateway HPA'
 require_rendered 'maxReplicas: 4' 'Gateway HPA max replicas'
 require_rendered 'averageUtilization: 60' 'Gateway HPA CPU target'
 require_rendered 'job_name: gateway-pods' 'Prometheus Gateway discovery'
+require_rendered 'proxy-body-size: 50m' 'Ingress upload body size'
+require_rendered 'hostname: rabbitmq' 'stable RabbitMQ hostname'
+require_rendered 'RABBITMQ_NODENAME' 'stable RabbitMQ node identity'
+
+grep -A 4 'readinessProbe:' "${K8S_DIR}/gateway-deployment.yaml" | grep -q '/api/health/live'
+grep -q 'delete deployment/api service/api hpa/api ingress/api' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
+grep -q 'encodeURIComponent' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
 
 if grep -Eq 'http://(localhost|127\.0\.0\.1)' "${RENDERED}"; then
   echo "[FAIL] A Kubernetes runtime manifest still contains localhost/127.0.0.1."

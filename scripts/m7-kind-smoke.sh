@@ -70,6 +70,17 @@ for image in "${images[@]}"; do
   "${KIND_CMD[@]}" load docker-image --name "${CLUSTER_NAME}" "${image}"
 done
 
+kubectl apply -f infra/k8s/minikube/namespace.yaml >/dev/null
+kubectl -n projet-indiv26 create secret generic postgres-credentials \
+  --from-literal=POSTGRES_DB=projet_indiv26 \
+  --from-literal=POSTGRES_USER=app \
+  --from-literal='POSTGRES_PASSWORD=m7:db@reserved/?#value' \
+  --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+kubectl -n projet-indiv26 create secret generic rabbitmq-credentials \
+  --from-literal=RABBITMQ_DEFAULT_USER=app \
+  --from-literal='RABBITMQ_DEFAULT_PASS=m7:rabbit@reserved/?#value' \
+  --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+
 M7_SKIP_OBSERVABILITY=true bash scripts/m7-k8s-apply.sh
 
 for deployment in legacy-api catalog-service marketplace-service notification-service gateway web; do
