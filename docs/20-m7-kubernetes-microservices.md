@@ -24,15 +24,15 @@ Prometheus et Grafana restent présents et l'observabilité est désormais ratta
 ```text
 Browser
   |
-  +-- https://app.projet-indiv26.local  -> Web
+  +-- https://app.projet-indiv26.test  -> Web
   |
-  +-- https://api.projet-indiv26.local  -> API Gateway
+  +-- https://api.projet-indiv26.test  -> API Gateway
   |                                         |
   |                                         +-> legacy-api:3099
   |                                         +-> catalog-service:3101
   |                                         +-> marketplace-service:3102
   |
-  +-- https://auth.projet-indiv26.local -> Keycloak
+  +-- https://auth.projet-indiv26.test -> Keycloak
 
 Marketplace Service -> catalog-service:3101
 Marketplace Service -> rabbitmq:5672 -> Notification Service
@@ -95,13 +95,13 @@ Le HPA est maintenant appliqué au Gateway, le véritable point d'entrée backen
 
 Un seul Ingress `platform` expose :
 
-- `app.projet-indiv26.local` -> Web ;
-- `api.projet-indiv26.local` -> Gateway ;
-- `auth.projet-indiv26.local` -> Keycloak.
+- `app.projet-indiv26.test` -> Web ;
+- `api.projet-indiv26.test` -> Gateway ;
+- `auth.projet-indiv26.test` -> Keycloak.
 
 Le certificat local contient les trois SAN DNS. L'Ingress autorise jusqu'à 50 MiB par requête afin de couvrir les uploads multipart valides.
 
-Les hosts M7 sont volontairement fixes dans ce sandbox (`app.projet-indiv26.local`, `api.projet-indiv26.local`, `auth.projet-indiv26.local`) afin que realm Keycloak, issuer JWT, CORS, TLS et Ingress restent cohérents.
+Les hosts M7 sont volontairement fixes dans ce sandbox (`app.projet-indiv26.test`, `api.projet-indiv26.test`, `auth.projet-indiv26.test`) afin que realm Keycloak, issuer JWT, CORS, TLS et Ingress restent cohérents. Le suffixe réservé `.test` est utilisé à la place de `.local` pour éviter le conflit mDNS.
 
 RabbitMQ conserve un hostname et un `RABBITMQ_NODENAME` stables afin que son PVC réutilise le même répertoire Mnesia après recréation du pod.
 
@@ -115,17 +115,18 @@ pnpm m7:k8s:up
 
 Cette commande :
 
-1. démarre Minikube si nécessaire ;
-2. active Ingress et metrics-server ;
-3. build les images runtime et migration ;
-4. charge les images locales dans Minikube ;
-5. crée/réutilise les Secrets runtime ;
-6. adapte le realm Keycloak ;
-7. déploie PostgreSQL, RabbitMQ, MinIO et Keycloak ;
-8. exécute les Jobs MinIO et Prisma ;
-9. applique le Kustomize complet ;
-10. attend les rollouts ;
-11. exécute la validation M7.
+1. démarre Minikube si nécessaire et force le contexte `kubectl` sur `minikube` ;
+2. inscrit les trois hosts `.test` dans `/etc/hosts` avec l'IP Minikube et vérifie leur résolution ;
+3. active Ingress et metrics-server ;
+4. build les images runtime et migration ;
+5. charge les images locales dans Minikube ;
+6. crée/réutilise les Secrets runtime ;
+7. adapte le realm Keycloak ;
+8. déploie PostgreSQL, RabbitMQ, MinIO et Keycloak ;
+9. exécute les Jobs MinIO et Prisma ;
+10. applique le Kustomize complet et force le redémarrage des Deployments utilisant les tags locaux fixes ;
+11. attend les rollouts ;
+12. exécute la validation M7.
 
 ## Validation statique
 
@@ -185,3 +186,14 @@ M7 reste un sandbox de soutenance :
 - pas de GitOps ni de Helm.
 
 Ces sujets ne sont pas présentés comme des garanties de production.
+
+
+### Résolution navigateur sous WSL/Windows
+
+Le script configure automatiquement `/etc/hosts` dans l'environnement Linux qui exécute Minikube. Si le navigateur tourne côté Windows tandis que Minikube tourne dans WSL, ajoutez également dans `C:\\Windows\\System32\\drivers\\etc\\hosts` (en administrateur) la ligne affichée par `pnpm m7:k8s:up` :
+
+```text
+<MINIKUBE_IP> app.projet-indiv26.test api.projet-indiv26.test auth.projet-indiv26.test
+```
+
+Cela évite qu'une validation terminal réussisse alors que le navigateur hôte ne sait pas résoudre les noms de démonstration.

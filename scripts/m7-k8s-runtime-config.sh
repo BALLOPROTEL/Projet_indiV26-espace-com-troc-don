@@ -3,9 +3,9 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 NAMESPACE="projet-indiv26"
-APP_HOST="app.projet-indiv26.local"
-API_HOST="api.projet-indiv26.local"
-AUTH_HOST="auth.projet-indiv26.local"
+APP_HOST="app.projet-indiv26.test"
+API_HOST="api.projet-indiv26.test"
+AUTH_HOST="auth.projet-indiv26.test"
 APP_PUBLIC_URL="https://${APP_HOST}"
 API_PUBLIC_URL="https://${API_HOST}"
 AUTH_PUBLIC_URL="https://${AUTH_HOST}"

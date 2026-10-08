@@ -4,9 +4,9 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 K8S_DIR="${ROOT_DIR}/infra/k8s/minikube"
 NAMESPACE="projet-indiv26"
-APP_HOST="app.projet-indiv26.local"
-API_HOST="api.projet-indiv26.local"
-AUTH_HOST="auth.projet-indiv26.local"
+APP_HOST="app.projet-indiv26.test"
+API_HOST="api.projet-indiv26.test"
+AUTH_HOST="auth.projet-indiv26.test"
 MANIFEST_ONLY=false
 RENDERED=""
 KUBECTL_SHIM_DIR=""
@@ -74,9 +74,9 @@ require_rendered 'MARKETPLACE_SERVICE_URL: http://marketplace-service:3102' 'Gat
 require_rendered 'LEGACY_API_URL: http://legacy-api:3099' 'Gateway -> legacy DNS'
 require_rendered 'CATALOG_INTERNAL_URL: http://catalog-service:3101' 'Marketplace -> Catalog DNS'
 require_rendered 'KEYCLOAK_JWKS_URL: http://keycloak:8080/' 'internal Keycloak JWKS'
-require_rendered 'app.projet-indiv26.local' 'Web ingress host'
-require_rendered 'api.projet-indiv26.local' 'Gateway ingress host'
-require_rendered 'auth.projet-indiv26.local' 'Keycloak ingress host'
+require_rendered 'app.projet-indiv26.test' 'Web ingress host'
+require_rendered 'api.projet-indiv26.test' 'Gateway ingress host'
+require_rendered 'auth.projet-indiv26.test' 'Keycloak ingress host'
 require_rendered 'secretName: platform-tls' 'platform TLS secret'
 require_rendered 'kind: HorizontalPodAutoscaler' 'Gateway HPA'
 require_rendered 'maxReplicas: 4' 'Gateway HPA max replicas'
@@ -92,6 +92,7 @@ grep -q 'encodeURIComponent' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
 grep -q 'POSTGRES_DB_URL=' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
 grep -q 'M7_FORCE_ROLLOUT=true' "${ROOT_DIR}/scripts/m7-minikube-up.sh"
 grep -q 'kubectl config use-context minikube' "${ROOT_DIR}/scripts/m7-minikube-up.sh"
+grep -q 'HOSTS_MARKER="# projet-indiv26-m7"' "${ROOT_DIR}/scripts/m7-minikube-up.sh"
 grep -q 'CLUSTER_CREATED=false' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
 
 if grep -A 5 '^spec:

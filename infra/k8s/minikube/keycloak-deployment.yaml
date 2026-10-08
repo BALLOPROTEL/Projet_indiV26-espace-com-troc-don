@@ -34,7 +34,7 @@ spec:
             - --import-realm
           env:
             - name: KC_HOSTNAME
-              value: "https://auth.projet-indiv26.local"
+              value: "https://auth.projet-indiv26.test"
             - name: KC_PROXY_HEADERS
               value: xforwarded
             - name: KC_HTTP_ENABLED

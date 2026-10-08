@@ -5,10 +5,10 @@ metadata:
   namespace: projet-indiv26
 data:
   PORT: "3099"
-  KEYCLOAK_ISSUER: "https://auth.projet-indiv26.local/realms/projet-indiv26"
+  KEYCLOAK_ISSUER: "https://auth.projet-indiv26.test/realms/projet-indiv26"
   KEYCLOAK_JWKS_URL: "http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs"
   KEYCLOAK_AUDIENCE: "api"
-  WEB_ORIGIN: "https://app.projet-indiv26.local"
+  WEB_ORIGIN: "https://app.projet-indiv26.test"
   SWAGGER_ENABLED: "false"
   S3_ENDPOINT: "http://minio:9000"
   S3_REGION: "us-east-1"

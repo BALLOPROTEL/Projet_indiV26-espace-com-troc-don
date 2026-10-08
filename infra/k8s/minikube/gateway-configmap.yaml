@@ -8,4 +8,4 @@ data:
   CATALOG_SERVICE_URL: "http://catalog-service:3101"
   MARKETPLACE_SERVICE_URL: "http://marketplace-service:3102"
   LEGACY_API_URL: "http://legacy-api:3099"
-  WEB_ORIGIN: "https://app.projet-indiv26.local"
+  WEB_ORIGIN: "https://app.projet-indiv26.test"

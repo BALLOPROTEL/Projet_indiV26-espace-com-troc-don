@@ -127,7 +127,7 @@ for attempt in $(seq 1 45); do
   keycloak_ok=0
   web_ok=0
   curl -fsS http://127.0.0.1:13000/api/health/ready >/dev/null 2>&1 && gateway_ok=1 || true
-  curl -fsS -H 'Host: auth.projet-indiv26.local'     http://127.0.0.1:18081/realms/projet-indiv26/.well-known/openid-configuration >/dev/null 2>&1     && keycloak_ok=1 || true
+  curl -fsS -H 'Host: auth.projet-indiv26.test'     http://127.0.0.1:18081/realms/projet-indiv26/.well-known/openid-configuration >/dev/null 2>&1     && keycloak_ok=1 || true
   curl -fsS http://127.0.0.1:13001/ >/dev/null 2>&1 && web_ok=1 || true
 
   if [ "${gateway_ok}" -eq 1 ] && [ "${keycloak_ok}" -eq 1 ] && [ "${web_ok}" -eq 1 ]; then
@@ -142,7 +142,7 @@ for attempt in $(seq 1 45); do
 done
 
 token_response="$(
-  curl -fsS -H 'Host: auth.projet-indiv26.local'     -X POST http://127.0.0.1:18081/realms/projet-indiv26/protocol/openid-connect/token     -H 'content-type: application/x-www-form-urlencoded'     --data-urlencode 'grant_type=password'     --data-urlencode 'client_id=cli'     --data-urlencode 'username=demo-user'     --data-urlencode 'password=demo-user-local'
+  curl -fsS -H 'Host: auth.projet-indiv26.test'     -X POST http://127.0.0.1:18081/realms/projet-indiv26/protocol/openid-connect/token     -H 'content-type: application/x-www-form-urlencoded'     --data-urlencode 'grant_type=password'     --data-urlencode 'client_id=cli'     --data-urlencode 'username=demo-user'     --data-urlencode 'password=demo-user-local'
 )"
 
 access_token="$(
@@ -158,7 +158,7 @@ const payload = JSON.parse(
   Buffer.from(process.env.ACCESS_TOKEN.split('.')[1], 'base64url').toString('utf8'),
 );
 const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-if (payload.iss !== 'https://auth.projet-indiv26.local/realms/projet-indiv26') {
+if (payload.iss !== 'https://auth.projet-indiv26.test/realms/projet-indiv26') {
   throw new Error('Unexpected issuer: ' + payload.iss);
 }
 if (!audiences.includes('api')) {

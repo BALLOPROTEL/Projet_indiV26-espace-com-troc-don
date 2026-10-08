@@ -10,12 +10,12 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - app.projet-indiv26.local
-        - api.projet-indiv26.local
-        - auth.projet-indiv26.local
+        - app.projet-indiv26.test
+        - api.projet-indiv26.test
+        - auth.projet-indiv26.test
       secretName: platform-tls
   rules:
-    - host: app.projet-indiv26.local
+    - host: app.projet-indiv26.test
       http:
         paths:
           - path: /
@@ -25,7 +25,7 @@ spec:
                 name: web
                 port:
                   name: http
-    - host: api.projet-indiv26.local
+    - host: api.projet-indiv26.test
       http:
         paths:
           - path: /
@@ -35,7 +35,7 @@ spec:
                 name: gateway
                 port:
                   name: http
-    - host: auth.projet-indiv26.local
+    - host: auth.projet-indiv26.test
       http:
         paths:
           - path: /
