@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-NAMESPACE="${NAMESPACE:-projet-indiv26}"
+NAMESPACE="projet-indiv26"
 
 for cmd in docker minikube kubectl openssl base64 node curl; do
   command -v "${cmd}" >/dev/null 2>&1 || {

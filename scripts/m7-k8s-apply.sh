@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 K8S_DIR="${ROOT_DIR}/infra/k8s/minikube"
-NAMESPACE="${NAMESPACE:-projet-indiv26}"
+NAMESPACE="projet-indiv26"
 
 for cmd in kubectl; do
   command -v "${cmd}" >/dev/null 2>&1 || {
@@ -15,7 +15,7 @@ done
 bash "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
 
 echo "[INFO] Removing obsolete monolith Kubernetes objects from pre-M7 demos..."
-kubectl -n "${NAMESPACE}" delete deployment api service api hpa api ingress api \
+kubectl -n "${NAMESPACE}" delete deployment/api service/api hpa/api ingress/api \
   --ignore-not-found >/dev/null 2>&1 || true
 kubectl -n "${NAMESPACE}" delete secret api-secrets api-tls \
   --ignore-not-found >/dev/null 2>&1 || true

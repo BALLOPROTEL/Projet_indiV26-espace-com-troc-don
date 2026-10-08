@@ -3,10 +3,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 K8S_DIR="${ROOT_DIR}/infra/k8s/minikube"
-NAMESPACE="${NAMESPACE:-projet-indiv26}"
-APP_HOST="${APP_HOST:-app.projet-indiv26.local}"
-API_HOST="${API_HOST:-api.projet-indiv26.local}"
-AUTH_HOST="${AUTH_HOST:-auth.projet-indiv26.local}"
+NAMESPACE="projet-indiv26"
+APP_HOST="app.projet-indiv26.local"
+API_HOST="api.projet-indiv26.local"
+AUTH_HOST="auth.projet-indiv26.local"
 MANIFEST_ONLY=false
 RENDERED=""
 KUBECTL_SHIM_DIR=""

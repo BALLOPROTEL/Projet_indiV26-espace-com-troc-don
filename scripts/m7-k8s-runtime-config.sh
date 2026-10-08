@@ -2,13 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-NAMESPACE="${NAMESPACE:-projet-indiv26}"
-APP_HOST="${APP_HOST:-app.projet-indiv26.local}"
-API_HOST="${API_HOST:-api.projet-indiv26.local}"
-AUTH_HOST="${AUTH_HOST:-auth.projet-indiv26.local}"
-APP_PUBLIC_URL="${APP_PUBLIC_URL:-https://${APP_HOST}}"
-API_PUBLIC_URL="${API_PUBLIC_URL:-https://${API_HOST}}"
-AUTH_PUBLIC_URL="${AUTH_PUBLIC_URL:-https://${AUTH_HOST}}"
+NAMESPACE="projet-indiv26"
+APP_HOST="app.projet-indiv26.local"
+API_HOST="api.projet-indiv26.local"
+AUTH_HOST="auth.projet-indiv26.local"
+APP_PUBLIC_URL="https://${APP_HOST}"
+API_PUBLIC_URL="https://${API_HOST}"
+AUTH_PUBLIC_URL="https://${AUTH_HOST}"
 
 for cmd in kubectl openssl base64 node; do
   command -v "${cmd}" >/dev/null 2>&1 || {

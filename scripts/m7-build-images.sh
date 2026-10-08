@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
-APP_PUBLIC_URL="${APP_PUBLIC_URL:-https://app.projet-indiv26.local}"
-AUTH_PUBLIC_URL="${AUTH_PUBLIC_URL:-https://auth.projet-indiv26.local}"
+APP_PUBLIC_URL="https://app.projet-indiv26.local"
+AUTH_PUBLIC_URL="https://auth.projet-indiv26.local"
 
 echo "=== M7 - Building Kubernetes images ==="
 
