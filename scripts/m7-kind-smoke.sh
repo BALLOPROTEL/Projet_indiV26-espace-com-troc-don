@@ -6,6 +6,7 @@ CLUSTER_NAME="${M7_KIND_CLUSTER:-projet-indiv26-m7-ci}"
 KIND_VERSION="${KIND_VERSION:-v0.33.0}"
 KIND_NODE_IMAGE="${KIND_NODE_IMAGE:-kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5}"
 KIND_BIN=""
+KIND_KUBECONFIG_DIR=""
 CLUSTER_CREATED=false
 GATEWAY_PF_PID=""
 KEYCLOAK_PF_PID=""
@@ -57,12 +58,19 @@ cleanup() {
   fi
 
   [ -z "${KIND_BIN}" ] || rm -f "${KIND_BIN}"
+  [ -z "${KIND_KUBECONFIG_DIR}" ] || rm -rf "${KIND_KUBECONFIG_DIR}"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
 cd "${ROOT_DIR}"
+
+# Every kubectl invocation (including the apply/validation subprocesses)
+# targets only this smoke's temporary kubeconfig. Never merge a kind context
+# into the developer's original ~/.kube/config or leave it as current.
+KIND_KUBECONFIG_DIR="$(mktemp -d)"
+export KUBECONFIG="${KIND_KUBECONFIG_DIR}/config"
 
 for cmd in docker kubectl curl openssl base64 node; do
   command -v "${cmd}" >/dev/null 2>&1 || {
@@ -87,7 +95,7 @@ if "${KIND_CMD[@]}" get clusters | grep -Fxq "${CLUSTER_NAME}"; then
   exit 1
 fi
 
-"${KIND_CMD[@]}" create cluster   --name "${CLUSTER_NAME}"   --image "${KIND_NODE_IMAGE}"   --wait 120s
+"${KIND_CMD[@]}" create cluster   --name "${CLUSTER_NAME}"   --image "${KIND_NODE_IMAGE}"   --wait 120s   --kubeconfig "${KUBECONFIG}"
 CLUSTER_CREATED=true
 
 bash scripts/m7-build-images.sh
