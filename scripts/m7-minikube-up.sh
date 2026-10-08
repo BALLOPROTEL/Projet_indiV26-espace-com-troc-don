@@ -15,12 +15,12 @@ cd "${ROOT_DIR}"
 
 echo "=== M7 - Kubernetes multi-services on Minikube ==="
 
-if ! minikube status >/dev/null 2>&1; then
+if ! minikube -p minikube status >/dev/null 2>&1; then
   echo "[INFO] Starting Minikube for the full M7 stack..."
-  minikube start --cpus=4 --memory=6144
+  minikube -p minikube start --cpus=4 --memory=6144
 fi
 
-minikube update-context >/dev/null
+minikube -p minikube update-context >/dev/null
 kubectl config use-context minikube >/dev/null
 if [ "$(kubectl config current-context)" != "minikube" ]; then
   echo "[FAIL] kubectl context is not pinned to Minikube."
@@ -33,7 +33,7 @@ refresh_m7_browser_hosts() {
   # Refresh host mappings even if Minikube received another node IP
   # during a long build or Codespaces restart.
   local minikube_ip hosts_line hosts_tmp host resolved_ip
-  minikube_ip="$(minikube ip)"
+  minikube_ip="$(minikube -p minikube ip)"
   hosts_line="${minikube_ip} app.projet-indiv26.test api.projet-indiv26.test auth.projet-indiv26.test ${HOSTS_MARKER}"
   hosts_tmp="$(mktemp)"
   grep -vF "${HOSTS_MARKER}" /etc/hosts > "${hosts_tmp}" || true
@@ -69,8 +69,8 @@ if grep -Eqi '(microsoft|wsl)' /proc/version /proc/sys/kernel/osrelease 2>/dev/n
 fi
 
 echo "[INFO] Enabling ingress and metrics-server..."
-minikube addons enable ingress >/dev/null
-minikube addons enable metrics-server >/dev/null
+minikube -p minikube addons enable ingress >/dev/null
+minikube -p minikube addons enable metrics-server >/dev/null
 
 # Restarted Codespaces may report addon pods as 0/1 while Kubernetes recovers.
 kubectl wait --for=condition=Ready node/minikube --timeout=240s
@@ -102,10 +102,10 @@ images=(
 
 # A long Docker build can be interrupted by a Codespaces/Minikube restart.
 # Recover the existing profile once before importing images; never delete it.
-if ! minikube status >/dev/null 2>&1; then
+if ! minikube -p minikube status >/dev/null 2>&1; then
   echo "[WARN] Minikube stopped during image builds; restarting existing profile..."
-  minikube start --cpus=4 --memory=6144
-  minikube update-context >/dev/null
+  minikube -p minikube start --cpus=4 --memory=6144
+  minikube -p minikube update-context >/dev/null
   kubectl config use-context minikube >/dev/null
   kubectl wait --for=condition=Ready node/minikube --timeout=240s
   kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=300s
@@ -135,7 +135,7 @@ for image in "${images[@]}"; do
   fi
 
   echo "[INFO] Loading ${image}..."
-  minikube image load "${image}"
+  minikube -p minikube image load "${image}"
 done
 
 M7_FORCE_ROLLOUT=true bash scripts/m7-k8s-apply.sh
