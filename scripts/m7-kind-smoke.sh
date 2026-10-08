@@ -214,5 +214,51 @@ status="$(
 )"
 [ "${status}" = "200" ]
 
+# Persistence regression: restarting Keycloak must NOT change JWT subject
+# (Marketplace/PostgreSQL records refer to this stable value).
+first_subject="$(ACCESS_TOKEN="${access_token}" node -e "
+  const p = JSON.parse(Buffer.from(process.env.ACCESS_TOKEN.split('.')[1], 'base64url').toString());
+  if (!p.sub) process.exit(1);
+  process.stdout.write(p.sub);
+")"
+echo "[INFO] Restarting Keycloak to prove persistent user identity..."
+kubectl -n projet-indiv26 rollout restart deployment/keycloak >/dev/null
+kubectl -n projet-indiv26 rollout status deployment/keycloak --timeout=240s
+
+# Port forwarding a Service selects one pod; re-establish it after rollout.
+kill "${KEYCLOAK_PF_PID}" >/dev/null 2>&1 || true
+wait "${KEYCLOAK_PF_PID}" 2>/dev/null || true
+kubectl -n projet-indiv26 port-forward service/keycloak 18081:8080 >/tmp/m7-kind-keycloak.log 2>&1 &
+KEYCLOAK_PF_PID=$!
+
+second_token=""
+for attempt in $(seq 1 45); do
+  second_token="$(curl -fsS -H 'Host: auth.projet-indiv26.test' \
+    --connect-timeout 2 --max-time 5 \
+    -X POST http://127.0.0.1:18081/realms/projet-indiv26/protocol/openid-connect/token \
+    -H 'content-type: application/x-www-form-urlencoded' \
+    --data-urlencode 'grant_type=password' \
+    --data-urlencode 'client_id=cli' \
+    --data-urlencode 'username=demo-user' \
+    --data-urlencode 'password=demo-user-local' 2>/dev/null || true)"
+  if [ -n "${second_token}" ]; then
+    break
+  fi
+  sleep 2
+done
+if [ -z "${second_token}" ]; then
+  echo "[FAIL] Keycloak token endpoint unavailable after restart."
+  exit 1
+fi
+SECOND_TOKEN="${second_token}" FIRST_SUB="${first_subject}" node <<'NODE'
+const jwt = JSON.parse(process.env.SECOND_TOKEN);
+if (!jwt.access_token) throw new Error('No JWT after Keycloak restart');
+const payload = JSON.parse(Buffer.from(jwt.access_token.split('.')[1], 'base64url').toString());
+if (payload.sub !== process.env.FIRST_SUB) {
+  throw new Error('Keycloak JWT sub changed after pod recreation');
+}
+console.log('[OK] Keycloak JWT sub persists across pod recreation.');
+NODE
+
 kubectl -n projet-indiv26 get deployments,services,jobs,hpa
 echo "M7 kind multi-services smoke: PASS"
