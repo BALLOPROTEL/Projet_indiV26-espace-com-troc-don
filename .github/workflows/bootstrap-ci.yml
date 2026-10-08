@@ -224,7 +224,7 @@ jobs:
 
       - name: Validate M7 Kubernetes manifests
         shell: bash
-        run: pnpm m7:k8s:validate:manifests
+        run: bash scripts/m7-k8s-validate.sh --manifest-only
 
       - name: Validate Observability manifests
         shell: bash
