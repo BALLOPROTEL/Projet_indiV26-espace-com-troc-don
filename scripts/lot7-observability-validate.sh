@@ -124,6 +124,7 @@ METRICS="$(curl -fsS \
 printf '%s' "${METRICS}" | grep -q "projet_indiv26_http_requests_total"
 printf '%s' "${METRICS}" | grep -q "projet_indiv26_http_request_duration_seconds_bucket"
 printf '%s' "${METRICS}" | grep -q "projet_indiv26_process_resident_memory_bytes"
+printf '%s' "${METRICS}" | grep -q "projet_indiv26_process_cpu_seconds_total"
 
 echo "[OK] Gateway metrics require authentication and expose HTTP, latency and process metrics."
 

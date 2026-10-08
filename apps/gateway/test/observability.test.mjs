@@ -93,4 +93,13 @@ test('adds security headers, request correlation and Gateway metrics', async (t)
     exposition,
     /projet_indiv26_http_request_duration_seconds_count\{method="GET",route="\/api\/listings",status_code="200"\} 1/,
   );
+  assert.match(
+    exposition,
+    /^projet_indiv26_process_resident_memory_bytes [0-9]+$/m,
+  );
+  assert.match(
+    exposition,
+    /^projet_indiv26_process_cpu_seconds_total [0-9]+(?:\.[0-9]+)?$/m,
+  );
+
 });

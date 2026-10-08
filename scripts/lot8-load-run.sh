@@ -65,12 +65,12 @@ minikube status >/dev/null 2>&1 || {
   exit 1
 }
 
-for deployment in api prometheus grafana; do
+for deployment in gateway prometheus grafana; do
   kubectl -n "${NAMESPACE}" rollout status     "deployment/${deployment}" --timeout=120s
 done
 
-kubectl -n "${NAMESPACE}" get hpa api >/dev/null 2>&1 || {
-  echo "[FAIL] HPA api is missing. Run 'pnpm obs:up' first."
+kubectl -n "${NAMESPACE}" get hpa gateway >/dev/null 2>&1 || {
+  echo "[FAIL] HPA gateway is missing. Run 'pnpm obs:up' first."
   exit 1
 }
 
@@ -134,8 +134,8 @@ spec:
               /opt/jmeter/bin/jmeter \
                 -n \
                 -t /opt/load/plan.jmx \
-                -Jhost=api.projet-indiv26.svc.cluster.local \
-                -Jport=80 \
+                -Jhost=gateway.projet-indiv26.svc.cluster.local \
+                -Jport=3000 \
                 -Jprotocol=http \
                 -Jpath=/api/listings \
                 -Jthreads=${threads} \
@@ -237,9 +237,9 @@ record_hpa_snapshot() {
   local output="$1"
   {
     date --iso-8601=seconds
-    kubectl -n "${NAMESPACE}" get hpa api -o wide
-    kubectl -n "${NAMESPACE}" get deployment api
-    kubectl -n "${NAMESPACE}" get pods       -l app.kubernetes.io/name=api -o wide
+    kubectl -n "${NAMESPACE}" get hpa gateway -o wide
+    kubectl -n "${NAMESPACE}" get deployment gateway
+    kubectl -n "${NAMESPACE}" get pods       -l app.kubernetes.io/name=gateway -o wide
   } > "${output}"
 }
 
@@ -247,7 +247,7 @@ wait_for_hpa_baseline() {
   echo "[INFO] Waiting for HPA to settle at one desired replica..."
   for attempt in $(seq 1 30); do
     local desired
-    desired="$(kubectl -n "${NAMESPACE}" get hpa api       -o jsonpath='{.status.desiredReplicas}' 2>/dev/null || true)"
+    desired="$(kubectl -n "${NAMESPACE}" get hpa gateway       -o jsonpath='{.status.desiredReplicas}' 2>/dev/null || true)"
     if [ "${desired}" = "1" ]; then
       echo "[OK] HPA baseline: desired replicas=1."
       return 0
@@ -268,11 +268,11 @@ start_hpa_monitor() {
   (
     while [ ! -f "${STOP_FILE}" ]; do
       timestamp="$(date --iso-8601=seconds)"
-      current="$(kubectl -n "${NAMESPACE}" get hpa api         -o jsonpath='{.status.currentReplicas}' 2>/dev/null || true)"
-      desired="$(kubectl -n "${NAMESPACE}" get hpa api         -o jsonpath='{.status.desiredReplicas}' 2>/dev/null || true)"
-      ready="$(kubectl -n "${NAMESPACE}" get deployment api         -o jsonpath='{.status.readyReplicas}' 2>/dev/null || true)"
-      cpu_current="$(kubectl -n "${NAMESPACE}" get hpa api         -o jsonpath='{.status.currentMetrics[0].resource.current.averageUtilization}'         2>/dev/null || true)"
-      cpu_target="$(kubectl -n "${NAMESPACE}" get hpa api         -o jsonpath='{.spec.metrics[0].resource.target.averageUtilization}'         2>/dev/null || true)"
+      current="$(kubectl -n "${NAMESPACE}" get hpa gateway         -o jsonpath='{.status.currentReplicas}' 2>/dev/null || true)"
+      desired="$(kubectl -n "${NAMESPACE}" get hpa gateway         -o jsonpath='{.status.desiredReplicas}' 2>/dev/null || true)"
+      ready="$(kubectl -n "${NAMESPACE}" get deployment gateway         -o jsonpath='{.status.readyReplicas}' 2>/dev/null || true)"
+      cpu_current="$(kubectl -n "${NAMESPACE}" get hpa gateway         -o jsonpath='{.status.currentMetrics[0].resource.current.averageUtilization}'         2>/dev/null || true)"
+      cpu_target="$(kubectl -n "${NAMESPACE}" get hpa gateway         -o jsonpath='{.spec.metrics[0].resource.target.averageUtilization}'         2>/dev/null || true)"
 
       echo "${timestamp},${current:-0},${desired:-0},${ready:-0},${cpu_current:-0},${cpu_target:-0}"         >> "${REPORT_DIR}/hpa-history.csv"
       sleep 5

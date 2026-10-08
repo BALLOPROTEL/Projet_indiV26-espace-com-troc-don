@@ -36,7 +36,7 @@ if root.tag != "jmeterTestPlan":
 
 content = path.read_text(encoding="utf-8")
 required = [
-    "__P(host,api.projet-indiv26.svc.cluster.local)",
+    "__P(host,gateway.projet-indiv26.svc.cluster.local)",
     "__P(path,/api/listings)",
     "__P(threads,5)",
     "__P(ramp_seconds,5)",
@@ -52,9 +52,9 @@ PY
 
 grep -q 'ARG JMETER_VERSION=5.6.3' tests/load/Dockerfile.jmeter
 grep -q 'USER 10001:10001' tests/load/Dockerfile.jmeter
-grep -q 'minReplicas: 1' infra/k8s/minikube/api-hpa.yaml
-grep -q 'maxReplicas: 4' infra/k8s/minikube/api-hpa.yaml
-grep -q 'averageUtilization: 60' infra/k8s/minikube/api-hpa.yaml
+grep -q 'minReplicas: 1' infra/k8s/minikube/gateway-hpa.yaml
+grep -q 'maxReplicas: 4' infra/k8s/minikube/gateway-hpa.yaml
+grep -q 'averageUtilization: 60' infra/k8s/minikube/gateway-hpa.yaml
 grep -q '^reports/load/$' .gitignore
 
 echo "[OK] JMeter image, HPA target, scripts and report ignore rules validated."
