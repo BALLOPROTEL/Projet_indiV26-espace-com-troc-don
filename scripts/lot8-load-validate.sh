@@ -55,15 +55,11 @@ grep -q 'USER 10001:10001' tests/load/Dockerfile.jmeter
 grep -q 'minReplicas: 1' infra/k8s/minikube/gateway-hpa.yaml
 grep -q 'maxReplicas: 4' infra/k8s/minikube/gateway-hpa.yaml
 grep -q 'averageUtilization: 60' infra/k8s/minikube/gateway-hpa.yaml
-grep -q '^reports/load/
 
-echo "[OK] JMeter image, HPA target, scripts and report ignore rules validated."
-echo "LOT 8 static validation: PASS"
- .gitignore
+grep -q '^reports/load/$' .gitignore
 grep -Fq 'LOT8_REUSE_JMETER_IMAGE' scripts/lot8-load-run.sh
 grep -Fq 'require_disk_kib 3145728' scripts/lot8-load-run.sh
 grep -Fq 'require_disk_kib 2097152' scripts/lot8-load-run.sh
-
 
 echo "[OK] JMeter image, HPA target, scripts and report ignore rules validated."
 echo "LOT 8 static validation: PASS"
