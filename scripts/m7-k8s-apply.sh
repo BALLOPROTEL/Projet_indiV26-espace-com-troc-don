@@ -75,6 +75,13 @@ if [ "${M7_FORCE_ROLLOUT:-false}" = "true" ]; then
   for deployment in legacy-api catalog-service marketplace-service notification-service gateway web; do
     kubectl -n "${NAMESPACE}" rollout restart "deployment/${deployment}" >/dev/null
   done
+
+  # ConfigMaps mounted with subPath require a pod restart.
+  if [ "${M7_SKIP_OBSERVABILITY:-false}" != "true" ]; then
+    for deployment in prometheus grafana; do
+      kubectl -n "${NAMESPACE}" rollout restart "deployment/${deployment}" >/dev/null
+    done
+  fi
 fi
 
 deployments=(

@@ -94,6 +94,7 @@ grep -q 'M7_FORCE_ROLLOUT=true' "${ROOT_DIR}/scripts/m7-minikube-up.sh"
 grep -q 'kubectl config use-context minikube' "${ROOT_DIR}/scripts/m7-minikube-up.sh"
 grep -q 'HOSTS_MARKER="# projet-indiv26-m7"' "${ROOT_DIR}/scripts/m7-minikube-up.sh"
 grep -q 'CLUSTER_CREATED=false' "${ROOT_DIR}/scripts/m7-kind-smoke.sh"
+grep -Fq 'for deployment in prometheus grafana; do' "${ROOT_DIR}/scripts/m7-k8s-apply.sh"
 
 
 if grep -A 5 '^spec:' "${K8S_DIR}/gateway-deployment.yaml" | grep -q 'replicas:'; then
