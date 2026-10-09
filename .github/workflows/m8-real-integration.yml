@@ -1,10 +1,11 @@
-name: M8-B Real Microservice Integration
+name: M8 Real Microservice E2E Integration
 
 on:
   pull_request:
     branches: [main]
     paths:
       - 'scripts/m8-compose-integration.mjs'
+      - 'scripts/m8-compose-e2e.mjs'
       - 'scripts/m6-compose-smoke.sh'
       - 'compose.yaml'
       - 'apps/**'
@@ -18,7 +19,7 @@ permissions:
 
 jobs:
   compose-integration:
-    name: Real HTTP + JWT + Catalog + RabbitMQ M8-B
+    name: Real DON/TROC HTTP JWT RabbitMQ resilience M8-B/C
     runs-on: ubuntu-latest
     timeout-minutes: 55
     steps:
@@ -29,6 +30,7 @@ jobs:
       - name: Verify integration script syntax
         run: |
           node --check scripts/m8-compose-integration.mjs
+          node --check scripts/m8-compose-e2e.mjs
           bash -n scripts/m6-compose-smoke.sh
       - name: Preload official Docker images from ECR Public to avoid Docker Hub anonymous limits
         run: |
@@ -58,6 +60,7 @@ jobs:
       - name: Execute isolated stack and real M8-B cross-service integration
         env:
           M8_RUN_INTEGRATION: 'true'
+          M8_RUN_E2E: 'true'
         run: bash scripts/m6-compose-smoke.sh
       - name: Container logs on failure (never dump secrets or full environment)
         if: failure()
