@@ -147,6 +147,7 @@ kubectl -n "${NAMESPACE}" create secret generic marketplace-secrets \
 
 kubectl -n "${NAMESPACE}" create secret generic notification-secrets \
   --from-literal=RABBITMQ_URL="${RABBITMQ_URL}" \
+  --from-literal=NOTIFICATION_DATABASE_URL="${NOTIFICATION_DATABASE_URL}" \
   --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
 kubectl -n "${NAMESPACE}" create secret generic gateway-secrets \
