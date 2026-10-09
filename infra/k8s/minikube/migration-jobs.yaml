@@ -105,3 +105,40 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop: [ALL]
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: notification-migrate
+  namespace: projet-indiv26
+  labels:
+    app.kubernetes.io/name: notification-migrate
+    app.kubernetes.io/part-of: projet-indiv26
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: notification-migrate
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: projet-indiv26-notification-migrate:m8-local
+          imagePullPolicy: Never
+          envFrom:
+            - secretRef:
+                name: notification-secrets
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 400m
+              memory: 384Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
