@@ -116,7 +116,7 @@ try {
   await capture('/annonces/' + encodeURIComponent(id), 1440, 1000,
     'don-detail-desktop', 'M9 live donation refusal', '.marketplace-action');
   await capture('/annonces/' + encodeURIComponent(id), 390, 844,
-    'don-detail-mobile', 'Demander ce don', '.marketplace-action');
+    'don-detail-mobile', 'Cette trouvaille vous intéresse ?', '.marketplace-action');
   await capture('/espace', 1440, 900,
     'espace-login-desktop', 'Votre étagère vous attend.', '.gate-card');
   console.log('[M9 Browser] Chrome desktop/mobile hydrated UI: PASS');
