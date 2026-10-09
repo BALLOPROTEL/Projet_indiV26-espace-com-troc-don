@@ -5,6 +5,7 @@ export const MARKETPLACE_EVENT_VERSION = 1 as const;
 export const MARKETPLACE_EVENT_TYPES = [
   'proposal.created',
   'proposal.accepted',
+  'proposal.rejected',
   'transaction.completed',
 ] as const;
 
