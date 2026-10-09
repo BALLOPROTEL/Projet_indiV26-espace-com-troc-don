@@ -121,6 +121,12 @@ function commonEnvelope(
     throw new Error('RabbitMQ eventId is required');
   }
 
+  // The durable inbox uses VARCHAR(128); reject non-retryable IDs before
+  // they reach Prisma and cause an endless RabbitMQ nack/requeue loop.
+  if (value.eventId.length > 128) {
+    throw new Error('RabbitMQ eventId must be at most 128 characters');
+  }
+
   if (value.version !== MARKETPLACE_EVENT_VERSION) {
     throw new Error('Unsupported RabbitMQ event version');
   }
