@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/m8-compose-integration.mjs'
       - 'scripts/m8-compose-e2e.mjs'
+      - 'scripts/m9-compose-workflows.mjs'
       - 'scripts/m6-compose-smoke.sh'
       - 'compose.yaml'
       - 'apps/**'
