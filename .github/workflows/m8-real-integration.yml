@@ -36,7 +36,8 @@ jobs:
           for spec in \
             postgres:16-alpine \
             rabbitmq:4.1-management-alpine \
-            node:24.20.0-alpine3.24; do
+            node:24.20.0-alpine3.24 \
+            alpine:3.24.1; do
             mirror="public.ecr.aws/docker/library/${spec}"
             success=false
             for attempt in 1 2 3; do
@@ -53,7 +54,7 @@ jobs:
               exit 1
             fi
           done
-          docker image inspect postgres:16-alpine rabbitmq:4.1-management-alpine node:24.20.0-alpine3.24 >/dev/null
+          docker image inspect postgres:16-alpine rabbitmq:4.1-management-alpine node:24.20.0-alpine3.24 alpine:3.24.1 >/dev/null
       - name: Execute isolated stack and real M8-B cross-service integration
         env:
           M8_RUN_INTEGRATION: 'true'
