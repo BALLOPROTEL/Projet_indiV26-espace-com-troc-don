@@ -2,6 +2,7 @@
 // M9 first live acceptance: received owner inbox + conditional refusal + events.
 // Must run ONLY on the disposable Compose stack prepared by M8-B/C.
 import assert from 'node:assert/strict';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -47,6 +48,11 @@ async function main() {
 
   const target = await call(gateway, '/api/listings/' + id);
   assert.equal(target.ownerId, owner.sub);
+
+  // Browser visual smoke runs before disposable Compose cleanup; only a
+  // synthetic, public listing identifier is persisted to disk.
+  mkdirSync('.m6-smoke', { recursive: true });
+  writeFileSync('.m6-smoke/m9-browser-listing-id', id + '\\n');
 
   await call(gateway, '/api/proposals/received', { expected: 401 });
   const created = await call(gateway, '/api/proposals', {
