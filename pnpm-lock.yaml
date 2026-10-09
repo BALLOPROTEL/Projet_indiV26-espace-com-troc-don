@@ -243,6 +243,12 @@ importers:
         specifier: ^5.9.0
         version: 5.9.3
 
+      prisma:
+        specifier: ^6.0.0
+        version: 6.19.3(typescript@5.9.3)
+      '@prisma/client':
+        specifier: ^6.0.0
+        version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
   apps/notification-service:
     dependencies:
       '@nestjs/common':
