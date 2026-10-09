@@ -42,7 +42,7 @@ export class NotificationStore {
 
     return items.map((item) => ({
       receivedAt: item.receivedAt.toISOString(),
-      event: structuredClone(item.event) as MarketplaceEventEnvelope,
+      event: structuredClone(item.event) as unknown as MarketplaceEventEnvelope,
     }));
   }
 }
