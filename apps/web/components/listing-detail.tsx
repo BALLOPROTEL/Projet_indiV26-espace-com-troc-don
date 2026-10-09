@@ -184,6 +184,8 @@ export function ListingDetail({ id }: { id: string }) {
             </section>
           )}
 
+          <ListingProposalForm listing={listing} />
+
           <div className="listing-detail__actions">
             <Link className="button" href="/espace">
               Proposer un objet
