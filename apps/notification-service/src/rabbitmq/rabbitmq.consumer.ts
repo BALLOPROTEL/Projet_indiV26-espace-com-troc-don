@@ -192,46 +192,56 @@ export class RabbitMqConsumer
     this.ready = true;
   }
 
-  private consume(
+  private async consume(
     channel: Channel,
     message: ConsumeMessage | null,
-  ): void {
+  ): Promise<void> {
     if (!message) {
       if (this.channel === channel) {
         this.channel = undefined;
         this.ready = false;
       }
-
-      this.logger.warn(
-        'RabbitMQ consumer was cancelled by the broker; recreating it',
-      );
+      this.logger.warn('RabbitMQ consumer cancelled; recreating it');
       void channel.close().catch(() => undefined);
       this.scheduleChannelRebuild();
       return;
     }
 
+    let parsed;
     try {
-      const parsed = parseMarketplaceEvent(
+      parsed = parseMarketplaceEvent(
         JSON.parse(message.content.toString('utf8')) as unknown,
       );
-      const inserted = this.store.record(parsed);
+    } catch (error) {
+      // Invalid event contracts are not recoverable; prevent poison loops.
+      channel.nack(message, false, false);
+      this.logger.warn(`Invalid RabbitMQ event discarded: ${this.message(error)}`);
+      return;
+    }
 
+    try {
+      // Unique eventId is enforced atomically by the shared PostgreSQL index.
+      // Never ack BEFORE persistence; crash/redelivery is then safe.
+      const inserted = await this.store.record(parsed);
       channel.ack(message);
-
       if (inserted) {
-        this.logger.log(
-          `Notification event consumed: ${parsed.type} (${parsed.eventId})`,
-        );
+        this.logger.log(`Notification persisted: ${parsed.type} (${parsed.eventId})`);
       } else {
-        this.logger.warn(
-          `Duplicate RabbitMQ event ignored: ${parsed.eventId}`,
-        );
+        this.logger.warn(`Duplicate RabbitMQ event ignored: ${parsed.eventId}`);
       }
     } catch (error) {
-      channel.nack(message, false, false);
-      this.logger.warn(
-        `Invalid RabbitMQ event discarded: ${this.message(error)}`,
-      );
+      // DB failures are transient: requeue instead of permanently dropping.
+      this.ready = false;
+      this.logger.error(`Notification persistence failed, requeuing: ${this.message(error)}`);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      try { channel.nack(message, false, true); } catch { /* channel disconnected */ }
+      // Keep readiness meaningful while the database is down.
+      try {
+        await this.store.checkReady();
+        this.ready = this.channel === channel;
+      } catch {
+        this.ready = false;
+      }
     }
   }
 
