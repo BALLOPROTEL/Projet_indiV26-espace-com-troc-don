@@ -27,6 +27,7 @@ import type {
 import { useAuth } from './auth-provider';
 import { EmptyState } from './empty-state';
 import { ListingCard } from './listing-card';
+import { MarketplaceDashboard } from './marketplace-dashboard';
 
 export function PersonalSpace() {
   const {
@@ -397,6 +398,8 @@ export function PersonalSpace() {
           </div>
         </section>
       </div>
+
+      <MarketplaceDashboard />
 
       {editing ? (
         <div className="dialog-backdrop">
