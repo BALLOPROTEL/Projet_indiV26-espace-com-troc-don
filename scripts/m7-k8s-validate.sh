@@ -65,7 +65,7 @@ for image in   projet-indiv26-gateway:m7-local   projet-indiv26-legacy-api:m7-lo
   require_rendered "image: ${image}" "image ${image}"
 done
 
-for job in legacy-migrate catalog-migrate marketplace-migrate minio-bootstrap; do
+for job in legacy-migrate catalog-migrate marketplace-migrate notification-migrate minio-bootstrap; do
   require_rendered "name: ${job}$" "job ${job}"
 done
 
