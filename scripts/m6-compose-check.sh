@@ -63,7 +63,7 @@ echo "PostgreSQL: PASS"
 "${compose[@]}" exec -T rabbitmq rabbitmq-diagnostics -q ping >/dev/null
 echo "RabbitMQ: PASS"
 
-for schema_table in 'public."Listing"' 'catalog."Listing"' 'marketplace."Proposal"'; do
+for schema_table in 'public."Listing"' 'catalog."Listing"' 'marketplace."Proposal"' 'notification."notification_events"'; do
   exists="$("${compose[@]}" exec -T postgres psql -U app -d projet_indiv26 -Atqc "SELECT to_regclass('${schema_table}') IS NOT NULL;")"
   if [[ "${exists}" != "t" ]]; then
     echo "[FAIL] Missing migrated table: ${schema_table}"
@@ -72,7 +72,7 @@ for schema_table in 'public."Listing"' 'catalog."Listing"' 'marketplace."Proposa
 done
 echo "PostgreSQL public/catalog/marketplace ownership: PASS"
 
-for migration in legacy-migrate catalog-migrate marketplace-migrate minio-init; do
+for migration in legacy-migrate catalog-migrate marketplace-migrate notification-migrate minio-init; do
   container_id="$("${compose[@]}" ps -aq "${migration}" | head -n 1)"
   if [[ -z "${container_id}" ]]; then
     echo "[FAIL] Missing one-shot service: ${migration}"
