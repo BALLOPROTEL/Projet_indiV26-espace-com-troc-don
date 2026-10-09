@@ -48,6 +48,7 @@ type TransactionCompletedData = {
 type MarketplaceEventDataMap = {
   'proposal.created': ProposalCreatedData;
   'proposal.accepted': ProposalAcceptedData;
+  'proposal.rejected': ProposalRejectedData;
   'transaction.completed': TransactionCompletedData;
 };
 
