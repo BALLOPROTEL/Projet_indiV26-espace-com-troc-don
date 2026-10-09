@@ -1,0 +1,41 @@
+name: M8-B Real Microservice Integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/m8-compose-integration.mjs'
+      - 'scripts/m6-compose-smoke.sh'
+      - 'compose.yaml'
+      - 'apps/**'
+      - 'infra/keycloak/**'
+      - 'infra/minio/**'
+      - '.github/workflows/m8-real-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compose-integration:
+    name: Real HTTP + JWT + Catalog + RabbitMQ M8-B
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify integration script syntax
+        run: |
+          node --check scripts/m8-compose-integration.mjs
+          bash -n scripts/m6-compose-smoke.sh
+      - name: Execute isolated stack and real M8-B cross-service integration
+        env:
+          M8_RUN_INTEGRATION: 'true'
+        run: bash scripts/m6-compose-smoke.sh
+      - name: Container logs on failure (never dump secrets or full environment)
+        if: failure()
+        run: |
+          docker compose --project-name projet-indiv26-m6-ci -f compose.yaml ps -a || true
+          docker compose --project-name projet-indiv26-m6-ci -f compose.yaml logs --no-color --tail 60 gateway catalog-service marketplace-service notification-service || true
