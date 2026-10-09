@@ -1805,3 +1805,51 @@ textarea:focus-visible {
   border: 1px dashed var(--line);
   background: rgba(251, 247, 239, 0.52);
 }
+
+
+/* M9 — Requêtes de don, propositions de troc et suivi de remise */
+.marketplace-action {
+  margin: 38px 0 24px;
+  padding: clamp(18px, 3vw, 30px);
+  border: 1px solid var(--line-strong);
+  background: var(--paper-light);
+}
+.marketplace-action h2,
+.marketplace-dashboard h2,
+.marketplace-dashboard h3 {
+  font-family: var(--serif);
+  font-weight: 500;
+}
+.marketplace-action h2 { margin: 6px 0 20px; font-size: clamp(1.7rem, 3vw, 2.5rem); }
+.marketplace-action .listing-form { gap: 15px; }
+.marketplace-action select {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 12px;
+}
+.marketplace-dashboard { margin: 58px 0 20px; border-top: 1px solid var(--line-strong); padding-top: 32px; }
+.marketplace-dashboard__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+.marketplace-dashboard__grid h3 { font-size: 1.5rem; }
+.marketplace-entry {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  background: var(--paper-light);
+  padding: 18px;
+  margin: 13px 0;
+}
+.marketplace-entry__heading, .marketplace-entry__buttons { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; justify-content: space-between; }
+.marketplace-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.marketplace-compare > div { min-width: 0; padding: 11px; background: var(--paper-deep); }
+.marketplace-compare img, .marketplace-preview img {
+  width: 100%; aspect-ratio: 4 / 3; object-fit: cover;
+  border: 1px solid var(--line); display: block; margin: 9px 0;
+}
+.marketplace-preview a { color: var(--wine); font-weight: 700; overflow-wrap: anywhere; }
+.marketplace-transactions { margin-top: 32px; }
+@media (max-width: 650px) {
+  .marketplace-dashboard__grid { grid-template-columns: 1fr; }
+  .marketplace-compare { grid-template-columns: 1fr 1fr; }
+}
