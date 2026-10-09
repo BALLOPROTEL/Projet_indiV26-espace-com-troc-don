@@ -153,10 +153,47 @@ Vérifications **certifiées par GitHub Actions** :
 - Redémarrage du conteneur Keycloak et contrôle d'une authentification
   renouvelée avec `sub` identique, puis requête JWT acceptée.
 
-**Limites explicites :** la déduplication Notification repose actuellement
-sur un `Set` en mémoire, limité à 50 entrées : elle n'est pas persistante
-sur redémarrage de Notification ou changement de réplica et ne prouve pas
-une déduplication globale. Le scénario de reprise RabbitMQ vérifie la
+**M8-D — Déduplication persistante et multi-réplicas (nouvelle validation) :**
+
+- `NotificationStore` enregistre chaque enveloppe en PostgreSQL, schema
+  `notification`, table `notification_events`, clé primaire **`eventId`**.
+  `createMany({ skipDuplicates: true })` rend l'insertion atomique entre
+  réplicas et un rejeu de messages historiques inoffensif ;
+- le consommateur n'ACK qu'après commit PostgreSQL. Sur panne de stockage,
+  il NACK avec `requeue=true`; les enveloppes incorrectes sont rejetées
+  sans réitération indéfinie ;
+- l'API `/notifications/recent` ne retourne que les **50 derniers événements**,
+  mais la table ne supprime pas les anciens identifiants : l'anti-doublon
+  ne dépend plus de cette limite d'affichage ;
+- le nouveau job Prisma `notification-migrate` s'exécute avant Notification
+  dans Docker Compose et dans les manifests Kubernetes. La base est isolée
+  des schémas `public`, `catalog` et `marketplace` ;
+- les images Notification `m8-local` sont distinctes de l'ancien tag M7
+  pour empêcher la réutilisation silencieuse d'un binaire obsolète ;
+- les manifests Kubernetes déclarent **2 réplicas**, avec readiness
+  RabbitMQ **et PostgreSQL**. Le nouveau validateur réclame 2/2 Ready et
+  la présence de la table persistante.
+
+**Tests réels :** [CI GitHub Actions #37997755295](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/37997755295)
+— SUCCESS : `Durable eventId dedup survives Notification container
+restart: PASS` et `Two live Notification replicas see shared inbox and
+exactly one eventId: PASS`. Les validations de compilation/tests unitaires
+Notification tournent en plus dans la CI de contrats M8.
+
+**Limites explicites :** cette inbox empêche l'insertion doublon,
+mais ne garantit pas « exactly once » pour d'éventuels effets externes
+(SMS/e-mail) futurs : ceux-ci devront être pilotés par des jobs avec
+états/outbox et clés d'idempotence dédiées. Les identifiants sont
+conservés sans purge automatique afin d'éviter les rejouages tardifs ;
+prévoir une politique d'archivage, de capacité et de surveillance PostgreSQL
+avant charge production.
+
+**Déploiement M7 préexistant :** les nouveaux manifests Kubernetes n'ont
+pas été appliqués au cluster Codespaces déjà en fonctionnement. Son disque
+étant contraint, ne pas reconstruire/charger les images `m8-local` ni
+redéployer avant d'avoir vérifié l'espace disponible et préparé un plan
+de restauration. La preuve **multi-réplicas live** est celle de la stack
+Compose jetable GitHub Actions, pas encore un rollout du cluster M7. Le scénario de reprise RabbitMQ vérifie la
 livraison d'un événement en attente, pas exactement-once à travers une
 panne réseau simultanée. Le redémarrage Keycloak Compose ne prouve pas
 la recréation intégrale d'un pod Kubernetes : cette dernière a déjà été
