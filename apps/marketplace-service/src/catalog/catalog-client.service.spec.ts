@@ -93,7 +93,7 @@ describe('M8 Marketplace → Catalog HTTP integration contract', () => {
   });
 
   it('fails closed when Catalog URL or internal token is missing', () => {
-    expect(() => new CatalogClientService(new ConfigService({}))).toThrow(
+    expect(() => new CatalogClientService(new ConfigService({}, { skipProcessEnv: true }))).toThrow(
       'CATALOG_INTERNAL_URL and INTERNAL_SERVICE_TOKEN must be configured',
     );
   });
