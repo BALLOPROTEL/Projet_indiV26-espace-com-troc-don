@@ -263,6 +263,48 @@ async function run() {
   assert.equal((await recent()).filter(item => item.event?.eventId === recoveryEvent.eventId).length, 1);
   say('Notification outage + queued persistent RabbitMQ message + recovery: PASS');
 
+  // Replay the SAME ID that existed before the container restart. The
+  // persistent inbox must suppress it, unlike the old in-memory Set.
+  await publish(duplicateEvent);
+  await delay(900);
+  assert.equal((await recent()).filter(item => item.event?.eventId === duplicateEvent.eventId).length, 1);
+  say('Durable eventId dedup survives Notification container restart: PASS');
+
+  // Two real Notification consumers share the same queue and Postgres unique
+  // index. The second replica has no published host port (Compose run), but
+  // its private HTTP API must expose the same durable 50-event inbox.
+  const replicaName = 'm8-notification-replica-' + randomUUID().slice(0, 8);
+  try {
+    execFileSync('docker', ['compose', '-f', 'compose.yaml', 'run',
+      '--no-deps', '-d', '--name', replicaName, 'notification-service'], {
+      timeout: 90_000, stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    await poll('second Notification replica health', async () => {
+      const result = execFileSync('docker', ['exec', replicaName, 'node', '-e',
+        "fetch('http://127.0.0.1:3103/health/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"], {
+        timeout: 6000, stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      return result !== undefined;
+    }, 30);
+    const sharedEvent = {
+      ...duplicateEvent, eventId: randomUUID(), occurredAt: new Date().toISOString(),
+    };
+    await Promise.all([publish(sharedEvent), publish(sharedEvent), publish(sharedEvent)]);
+    await waitForEvent(sharedEvent.eventId);
+    await delay(800);
+    assert.equal((await recent()).filter(item => item.event?.eventId === sharedEvent.eventId).length, 1);
+    const replicaSeen = execFileSync('docker', ['exec', replicaName, 'node', '-e',
+      "fetch('http://127.0.0.1:3103/notifications/recent').then(r=>r.json()).then(a=>{const n=a.filter(x=>x.event?.eventId===process.env.TEST_EVENT_ID).length; if(n!==1)process.exit(1)}).catch(()=>process.exit(1))"], {
+      timeout: 7000, encoding: 'utf8', env: { ...process.env, TEST_EVENT_ID: sharedEvent.eventId },
+    });
+    assert.equal(typeof replicaSeen, 'string');
+    say('Two live Notification replicas see shared inbox and exactly one eventId: PASS');
+  } finally {
+    execFileSync('docker', ['rm', '-f', replicaName], {
+      timeout: 20000, stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  }
+
   // Real synchronous dependency failure must not accept a phantom proposal.
   compose('stop', 'catalog-service');
   await call(gateway, '/api/proposals', {
