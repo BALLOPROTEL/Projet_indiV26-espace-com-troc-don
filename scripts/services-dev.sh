@@ -34,6 +34,14 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+# Keep pnpm services:dev usable outside Docker Compose. Fail fast rather
+# than booting Notification against a missing database or schema.
+export NOTIFICATION_DATABASE_URL="${NOTIFICATION_DATABASE_URL:-postgresql://app:app_local_change_me@127.0.0.1:5433/projet_indiv26?schema=notification}"
+if ! pnpm --filter notification-service prisma:migrate:deploy; then
+  echo "[FAIL] Notification PostgreSQL schema not ready. Start the local PostgreSQL service (docker compose up -d --wait postgres) and retry." >&2
+  exit 1
+fi
+
 setsid bash -lc 'exec pnpm gateway:dev' &
 gateway_pid=$!
 
