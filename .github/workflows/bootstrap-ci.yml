@@ -45,6 +45,7 @@ jobs:
       DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=public
       CATALOG_DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=catalog
       MARKETPLACE_DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=marketplace
+      NOTIFICATION_DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=notification
       RABBITMQ_URL: amqp://guest:guest@127.0.0.1:5672
       CATALOG_INTERNAL_URL: http://127.0.0.1:3101
       INTERNAL_SERVICE_TOKEN: ci_internal_service_token_2026_long_value
@@ -354,6 +355,9 @@ jobs:
 
       - name: Test Marketplace Service
         run: pnpm marketplace-service:test
+
+      - name: Apply Notification Prisma migrations
+        run: pnpm --filter notification-service prisma:migrate:deploy
 
       - name: Test Notification Service
         run: pnpm notification:quality
