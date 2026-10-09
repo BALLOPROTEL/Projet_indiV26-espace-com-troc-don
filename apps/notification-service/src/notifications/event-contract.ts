@@ -199,6 +199,18 @@ export function parseMarketplaceEvent(
       };
     }
 
+    case 'proposal.rejected':
+      return {
+        ...base,
+        type: 'proposal.rejected',
+        data: {
+          proposalId: requiredString(base.data, 'proposalId'),
+          targetListingId: requiredString(base.data, 'targetListingId'),
+          requesterId: requiredString(base.data, 'requesterId'),
+          ownerId: requiredString(base.data, 'ownerId'),
+        },
+      };
+
     case 'proposal.accepted':
       return {
         ...base,
