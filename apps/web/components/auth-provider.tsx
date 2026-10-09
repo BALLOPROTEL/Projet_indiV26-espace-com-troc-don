@@ -29,6 +29,7 @@ type AuthContextValue = {
   ready: boolean;
   authenticated: boolean;
   username: string | null;
+  subject: string | null;
   roles: AppRole[];
   login: () => Promise<void>;
   logout: () => Promise<void>;
@@ -54,6 +55,7 @@ function readIdentity() {
       token?.name ??
       token?.preferred_username ??
       null,
+    subject: token?.sub ?? null,
     roles,
   };
 }
@@ -67,6 +69,7 @@ export function AuthProvider({
   const [identity, setIdentity] = useState(() => ({
     authenticated: false,
     username: null as string | null,
+    subject: null as string | null,
     roles: [] as AppRole[],
   }));
 
