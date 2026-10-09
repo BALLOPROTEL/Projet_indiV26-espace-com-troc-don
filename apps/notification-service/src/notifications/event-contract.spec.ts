@@ -24,6 +24,40 @@ describe('parseMarketplaceEvent', () => {
     expect(event.data.proposalId).toBe('proposal-1');
   });
 
+  it('accepts the M9 proposal.rejected envelope with owner and requester', () => {
+    const event = parseMarketplaceEvent({
+      eventId: 'rejected-m9',
+      type: 'proposal.rejected',
+      version: MARKETPLACE_EVENT_VERSION,
+      occurredAt: '2026-10-10T00:00:00.000Z',
+      source: 'marketplace-service',
+      data: {
+        proposalId: 'proposal-m9',
+        targetListingId: 'target-m9',
+        requesterId: 'requester-1',
+        ownerId: 'owner-1',
+      },
+    });
+
+    expect(event.type).toBe('proposal.rejected');
+    expect(event.data.proposalId).toBe('proposal-m9');
+  });
+
+  it('rejects incomplete proposal.rejected payloads', () => {
+    expect(() => parseMarketplaceEvent({
+      eventId: 'rejected-invalid',
+      type: 'proposal.rejected',
+      version: MARKETPLACE_EVENT_VERSION,
+      occurredAt: '2026-10-10T00:00:00.000Z',
+      source: 'marketplace-service',
+      data: {
+        proposalId: 'proposal-m9',
+        targetListingId: 'target-m9',
+        requesterId: 'requester-1',
+      },
+    })).toThrow('data.ownerId');
+  });
+
   it('rejects unsupported event versions', () => {
     expect(() =>
       parseMarketplaceEvent({
