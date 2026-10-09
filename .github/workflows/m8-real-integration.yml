@@ -63,6 +63,7 @@ jobs:
         env:
           M8_RUN_INTEGRATION: 'true'
           M8_RUN_E2E: 'true'
+          M9_RUN_WORKFLOWS: 'true'
         run: bash scripts/m6-compose-smoke.sh
       - name: Container logs on failure (never dump secrets or full environment)
         if: failure()
