@@ -13,6 +13,14 @@ import { PrismaService } from '../prisma/prisma.service';
 export class InternalListingsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getOwnedIds(ownerId: string): Promise<string[]> {
+    const listings = await this.prisma.listing.findMany({
+      where: { ownerId },
+      select: { id: true },
+    });
+    return listings.map((listing) => listing.id);
+  }
+
   async getSnapshot(id: string) {
     const listing = await this.prisma.listing.findUnique({
       where: { id },
