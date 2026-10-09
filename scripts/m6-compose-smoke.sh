@@ -141,4 +141,9 @@ echo "M6 isolated Compose smoke: PASS"
 if [[ "${M8_RUN_INTEGRATION:-false}" == "true" ]]; then
   echo "=== M8-B real multi-service integration ==="
   node scripts/m8-compose-integration.mjs
+
+  if [[ "${M8_RUN_E2E:-false}" == "true" ]]; then
+    echo "=== M8-C real TROC / security / resilience E2E ==="
+    node scripts/m8-compose-e2e.mjs
+  fi
 fi
