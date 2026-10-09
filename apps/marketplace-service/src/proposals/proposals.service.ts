@@ -87,6 +87,57 @@ export class ProposalsService {
     });
   }
 
+  async findReceived(ownerId: string) {
+    const ownedListingIds = await this.catalog.getOwnerListingIds(ownerId);
+    if (ownedListingIds.length === 0) {
+      return [];
+    }
+
+    // Catalog alone owns listing records; Marketplace joins only by IDs.
+    return this.prisma.proposal.findMany({
+      where: { targetListingId: { in: ownedListingIds } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async reject(id: string, ownerId: string) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id },
+    });
+
+    if (!proposal) {
+      throw new NotFoundException('Proposal not found');
+    }
+
+    const target = await this.catalog.getListing(proposal.targetListingId);
+    if (target.ownerId !== ownerId) {
+      throw new ForbiddenException(
+        'Only the target listing owner can reject this proposal',
+      );
+    }
+
+    // Atomic transition also protects races against an incoming accept.
+    const claim = await this.prisma.proposal.updateMany({
+      where: { id: proposal.id, status: ProposalStatus.PENDING },
+      data: {
+        status: ProposalStatus.REJECTED,
+        resolvedAt: new Date(),
+      },
+    });
+    if (claim.count !== 1) {
+      throw new ConflictException('Only a pending proposal can be rejected');
+    }
+
+    await this.events.publish(MARKETPLACE_EVENT_TYPES.PROPOSAL_REJECTED, {
+      proposalId: proposal.id,
+      targetListingId: proposal.targetListingId,
+      requesterId: proposal.requesterId,
+      ownerId,
+    });
+
+    return this.prisma.proposal.findUniqueOrThrow({ where: { id } });
+  }
+
   async accept(id: string, ownerId: string) {
     const proposal = await this.prisma.proposal.findUnique({
       where: { id },
