@@ -127,7 +127,26 @@ async function waitUntil(label, predicate, maxAttempts = 100) {
     }
     await sleep(450);
   }
-  throw new Error('Timed out waiting for ' + label + (reason ? ': ' + reason : ''));
+  let browserState = null;
+  try {
+    browserState = await evaluate(`({
+      url: location.href,
+      title: document.title,
+      text: document.body?.innerText?.slice(0, 1500) ?? '(empty)',
+      hasDashboard: !!document.querySelector('.marketplace-dashboard'),
+      hasKeycloakLogin: !!document.querySelector('#username'),
+    })`);
+    const shot = await command('Page.captureScreenshot', {
+      format: 'png', captureBeyondViewport: true,
+    });
+    writeFileSync(join(output, 'authenticated-owner-diagnostic.png'),
+      Buffer.from(shot.data, 'base64'));
+    console.error('[M9 Browser] Authentication diagnosis:', JSON.stringify(browserState));
+  } catch (diagnosticError) {
+    console.error('[M9 Browser] Could not capture diagnostic:', String(diagnosticError));
+  }
+  throw new Error('Timed out waiting for ' + label + (reason ? ': ' + reason : '') +
+    '; state=' + JSON.stringify(browserState));
 }
 
 async function loginAsDemoOwner() {
