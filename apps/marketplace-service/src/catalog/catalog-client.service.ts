@@ -31,6 +31,34 @@ export class CatalogClientService {
     this.token = token;
   }
 
+  async getOwnerListingIds(ownerId: string): Promise<string[]> {
+    let response: Response;
+    try {
+      response = await fetch(
+        `${this.baseUrl}/internal/listings/owner/${encodeURIComponent(ownerId)}/ids`,
+        {
+          headers: { 'x-internal-service-token': this.token },
+          signal: AbortSignal.timeout(3000),
+        },
+      );
+    } catch {
+      throw new BadGatewayException('Catalog Service is unavailable');
+    }
+
+    if (!response.ok) {
+      throw new BadGatewayException(
+        `Catalog Service returned HTTP ${response.status}`,
+      );
+    }
+
+    const data: unknown = await response.json();
+    if (!Array.isArray(data) || !data.every((id) => typeof id === 'string')) {
+      throw new BadGatewayException('Invalid owner listings response');
+    }
+
+    return data as string[];
+  }
+
   getListing(id: string): Promise<CatalogListingSnapshot> {
     return this.requestListing('GET', id);
   }
