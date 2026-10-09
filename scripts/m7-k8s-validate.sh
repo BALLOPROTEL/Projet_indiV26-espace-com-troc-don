@@ -61,7 +61,7 @@ for name in gateway legacy-api catalog-service marketplace-service notification-
   require_rendered "name: ${name}$" "resource ${name}"
 done
 
-for image in   projet-indiv26-gateway:m7-local   projet-indiv26-legacy-api:m7-local   projet-indiv26-catalog-service:m7-local   projet-indiv26-marketplace-service:m7-local   projet-indiv26-notification-service:m7-local   projet-indiv26-web:m7-local; do
+for image in   projet-indiv26-gateway:m7-local   projet-indiv26-legacy-api:m7-local   projet-indiv26-catalog-service:m7-local   projet-indiv26-marketplace-service:m7-local   projet-indiv26-notification-service:m8-local   projet-indiv26-web:m7-local; do
   require_rendered "image: ${image}" "image ${image}"
 done
 
