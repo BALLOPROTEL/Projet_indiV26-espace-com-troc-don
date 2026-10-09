@@ -30,6 +30,10 @@ export class NotificationStore {
     return result.count === 1;
   }
 
+  async checkReady(): Promise<void> {
+    await this.prisma.checkReady();
+  }
+
   async recent(): Promise<ReceivedNotification[]> {
     const items = await this.prisma.notificationEvent.findMany({
       orderBy: [{ receivedAt: 'desc' }, { eventId: 'desc' }],
