@@ -109,15 +109,48 @@ base Node, Alpine, PostgreSQL et RabbitMQ sont préchargées depuis un miroir
 public ECR ; aucun changement n'est requis dans le Compose de développement.
 
 
-## M8-C — E2E, sécurité et résilience (à implémenter)
+## M8-C — E2E, sécurité et résilience : implémenté, certification CI en attente
 
-- DON/TROC avec base jetable, transactions et statuts vérifiés en base
-  **de leur propre service** ;
-- cas 401, 403, 404, 409 et tentatives d'opérations d'un autre propriétaire ;
-- arrêt/reprise Catalog, RabbitMQ, Keycloak et Notification selon des
-  scénarios isolés, sans effet sur le déploiement de démonstration ;
-- test de non-régression sur `sub` Keycloak après redémarrage ;
-- rapport de preuves par parcours, résultats observés et limites.
+Scripts : `scripts/m8-compose-e2e.mjs` lancé après M8-B par
+`M8_RUN_INTEGRATION=true M8_RUN_E2E=true bash scripts/m6-compose-smoke.sh`.
+L'environnement est strictement le projet Compose jetable
+`projet-indiv26-m6-ci`, avec cleanup `down -v` ; ce test ne doit jamais
+être exécuté contre le cluster de démonstration Minikube M7.
+
+Vérifications **à certifier par GitHub Actions** :
+
+- Parcours **TROC** entre deux utilisateurs Keycloak distincts et un
+  troisième utilisateur non participant ; deux annonces approuvées
+  appartenant à deux propriétaires différents sont injectées dans la
+  base Catalog *isolée* (la modération/les images ne sont pas couvertes).
+- `TRADE_OFFER` PENDING → 2 réservations Catalog → 2 confirmations par
+  des participants distincts → transaction `COMPLETED` et deux
+  disponibilités `COMPLETED`, avec refus de re-confirmer.
+- Authentification JWT absente/invalide, tentative de proposition sur
+  sa propre annonce, mauvaise opération, annonce offerte non possédée,
+  acceptation/confirmation par une tierce personne : vrais statuts HTTP
+  400/401/403/409 contrôlés.
+- Publication d'un **même `eventId` deux fois sur le vrai exchange
+  RabbitMQ**, avec vérification d'un seul enregistrement Notification
+  pendant la durée de vie d'un même processus.
+- Arrêt de Notification, publication d'un message persistant pendant
+  l'arrêt, redémarrage Notification et constat de livraison.
+- Arrêt de Catalog : demande de don renvoyant 502 ; reprise de Catalog :
+  demande authentifiée acceptée à nouveau.
+- Redémarrage du conteneur Keycloak et contrôle d'une authentification
+  renouvelée avec `sub` identique, puis requête JWT acceptée.
+
+**Limites explicites :** la déduplication Notification repose actuellement
+sur un `Set` en mémoire, limité à 50 entrées : elle n'est pas persistante
+sur redémarrage de Notification ou changement de réplica et ne prouve pas
+une déduplication globale. Le scénario de reprise RabbitMQ vérifie la
+livraison d'un événement en attente, pas exactement-once à travers une
+panne réseau simultanée. Le redémarrage Keycloak Compose ne prouve pas
+la recréation intégrale d'un pod Kubernetes : cette dernière a déjà été
+validée dans M7 avec PostgreSQL persistant. Ni montée en charge M8-C,
+ni uploads binaires volumineux ne sont inclus dans ces vérifications.
+
+Ne marquer M8-C **PASS** qu'après CI verte et logs attestant chaque cas.
 
 ## Environnement et prudence disque
 
