@@ -93,7 +93,10 @@ describe('M8 Marketplace → Catalog HTTP integration contract', () => {
   });
 
   it('fails closed when Catalog URL or internal token is missing', () => {
-    expect(() => new CatalogClientService(new ConfigService({}, { skipProcessEnv: true }))).toThrow(
+    // An explicit empty provider avoids reading CI process.env while testing
+    // the real client's fail-closed constructor behavior.
+    const withoutConfig = { get: () => undefined } as unknown as ConfigService;
+    expect(() => new CatalogClientService(withoutConfig)).toThrow(
       'CATALOG_INTERNAL_URL and INTERNAL_SERVICE_TOKEN must be configured',
     );
   });
