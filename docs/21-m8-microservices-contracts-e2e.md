@@ -109,7 +109,20 @@ base Node, Alpine, PostgreSQL et RabbitMQ sont préchargées depuis un miroir
 public ECR ; aucun changement n'est requis dans le Compose de développement.
 
 
-## M8-C — E2E, sécurité et résilience : implémenté, certification CI en attente
+## M8-C — E2E, sécurité et résilience : PASS (environnement Compose jetable)
+
+**Preuve GitHub Actions :** [M8 Real Microservice E2E Integration #37995054517](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/37995054517) — **SUCCESS** sur commit `8f14b77`, 9 octobre 2026.
+
+Les journaux confirment successivement `Real TROC E2E ... PASS`,
+`TROC RabbitMQ 3 unique actual notifications: PASS`,
+`RabbitMQ real duplicate ... records once: PASS`,
+`Notification outage ... recovery: PASS`,
+`Catalog outage ... recovery: PASS` et
+`Keycloak container restart ... preserved: PASS`.
+
+Tous ces tests ont été exécutés avec un véritable cluster de services
+Docker Compose, PostgreSQL, RabbitMQ et Keycloak, et non de simples
+mocks HTTP. Le scénario M8-B DON repasse également en PASS dans la même CI.
 
 Scripts : `scripts/m8-compose-e2e.mjs` lancé après M8-B par
 `M8_RUN_INTEGRATION=true M8_RUN_E2E=true bash scripts/m6-compose-smoke.sh`.
@@ -117,7 +130,7 @@ L'environnement est strictement le projet Compose jetable
 `projet-indiv26-m6-ci`, avec cleanup `down -v` ; ce test ne doit jamais
 être exécuté contre le cluster de démonstration Minikube M7.
 
-Vérifications **à certifier par GitHub Actions** :
+Vérifications **certifiées par GitHub Actions** :
 
 - Parcours **TROC** entre deux utilisateurs Keycloak distincts et un
   troisième utilisateur non participant ; deux annonces approuvées
@@ -150,7 +163,7 @@ la recréation intégrale d'un pod Kubernetes : cette dernière a déjà été
 validée dans M7 avec PostgreSQL persistant. Ni montée en charge M8-C,
 ni uploads binaires volumineux ne sont inclus dans ces vérifications.
 
-Ne marquer M8-C **PASS** qu'après CI verte et logs attestant chaque cas.
+M8-C est **PASS** pour les parcours et pannes listés ci-dessus. Le test de déduplication n'est pas durable entre redémarrages et le périmètre ne comprend pas la validation binaire volumineuse en bout de chaîne.
 
 ## Environnement et prudence disque
 
