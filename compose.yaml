@@ -267,6 +267,18 @@ services:
       timeout: 4s
       retries: 30
 
+  notification-migrate:
+    build:
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+      target: migration
+    environment:
+      NOTIFICATION_DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=notification
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   notification-service:
     build:
       context: .
@@ -275,11 +287,14 @@ services:
     environment:
       PORT: "3103"
       RABBITMQ_URL: amqp://app:rabbitmq_local_change_me_2026@rabbitmq:5672
+      NOTIFICATION_DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=notification
     ports:
       - "127.0.0.1:${NOTIFICATION_HOST_PORT:-3103}:3103"
     depends_on:
       rabbitmq:
         condition: service_healthy
+      notification-migrate:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [
