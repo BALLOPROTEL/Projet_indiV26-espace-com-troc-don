@@ -193,7 +193,7 @@ for deployment in   postgres rabbitmq minio keycloak   legacy-api catalog-servic
   kubectl -n "${NAMESPACE}" rollout status "deployment/${deployment}" --timeout=240s
 done
 
-for job in minio-bootstrap legacy-migrate catalog-migrate marketplace-migrate; do
+for job in minio-bootstrap legacy-migrate catalog-migrate marketplace-migrate notification-migrate; do
   kubectl -n "${NAMESPACE}" wait --for=condition=complete "job/${job}" --timeout=180s
 done
 
