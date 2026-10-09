@@ -52,7 +52,7 @@ async function main() {
   // Browser visual smoke runs before disposable Compose cleanup; only a
   // synthetic, public listing identifier is persisted to disk.
   mkdirSync('.m6-smoke', { recursive: true });
-  writeFileSync('.m6-smoke/m9-browser-listing-id', id + '\\n');
+  writeFileSync('.m6-smoke/m9-browser-listing-id', id + '\n');
 
   await call(gateway, '/api/proposals/received', { expected: 401 });
   const created = await call(gateway, '/api/proposals', {
