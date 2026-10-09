@@ -1,14 +1,16 @@
 {
   "name": "notification-service",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit",
-    "start:dev": "ts-node --transpile-only src/main.ts",
+    "build": "pnpm prisma:generate && tsc -p tsconfig.json",
+    "typecheck": "pnpm prisma:generate && tsc --noEmit",
+    "start:dev": "pnpm prisma:generate && ts-node --transpile-only src/main.ts",
     "start:prod": "node dist/main.js",
-    "test": "jest --runInBand",
-    "quality": "pnpm typecheck && pnpm test && pnpm build"
+    "test": "pnpm prisma:generate && jest --runInBand",
+    "quality": "pnpm typecheck && pnpm test && pnpm build",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -17,7 +19,8 @@
     "@nestjs/platform-express": "^11.0.0",
     "amqplib": "2.2.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "@prisma/client": "^6.0.0"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
@@ -25,6 +28,7 @@
     "jest": "^30.0.0",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.0",
+    "prisma": "^6.0.0"
   }
 }
