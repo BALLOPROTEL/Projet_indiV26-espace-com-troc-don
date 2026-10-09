@@ -20,6 +20,13 @@ type ProposalCreatedData = {
   offeredListingId: string | null;
 };
 
+type ProposalRejectedData = {
+  proposalId: string;
+  targetListingId: string;
+  requesterId: string;
+  ownerId: string;
+};
+
 type ProposalAcceptedData = {
   proposalId: string;
   transactionId: string;
