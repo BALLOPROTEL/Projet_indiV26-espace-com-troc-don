@@ -111,6 +111,59 @@ async function capture(route, width, height, filename, expected, selector) {
   console.log('[M9 Browser] ' + filename + ': PASS (' + file + ')');
 }
 
+async function evaluate(expression) {
+  const answer = await command('Runtime.evaluate', { expression, returnByValue: true });
+  if (answer.exceptionDetails) throw new Error('Browser JS: ' + JSON.stringify(answer.exceptionDetails).slice(0, 450));
+  return answer.result?.value;
+}
+
+async function waitUntil(label, predicate, maxAttempts = 100) {
+  let reason = '';
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      if (await evaluate(predicate)) return;
+    } catch (error) {
+      reason = String(error);
+    }
+    await sleep(450);
+  }
+  throw new Error('Timed out waiting for ' + label + (reason ? ': ' + reason : ''));
+}
+
+async function loginAsDemoOwner() {
+  const clicked = await evaluate(`(() => {
+    const button = document.querySelector('.gate-card button');
+    if (!button) return false;
+    button.click();
+    return true;
+  })()`);
+  assert.equal(clicked, true, 'Member sign-in button must be present');
+
+  await waitUntil('Keycloak login form', `!!document.querySelector('#username') &&
+    !!document.querySelector('#password')`, 90);
+
+  const submitted = await evaluate(`(() => {
+    const user = document.querySelector('#username');
+    const pass = document.querySelector('#password');
+    const form = user?.closest('form') ?? document.querySelector('#kc-form-login');
+    if (!user || !pass || !form) return false;
+    user.value = 'demo-moderator';
+    pass.value = 'demo-moderator-local';
+    user.dispatchEvent(new Event('input', { bubbles: true }));
+    pass.dispatchEvent(new Event('input', { bubbles: true }));
+    form.requestSubmit();
+    return true;
+  })()`);
+  assert.equal(submitted, true, 'Local demo Keycloak form could not be submitted');
+  await waitUntil('authenticated owner inbox and rejected proposal', `(
+    location.origin === ${JSON.stringify(new URL(base).origin)} &&
+    !!document.querySelector('.marketplace-dashboard') &&
+    document.body.innerText.includes('Mes dons et trocs') &&
+    document.body.innerText.includes('Refusée')
+  )`, 120);
+  console.log('[M9 Browser] Keycloak login as demo owner + rejected inbox: PASS');
+}
+
 try {
   await startCdp(await waitForPort());
   await capture('/annonces/' + encodeURIComponent(id), 1440, 1000,
@@ -119,7 +172,10 @@ try {
     'don-detail-mobile', 'Cette trouvaille vous intéresse ?', '.marketplace-action');
   await capture('/espace', 1440, 900,
     'espace-login-desktop', 'Votre étagère vous attend.', '.gate-card');
-  console.log('[M9 Browser] Chrome desktop/mobile hydrated UI: PASS');
+  await loginAsDemoOwner();
+  await capture('/espace', 1440, 980,
+    'espace-owner-inbox-desktop', 'Refusée', '.marketplace-dashboard');
+  console.log('[M9 Browser] Chrome desktop/mobile + authenticated owner inbox: PASS');
 } finally {
   if (socket && socket.readyState === WebSocket.OPEN) socket.close();
   for (const task of pending.values()) clearTimeout(task.timeout);
