@@ -58,6 +58,23 @@ describe('parseMarketplaceEvent', () => {
     })).toThrow('data.ownerId');
   });
 
+  it('accepts the maximum persisted eventId length (128)', () => {
+    const event = parseMarketplaceEvent({
+      eventId: 'a'.repeat(128), type: 'proposal.rejected', version: 1,
+      occurredAt: '2026-10-10T00:00:00.000Z', source: 'marketplace-service',
+      data: { proposalId: 'p', targetListingId: 'l', requesterId: 'r', ownerId: 'o' },
+    });
+    expect(event.eventId).toHaveLength(128);
+  });
+
+  it('rejects oversized IDs before the message reaches the database', () => {
+    expect(() => parseMarketplaceEvent({
+      eventId: 'a'.repeat(129), type: 'proposal.rejected', version: 1,
+      occurredAt: '2026-10-10T00:00:00.000Z', source: 'marketplace-service',
+      data: { proposalId: 'p', targetListingId: 'l', requesterId: 'r', ownerId: 'o' },
+    })).toThrow('RabbitMQ eventId must be at most 128 characters');
+  });
+
   it('rejects unsupported event versions', () => {
     expect(() =>
       parseMarketplaceEvent({
