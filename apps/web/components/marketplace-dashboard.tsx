@@ -58,7 +58,12 @@ export function MarketplaceDashboard() {
   useEffect(() => {
     if (!ready || !authenticated) return;
     let active = true;
-    void refresh()
+    // Schedule the API refresh after the initial effect; avoid synchronous
+    // cascading state updates during React's effect execution.
+    void getToken()
+      .then(() => {
+        if (active) return refresh();
+      })
       .catch((reason: unknown) => {
         if (active) setError(reason instanceof Error ? reason.message : 'Impossible de charger les échanges.');
       })
