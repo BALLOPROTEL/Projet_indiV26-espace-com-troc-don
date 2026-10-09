@@ -37,3 +37,7 @@ jobs:
         run: pnpm m8:contracts:validate
       - name: Verify Marketplace to Catalog HTTP failure contracts
         run: pnpm m8:integration:unit
+      - name: Validate durable Notification Prisma client, tests and compilation
+        env:
+          NOTIFICATION_DATABASE_URL: postgresql://app:example@localhost:5432/projet_indiv26?schema=notification
+        run: pnpm notification:quality
