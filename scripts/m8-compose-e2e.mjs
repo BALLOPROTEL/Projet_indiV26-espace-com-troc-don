@@ -298,7 +298,40 @@ async function run() {
       timeout: 7000, encoding: 'utf8', env: { ...process.env, TEST_EVENT_ID: sharedEvent.eventId },
     });
     assert.equal(typeof replicaSeen, 'string');
-    say('Two live Notification replicas see shared inbox and exactly one eventId: PASS');
+    // Seeing the same HTTP inbox is NOT proof that both consumers received
+    // AMQP deliveries: force a batch of unique messages and require each
+    // container's OWN logs to prove it persisted at least one distinct ID.
+    const primaryId = compose('ps', '-q', 'notification-service').trim();
+    assert.ok(primaryId, 'Primary Notification container must be running');
+    const competing = Array.from({ length: 20 }, () => ({
+      ...duplicateEvent,
+      eventId: randomUUID(),
+      occurredAt: new Date().toISOString(),
+    }));
+    await Promise.all(competing.map(event => publish(event)));
+    const ids = new Set(competing.map(event => event.eventId));
+    await poll('all competing consumer deliveries persisted exactly once', async () => {
+      const entries = (await recent()).filter(item => ids.has(item.event?.eventId));
+      return entries.length === ids.size && new Set(entries.map(item => item.event.eventId)).size === ids.size
+        ? true : false;
+    }, 60);
+    const deliveryProof = await poll('each replica persists a distinct RabbitMQ delivery', () => {
+      const primaryLogs = execFileSync('docker', ['logs', primaryId], {
+        encoding: 'utf8', timeout: 10000, stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      const replicaLogs = execFileSync('docker', ['logs', replicaName], {
+        encoding: 'utf8', timeout: 10000, stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      const handled = logs => competing.filter(event =>
+        logs.includes('Notification persisted: ' + event.type + ' (' + event.eventId + ')')
+      ).map(event => event.eventId);
+      const first = handled(primaryLogs);
+      const second = handled(replicaLogs);
+      return first.length > 0 && second.length > 0 && first.every(id => !second.includes(id))
+        ? { first: first.length, second: second.length } : false;
+    }, 40);
+    assert.ok(deliveryProof.first > 0 && deliveryProof.second > 0);
+    say('Two competing Notification replicas each persisted real RabbitMQ deliveries; shared inbox unique per eventId: PASS');
   } finally {
     try {
       execFileSync('docker', ['rm', '-f', replicaName], {
