@@ -293,16 +293,18 @@ async function run() {
     await waitForEvent(sharedEvent.eventId);
     await delay(800);
     assert.equal((await recent()).filter(item => item.event?.eventId === sharedEvent.eventId).length, 1);
-    const replicaSeen = execFileSync('docker', ['exec', replicaName, 'node', '-e',
+    const replicaSeen = execFileSync('docker', ['exec', '-e', 'TEST_EVENT_ID=' + sharedEvent.eventId, replicaName, 'node', '-e',
       "fetch('http://127.0.0.1:3103/notifications/recent').then(r=>r.json()).then(a=>{const n=a.filter(x=>x.event?.eventId===process.env.TEST_EVENT_ID).length; if(n!==1)process.exit(1)}).catch(()=>process.exit(1))"], {
       timeout: 7000, encoding: 'utf8', env: { ...process.env, TEST_EVENT_ID: sharedEvent.eventId },
     });
     assert.equal(typeof replicaSeen, 'string');
     say('Two live Notification replicas see shared inbox and exactly one eventId: PASS');
   } finally {
-    execFileSync('docker', ['rm', '-f', replicaName], {
-      timeout: 20000, stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    try {
+      execFileSync('docker', ['rm', '-f', replicaName], {
+        timeout: 20000, stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    } catch { /* container may have failed to start */ }
   }
 
   // Real synchronous dependency failure must not accept a phantom proposal.
