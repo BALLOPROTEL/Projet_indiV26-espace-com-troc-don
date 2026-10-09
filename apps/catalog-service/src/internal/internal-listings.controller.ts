@@ -13,6 +13,11 @@ import { InternalListingsService } from './internal-listings.service';
 export class InternalListingsController {
   constructor(private readonly listings: InternalListingsService) {}
 
+  @Get('owner/:ownerId/ids')
+  findOwnedIds(@Param('ownerId') ownerId: string) {
+    return this.listings.getOwnedIds(ownerId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.listings.getSnapshot(id);
