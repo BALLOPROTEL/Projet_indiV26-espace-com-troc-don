@@ -71,6 +71,9 @@ done
 
 require_rendered 'image: projet-indiv26-notification-migrate:m8-local' 'notification Prisma migration image'
 require_rendered 'name: notification-migrate' 'Notification migration job'
+require_rendered 'replicas: 2' 'two Notification replicas'
+grep -Fq 'replicas: 2' "${K8S_DIR}/notification-deployment.yaml"
+grep -Fq 'NOTIFICATION_DATABASE_URL' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
 require_rendered 'CATALOG_SERVICE_URL: http://catalog-service:3101' 'Gateway -> Catalog DNS'
 require_rendered 'MARKETPLACE_SERVICE_URL: http://marketplace-service:3102' 'Gateway -> Marketplace DNS'
 require_rendered 'LEGACY_API_URL: http://legacy-api:3099' 'Gateway -> legacy DNS'
@@ -198,6 +201,18 @@ done
 for job in minio-bootstrap legacy-migrate catalog-migrate marketplace-migrate notification-migrate; do
   kubectl -n "${NAMESPACE}" wait --for=condition=complete "job/${job}" --timeout=180s
 done
+
+ready_notifications="$(kubectl -n "${NAMESPACE}" get deployment/notification-service -o jsonpath='{.status.readyReplicas}')"
+if [ "${ready_notifications}" != "2" ]; then
+  echo "[FAIL] Notification requires two healthy Postgres-backed replicas; got ${ready_notifications:-0}"
+  exit 1
+fi
+echo "[OK] Two Notification consumer replicas are ready."
+kubectl -n "${NAMESPACE}" exec deployment/postgres -- sh -ec '
+  PGPASSWORD="${POSTGRES_PASSWORD}" psql -X -A -t -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
+    -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '\''notification'\'' AND table_name = '\''notification_events'\''" | grep -qx 1
+'
+echo "[OK] Notification durable inbox exists in PostgreSQL."
 
 kubectl -n "${NAMESPACE}" exec deployment/rabbitmq -- rabbitmq-diagnostics -q ping >/dev/null
 echo "[OK] RabbitMQ pod responds to diagnostics."
