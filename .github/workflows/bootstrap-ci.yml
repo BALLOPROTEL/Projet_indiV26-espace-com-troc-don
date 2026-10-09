@@ -17,7 +17,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_DB: projet_indiv26
           POSTGRES_USER: app
@@ -31,7 +31,7 @@ jobs:
           --health-retries 10
 
       rabbitmq:
-        image: rabbitmq:4.1-management-alpine
+        image: public.ecr.aws/docker/library/rabbitmq:4.1-management-alpine
         ports:
           - 5672:5672
           - 15672:15672
