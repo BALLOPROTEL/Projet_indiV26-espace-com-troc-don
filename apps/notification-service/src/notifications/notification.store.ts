@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma';
+import { NotificationPrismaService } from '../prisma/prisma.service';
 import type { MarketplaceEventEnvelope } from './event-contract';
 
 export type ReceivedNotification = {
@@ -6,40 +8,41 @@ export type ReceivedNotification = {
   event: MarketplaceEventEnvelope;
 };
 
+/**
+ * A shared, durable inbox. PostgreSQL's unique eventId index arbitrates races
+ * between Notification replicas; RabbitMQ is acked only AFTER its transaction
+ * commits. Keeping all IDs avoids re-processing replayed old deliveries after
+ * they fall outside the 50-event presentation window.
+ */
 @Injectable()
 export class NotificationStore {
-  private readonly items: ReceivedNotification[] = [];
-  private readonly eventIds = new Set<string>();
-  private readonly maxItems = 50;
+  constructor(private readonly prisma: NotificationPrismaService) {}
 
-  record(event: MarketplaceEventEnvelope): boolean {
-    if (this.eventIds.has(event.eventId)) {
-      return false;
-    }
-
-    this.eventIds.add(event.eventId);
-    this.items.unshift({
-      receivedAt: new Date().toISOString(),
-      event,
+  async record(event: MarketplaceEventEnvelope): Promise<boolean> {
+    const result = await this.prisma.notificationEvent.createMany({
+      data: [{
+        eventId: event.eventId,
+        event: JSON.parse(JSON.stringify(event)) as Prisma.InputJsonValue,
+      }],
+      skipDuplicates: true,
     });
 
-    if (this.items.length > this.maxItems) {
-      const removed = this.items.pop();
-      if (removed) {
-        this.eventIds.delete(removed.event.eventId);
-      }
-    }
-
-    return true;
+    return result.count === 1;
   }
 
-  recent(): ReceivedNotification[] {
-    return this.items.map((item) => ({
-      receivedAt: item.receivedAt,
-      event: {
-        ...item.event,
-        data: { ...item.event.data },
-      } as MarketplaceEventEnvelope,
+  async checkReady(): Promise<void> {
+    await this.prisma.checkReady();
+  }
+
+  async recent(): Promise<ReceivedNotification[]> {
+    const items = await this.prisma.notificationEvent.findMany({
+      orderBy: [{ receivedAt: 'desc' }, { eventId: 'desc' }],
+      take: 50,
+    });
+
+    return items.map((item) => ({
+      receivedAt: item.receivedAt.toISOString(),
+      event: structuredClone(item.event) as unknown as MarketplaceEventEnvelope,
     }));
   }
 }

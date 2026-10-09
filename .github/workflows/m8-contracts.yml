@@ -1,0 +1,43 @@
+name: M8 Microservices Contracts
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/gateway/**'
+      - 'apps/catalog-service/**'
+      - 'apps/marketplace-service/**'
+      - 'apps/notification-service/**'
+      - 'infra/k8s/minikube/platform-ingress.yaml'
+      - 'tests/contracts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/m8-contracts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    name: Contract compatibility M8
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.24.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate API, authorization, asynchronous event and Ingress contracts
+        run: pnpm m8:contracts:validate
+      - name: Verify Marketplace to Catalog HTTP failure contracts
+        run: pnpm m8:integration:unit
+      - name: Validate durable Notification Prisma client, tests and compilation
+        env:
+          NOTIFICATION_DATABASE_URL: postgresql://app:example@localhost:5432/projet_indiv26?schema=notification
+        run: pnpm notification:quality

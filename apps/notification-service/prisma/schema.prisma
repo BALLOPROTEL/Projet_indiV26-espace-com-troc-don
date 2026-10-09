@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("NOTIFICATION_DATABASE_URL")
+}
+
+model NotificationEvent {
+  eventId    String   @id @db.VarChar(128)
+  event      Json
+  receivedAt DateTime @default(now())
+
+  @@index([receivedAt])
+  @@map("notification_events")
+}

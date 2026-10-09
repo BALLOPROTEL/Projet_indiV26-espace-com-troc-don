@@ -17,7 +17,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16-alpine
+        image: public.ecr.aws/docker/library/postgres:16-alpine
         env:
           POSTGRES_DB: projet_indiv26
           POSTGRES_USER: app
@@ -31,7 +31,7 @@ jobs:
           --health-retries 10
 
       rabbitmq:
-        image: rabbitmq:4.1-management-alpine
+        image: public.ecr.aws/docker/library/rabbitmq:4.1-management-alpine
         ports:
           - 5672:5672
           - 15672:15672
@@ -45,6 +45,7 @@ jobs:
       DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=public
       CATALOG_DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=catalog
       MARKETPLACE_DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=marketplace
+      NOTIFICATION_DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=notification
       RABBITMQ_URL: amqp://guest:guest@127.0.0.1:5672
       CATALOG_INTERNAL_URL: http://127.0.0.1:3101
       INTERNAL_SERVICE_TOKEN: ci_internal_service_token_2026_long_value
@@ -60,6 +61,31 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      # Docker Hub anonymous pulls are intermittently rate-limited or time out
+      # on GitHub-hosted runners. Reuse the same public upstream mirror that
+      # makes the isolated M8-B/C Compose stack deterministic.
+      - name: Preload Docker build bases via ECR Public
+        shell: bash
+        run: |
+          set -euo pipefail
+          for spec in alpine:3.24.1 node:24.20.0-alpine3.24; do
+            mirror="public.ecr.aws/docker/library/${spec}"
+            loaded=false
+            for attempt in 1 2 3; do
+              if docker pull "${mirror}"; then
+                docker tag "${mirror}" "${spec}"
+                loaded=true
+                break
+              fi
+              echo "[WARN] Mirror pull failed (${attempt}/3): ${spec}"
+              sleep "$(( attempt * 5 ))"
+            done
+            if [ "${loaded}" != true ]; then
+              echo "[FAIL] Cannot preload ${spec}"
+              exit 1
+            fi
+          done
 
       - name: Validate repository baseline
         shell: bash
@@ -329,6 +355,9 @@ jobs:
 
       - name: Test Marketplace Service
         run: pnpm marketplace-service:test
+
+      - name: Apply Notification Prisma migrations
+        run: pnpm --filter notification-service prisma:migrate:deploy
 
       - name: Test Notification Service
         run: pnpm notification:quality

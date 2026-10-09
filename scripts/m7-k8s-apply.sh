@@ -69,12 +69,12 @@ kubectl apply -f "${K8S_DIR}/minio-bootstrap-job.yaml" >/dev/null
 kubectl -n "${NAMESPACE}" wait --for=condition=complete job/minio-bootstrap --timeout=180s
 
 echo "[INFO] Running the three Prisma ownership migrations..."
-for job in legacy-migrate catalog-migrate marketplace-migrate; do
+for job in legacy-migrate catalog-migrate marketplace-migrate notification-migrate; do
   kubectl -n "${NAMESPACE}" delete job "${job}" --ignore-not-found >/dev/null 2>&1 || true
 done
 kubectl apply -f "${K8S_DIR}/migration-jobs.yaml" >/dev/null
 
-for job in legacy-migrate catalog-migrate marketplace-migrate; do
+for job in legacy-migrate catalog-migrate marketplace-migrate notification-migrate; do
   if ! kubectl -n "${NAMESPACE}" wait --for=condition=complete "job/${job}" --timeout=240s; then
     kubectl -n "${NAMESPACE}" logs "job/${job}" || true
     exit 1

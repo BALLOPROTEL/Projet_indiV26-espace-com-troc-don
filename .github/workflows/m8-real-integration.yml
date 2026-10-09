@@ -1,0 +1,69 @@
+name: M8 Real Microservice E2E Integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/m8-compose-integration.mjs'
+      - 'scripts/m8-compose-e2e.mjs'
+      - 'scripts/m6-compose-smoke.sh'
+      - 'compose.yaml'
+      - 'apps/**'
+      - 'infra/keycloak/**'
+      - 'infra/minio/**'
+      - '.github/workflows/m8-real-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compose-integration:
+    name: Real DON/TROC HTTP JWT RabbitMQ resilience M8-B/C
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify integration script syntax
+        run: |
+          node --check scripts/m8-compose-integration.mjs
+          node --check scripts/m8-compose-e2e.mjs
+          bash -n scripts/m6-compose-smoke.sh
+      - name: Preload official Docker images from ECR Public to avoid Docker Hub anonymous limits
+        run: |
+          set -euo pipefail
+          for spec in \
+            postgres:16-alpine \
+            rabbitmq:4.1-management-alpine \
+            node:24.20.0-alpine3.24 \
+            alpine:3.24.1; do
+            mirror="public.ecr.aws/docker/library/${spec}"
+            success=false
+            for attempt in 1 2 3; do
+              if docker pull "${mirror}"; then
+                docker tag "${mirror}" "${spec}"
+                success=true
+                break
+              fi
+              echo "[WARN] ECR pull attempt ${attempt}/3 failed for ${spec}"
+              sleep "$(( attempt * 5 ))"
+            done
+            if [ "${success}" != "true" ]; then
+              echo "[FAIL] Unable to preload ${spec} from ECR public."
+              exit 1
+            fi
+          done
+          docker image inspect postgres:16-alpine rabbitmq:4.1-management-alpine node:24.20.0-alpine3.24 alpine:3.24.1 >/dev/null
+      - name: Execute isolated stack and real M8-B cross-service integration
+        env:
+          M8_RUN_INTEGRATION: 'true'
+          M8_RUN_E2E: 'true'
+        run: bash scripts/m6-compose-smoke.sh
+      - name: Container logs on failure (never dump secrets or full environment)
+        if: failure()
+        run: |
+          docker compose --project-name projet-indiv26-m6-ci -f compose.yaml ps -a || true
+          docker compose --project-name projet-indiv26-m6-ci -f compose.yaml logs --no-color --tail 60 gateway catalog-service marketplace-service notification-service || true

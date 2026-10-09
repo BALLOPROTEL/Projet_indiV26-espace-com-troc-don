@@ -126,6 +126,7 @@ RABBITMQ_PASSWORD_URL="$(url_encode "${RABBITMQ_PASSWORD}")"
 DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB_URL}?schema=public"
 CATALOG_DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB_URL}?schema=catalog"
 MARKETPLACE_DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB_URL}?schema=marketplace"
+NOTIFICATION_DATABASE_URL="postgresql://${POSTGRES_USER_URL}:${POSTGRES_PASSWORD_URL}@postgres:5432/${POSTGRES_DB_URL}?schema=notification"
 RABBITMQ_URL="amqp://${RABBITMQ_USER_URL}:${RABBITMQ_PASSWORD_URL}@rabbitmq:5672"
 
 kubectl -n "${NAMESPACE}" create secret generic legacy-api-secrets \
@@ -146,6 +147,7 @@ kubectl -n "${NAMESPACE}" create secret generic marketplace-secrets \
 
 kubectl -n "${NAMESPACE}" create secret generic notification-secrets \
   --from-literal=RABBITMQ_URL="${RABBITMQ_URL}" \
+  --from-literal=NOTIFICATION_DATABASE_URL="${NOTIFICATION_DATABASE_URL}" \
   --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 
 kubectl -n "${NAMESPACE}" create secret generic gateway-secrets \
