@@ -146,4 +146,9 @@ if [[ "${M8_RUN_INTEGRATION:-false}" == "true" ]]; then
     echo "=== M8-C real TROC / security / resilience E2E ==="
     node scripts/m8-compose-e2e.mjs
   fi
+
+  if [[ "${M9_RUN_WORKFLOWS:-false}" == "true" ]]; then
+    echo "=== M9 real DON/TROC owner inbox and rejection workflow ==="
+    node scripts/m9-compose-workflows.mjs
+  fi
 fi
