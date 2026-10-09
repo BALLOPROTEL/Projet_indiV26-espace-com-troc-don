@@ -30,6 +30,30 @@ jobs:
         run: |
           node --check scripts/m8-compose-integration.mjs
           bash -n scripts/m6-compose-smoke.sh
+      - name: Preload official Docker images from ECR Public to avoid Docker Hub anonymous limits
+        run: |
+          set -euo pipefail
+          for spec in \
+            postgres:16-alpine \
+            rabbitmq:4.1-management-alpine \
+            node:24.20.0-alpine3.24; do
+            mirror="public.ecr.aws/docker/library/${spec}"
+            success=false
+            for attempt in 1 2 3; do
+              if docker pull "${mirror}"; then
+                docker tag "${mirror}" "${spec}"
+                success=true
+                break
+              fi
+              echo "[WARN] ECR pull attempt ${attempt}/3 failed for ${spec}"
+              sleep "$(( attempt * 5 ))"
+            done
+            if [ "${success}" != "true" ]; then
+              echo "[FAIL] Unable to preload ${spec} from ECR public."
+              exit 1
+            fi
+          done
+          docker image inspect postgres:16-alpine rabbitmq:4.1-management-alpine node:24.20.0-alpine3.24 >/dev/null
       - name: Execute isolated stack and real M8-B cross-service integration
         env:
           M8_RUN_INTEGRATION: 'true'
