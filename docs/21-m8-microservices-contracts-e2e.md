@@ -65,19 +65,49 @@ les erreurs upstream 5xx, une réponse mal formée et une panne réseau.
 Ce sont des **tests de contrat du client exécuté avec transport mocké**,
 non un test réseau complet impliquant PostgreSQL, Keycloak ou RabbitMQ.
 
-## M8-B — Intégrations réelles (à implémenter)
+## M8-B — Intégration réelle multi-services : VALIDÉE pour DON
 
-- Test HTTP vrai Gateway → Catalog/Marketplace/Legacy, avec réponses 200/401/404
-  et contenu multipart/binaire non corrompu, plutôt qu'un stub seul.
-- Test d'une requête non autorisée Catalog `/internal/listings/:id`
-  puis de la même requête avec le token inter-service.
-- Intégration Marketplace → Catalog : réponses métier, conflit de réservation,
-  indisponibilité upstream, timeout.
-- RabbitMQ : publication/consommation de vrais messages, corrélation
-  `eventId` et preuve de déduplication.
+CI GitHub Actions : **M8-B Real Microservice Integration #37993733843**
+— **SUCCESS** sur le commit `c13ab4a` (9 octobre 2026).
 
-Les scripts M4 et M5 déjà présents peuvent servir de base, mais leur
-réutilisation doit rester indépendante d'un cluster M7 existant.
+- Script : `scripts/m8-compose-integration.mjs`, appelé par
+  `M8_RUN_INTEGRATION=true bash scripts/m6-compose-smoke.sh`.
+- Stack Compose projet `projet-indiv26-m6-ci` **jetable** : Gateway, Legacy,
+  Catalog, Marketplace, Notification, PostgreSQL (migrations réelles),
+  RabbitMQ, MinIO et Keycloak (vrais JWT), nettoyée avec `down -v`.
+- Récupération de deux JWT Keycloak distincts, audience `api` ;
+  `GET /api/proposals/me` sans JWT `401`, fallback legacy `401`,
+  routes Catalog internes et Notification invisibles derrière Gateway `404`.
+- Deux annonces APPROVED/DONATION insérées dans **la base Catalog jetable**
+  pour isoler les contrats inter-services des règles de publication/images
+  (il ne s'agit pas d'un test complet du processus de modération).
+- `Catalog /internal/listings/:id` refuse l'accès sans token `401`,
+  accepte le token inter-service ; `404` si absent, `409` sur
+  état non compatible ; `reserve → release` rétablit AVAILABLE.
+- Appel HTTP authentifié **Gateway → Marketplace → Catalog** :
+  demande DON `PENDING`, interdiction d'acceptation par le demandeur
+  (`403`), acceptation par le propriétaire, réservation Catalog,
+  confirmations par deux personnes différentes, état `COMPLETED` dans
+  Marketplace **et** Catalog.
+- Consommation réelle **Marketplace → RabbitMQ → Notification** :
+  trois événements (`proposal.created`, `proposal.accepted`,
+  `transaction.completed`) corrélés par `targetListingId`, avec
+  trois `eventId` uniques et enveloppe de version 1.
+
+**Preuve :** le job `Real HTTP + JWT + Catalog + RabbitMQ M8-B` finit
+par `[M8-B] M8-B integration: PASS`.
+
+**Limites :** la CI valide le parcours DON, pas encore le TROC, les
+uploads volumineux de bout en bout, les interruptions/reconnexions,
+ni le rejeu RabbitMQ d'un même `eventId`. Les tests de mappage des pannes
+réseau Catalog (mock transport) restent couverts par M8-A.2 ; l'échec réel
+et les scenarios de résilience restent à certifier M8-C.
+
+Le runner GitHub a initialement subi des erreurs d'accès/rate-limit Docker
+Hub (sans lancement des tests métier). Pour la CI dédiée, les images de
+base Node, Alpine, PostgreSQL et RabbitMQ sont préchargées depuis un miroir
+public ECR ; aucun changement n'est requis dans le Compose de développement.
+
 
 ## M8-C — E2E, sécurité et résilience (à implémenter)
 
