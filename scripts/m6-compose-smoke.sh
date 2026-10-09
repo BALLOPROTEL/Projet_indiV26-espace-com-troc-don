@@ -135,3 +135,10 @@ fi
 echo "Keycloak JWT -> Gateway -> Marketplace: PASS"
 
 echo "M6 isolated Compose smoke: PASS"
+
+# M8-B opt-in: reuse the same disposable and health-checked Compose stack,
+# including real Keycloak, PostgreSQL migrations and RabbitMQ connections.
+if [[ "${M8_RUN_INTEGRATION:-false}" == "true" ]]; then
+  echo "=== M8-B real multi-service integration ==="
+  node scripts/m8-compose-integration.mjs
+fi
