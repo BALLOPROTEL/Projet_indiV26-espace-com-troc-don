@@ -32,6 +32,7 @@ jobs:
         run: |
           node --check scripts/m8-compose-integration.mjs
           node --check scripts/m8-compose-e2e.mjs
+          node --check scripts/m9-compose-workflows.mjs
           bash -n scripts/m6-compose-smoke.sh
       - name: Preload official Docker images from ECR Public to avoid Docker Hub anonymous limits
         run: |
