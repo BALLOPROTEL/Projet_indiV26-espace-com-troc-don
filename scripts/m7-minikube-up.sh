@@ -93,7 +93,7 @@ images=(
   projet-indiv26-catalog-migrate:m7-local
   projet-indiv26-marketplace-service:m7-local
   projet-indiv26-marketplace-migrate:m7-local
-  projet-indiv26-notification-service:m7-local
+  projet-indiv26-notification-service:m8-local
   projet-indiv26-notification-migrate:m8-local
   projet-indiv26-web:m7-local
   projet-indiv26-keycloak:m7-local
