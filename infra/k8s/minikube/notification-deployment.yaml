@@ -27,7 +27,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: notification-service
-          image: projet-indiv26-notification-service:m7-local
+          image: projet-indiv26-notification-service:m8-local
           imagePullPolicy: Never
           envFrom:
             - configMapRef:
