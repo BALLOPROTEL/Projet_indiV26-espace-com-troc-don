@@ -61,6 +61,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      # Docker Hub anonymous pulls are intermittently rate-limited or time out
+      # on GitHub-hosted runners. Reuse the same public upstream mirror that
+      # makes the isolated M8-B/C Compose stack deterministic.
+      - name: Preload Docker build bases via ECR Public
+        shell: bash
+        run: |
+          set -euo pipefail
+          for spec in alpine:3.24.1 node:24.20.0-alpine3.24; do
+            mirror="public.ecr.aws/docker/library/${spec}"
+            loaded=false
+            for attempt in 1 2 3; do
+              if docker pull "${mirror}"; then
+                docker tag "${mirror}" "${spec}"
+                loaded=true
+                break
+              fi
+              echo "[WARN] Mirror pull failed (${attempt}/3): ${spec}"
+              sleep "$(( attempt * 5 ))"
+            done
+            if [ "${loaded}" != true ]; then
+              echo "[FAIL] Cannot preload ${spec}"
+              exit 1
+            fi
+          done
+
       - name: Validate repository baseline
         shell: bash
         run: |
