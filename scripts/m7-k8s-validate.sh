@@ -69,6 +69,8 @@ for job in legacy-migrate catalog-migrate marketplace-migrate notification-migra
   require_rendered "name: ${job}$" "job ${job}"
 done
 
+require_rendered 'image: projet-indiv26-notification-migrate:m8-local' 'notification Prisma migration image'
+require_rendered 'name: notification-migrate' 'Notification migration job'
 require_rendered 'CATALOG_SERVICE_URL: http://catalog-service:3101' 'Gateway -> Catalog DNS'
 require_rendered 'MARKETPLACE_SERVICE_URL: http://marketplace-service:3102' 'Gateway -> Marketplace DNS'
 require_rendered 'LEGACY_API_URL: http://legacy-api:3099' 'Gateway -> legacy DNS'
