@@ -348,7 +348,7 @@ async function journeyWaitCard(targetListingId, status) {
     'const status=' + JSON.stringify(status) + ';' +
     'return [...document.querySelectorAll(".marketplace-dashboard .marketplace-entry")].some(card=>' +
     '[...card.querySelectorAll("a[href]")].some(a=>a.getAttribute("href")==="/annonces/"+id)' +
-    '&&card.innerText.includes(status));})()';
+    '&&card.innerText.toLocaleLowerCase("fr").includes(status.toLocaleLowerCase("fr")));})()';
   await waitUntil('UI listing ' + targetListingId + ' status ' + status, predicate, 120);
 }
 
