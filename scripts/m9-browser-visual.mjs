@@ -324,8 +324,25 @@ async function journeyScreenshot(name) {
 }
 
 async function journeyOpen(route, expectedSelector, label) {
-  await command('Page.navigate', { url: new URL(route, base).href });
-  await waitUntil(label, '!!document.querySelector(' + JSON.stringify(expectedSelector) + ')', 120);
+  const destination = new URL(route, base);
+  // CDP Page.navigate resolves before the new document is guaranteed to load.
+  // Never accept a matching form from the page we are leaving: successive
+  // donation pages expose identical selectors.
+  const listingId = destination.pathname.startsWith('/annonces/')
+    ? decodeURIComponent(destination.pathname.slice('/annonces/'.length))
+    : null;
+  await command('Page.navigate', { url: destination.href });
+  const predicate = '(() => {' +
+    'if (location.href !== ' + JSON.stringify(destination.href) +
+    ' || document.readyState === "loading") return false;' +
+    'if (!document.querySelector(' + JSON.stringify(expectedSelector) + ')) return false;' +
+    'const listingId=' + JSON.stringify(listingId) + ';' +
+    'if (!listingId) return true;' +
+    // The listing index is populated only after the requested detail loaded.
+    'const displayed=document.querySelector(".listing-detail__index")?.textContent ?? "";' +
+    'return displayed.toUpperCase().includes(listingId.slice(0,8).toUpperCase());' +
+    '})()';
+  await waitUntil(label + ' at ' + destination.pathname, predicate, 120);
 }
 
 async function journeyClick(buttonLabel, targetListingId) {
