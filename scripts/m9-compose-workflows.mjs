@@ -100,6 +100,68 @@ async function main() {
   assert.equal(matches[0].event.data.ownerId, owner.sub);
   assert.equal(matches[0].event.version, 1);
   console.log('[M9] RabbitMQ proposal.rejected emitted and stored once: PASS');
+
+  // Codex P1 regression: durable outbox survives RabbitMQ outage.
+  // A rejection must commit together with a retryable event record; the
+  // client must not be told "REJECTED" and silently lose the notification.
+  const queued = await call(gateway, '/api/proposals', {
+    method: 'POST', expected: 201,
+    headers: { ...auth(requester), 'content-type': 'application/json' },
+    body: JSON.stringify({ targetListingId: id, type: 'DONATION_REQUEST',
+      message: 'Second proposal: verify durable outbox recovery.' }),
+  });
+  let rabbitStopped = false;
+  try {
+    execFileSync('docker', ['compose', '-f', 'compose.yaml', 'stop', 'rabbitmq'],
+      { stdio: ['ignore', 'pipe', 'inherit'], timeout: 30000 });
+    rabbitStopped = true;
+
+    const rejectedDuringOutage = await call(gateway,
+      '/api/proposals/' + queued.id + '/reject', {
+        method: 'POST', expected: 201, headers: auth(owner),
+      });
+    assert.equal(rejectedDuringOutage.status, 'REJECTED');
+
+    const verifyOutbox = `
+const {PrismaClient}=require('./generated/prisma');
+(async()=>{
+  const p=new PrismaClient();
+  try {
+    const rows=await p.marketplaceOutboxEvent.findMany({
+      where:{type:'proposal.rejected',publishedAt:null},
+    });
+    if(!rows.some(item=>item.payload?.proposalId===process.env.M9_OUTAGE_PROPOSAL)) {
+      throw new Error('Rejection was committed without a durable pending outbox event');
+    }
+    console.log('[M9] Rejection plus pending outbox entry committed atomically: PASS');
+  } finally { await p.$disconnect(); }
+})().catch(e=>{ console.error(e); process.exit(1); });
+`;
+    execFileSync('docker', ['compose', '-f', 'compose.yaml', 'exec', '-T',
+      '-e', 'M9_OUTAGE_PROPOSAL=' + queued.id, 'marketplace-service', 'node', '-'],
+    { input: verifyOutbox, stdio: ['pipe', 'inherit', 'inherit'], timeout: 60000 });
+  } finally {
+    if (rabbitStopped) {
+      execFileSync('docker', ['compose', '-f', 'compose.yaml', 'start', 'rabbitmq'],
+        { stdio: ['ignore', 'pipe', 'inherit'], timeout: 60000 });
+    }
+  }
+
+  let recovered = [];
+  for (let attempt = 0; attempt < 120; attempt++) {
+    try {
+      const items = await call(notification, '/notifications/recent');
+      recovered = items.filter(entry =>
+        entry.event?.type === 'proposal.rejected' &&
+        entry.event?.data?.proposalId === queued.id);
+      if (recovered.length) break;
+    } catch { /* Notification waits for RabbitMQ reconnect */ }
+    await delay(400);
+  }
+  assert.equal(recovered.length, 1,
+    'Pending proposal.rejected must be delivered once after RabbitMQ recovers');
+  assert.equal(recovered[0].event.data.ownerId, owner.sub);
+  console.log('[M9] RabbitMQ outage -> durable outbox -> recovery -> unique Notification: PASS');
   console.log('[M9] DON/TROC owner workflow acceptance: PASS');
 }
 
