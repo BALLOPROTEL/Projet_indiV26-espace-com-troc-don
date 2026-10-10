@@ -51,7 +51,12 @@ export class CatalogClientService {
       );
     }
 
-    const data: unknown = await response.json();
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch {
+      throw new BadGatewayException('Invalid owner listings response');
+    }
     if (!Array.isArray(data) || !data.every((id) => typeof id === 'string')) {
       throw new BadGatewayException('Invalid owner listings response');
     }
