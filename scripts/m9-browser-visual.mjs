@@ -30,6 +30,7 @@ const browser = spawn(chrome, [
 let socket;
 const pending = new Map();
 let sequence = 0;
+const apiResponses = [];
 
 async function waitForPort() {
   const file = join(profileDir, 'DevToolsActivePort');
@@ -66,6 +67,13 @@ async function startCdp(port) {
   });
   socket.addEventListener('message', ({ data }) => {
     const msg = JSON.parse(String(data));
+    if (msg.method === 'Network.responseReceived') {
+      const response = msg.params?.response;
+      if (response?.url?.includes('/api/')) {
+        try { apiResponses.push({ path: new URL(response.url).pathname, status: response.status }); }
+        catch { /* ignore invalid URLs */ }
+      }
+    }
     const promise = pending.get(msg.id);
     if (!promise) return;
     pending.delete(msg.id);
@@ -75,6 +83,7 @@ async function startCdp(port) {
   });
   await command('Page.enable');
   await command('Runtime.enable');
+  await command('Network.enable');
 }
 
 async function capture(route, width, height, filename, expected, selector) {
@@ -134,6 +143,8 @@ async function waitUntil(label, predicate, maxAttempts = 100) {
       title: document.title,
       text: document.body?.innerText?.slice(0, 1500) ?? '(empty)',
       hasDashboard: !!document.querySelector('.marketplace-dashboard'),
+      dashboardText: document.querySelector('.marketplace-dashboard')?.innerText?.slice(0, 2500) ?? null,
+      errors: [...document.querySelectorAll('[role=alert]')].map(e => e.innerText).slice(0, 6),
       hasKeycloakLogin: !!document.querySelector('#username'),
     })`);
     const shot = await command('Page.captureScreenshot', {
@@ -141,7 +152,7 @@ async function waitUntil(label, predicate, maxAttempts = 100) {
     });
     writeFileSync(join(output, 'authenticated-owner-diagnostic.png'),
       Buffer.from(shot.data, 'base64'));
-    console.error('[M9 Browser] Authentication diagnosis:', JSON.stringify(browserState));
+    console.error('[M9 Browser] Authentication diagnosis:', JSON.stringify({ ...browserState, apiResponses: apiResponses.slice(-35) }));
   } catch (diagnosticError) {
     console.error('[M9 Browser] Could not capture diagnostic:', String(diagnosticError));
   }
