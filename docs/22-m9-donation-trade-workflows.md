@@ -39,6 +39,7 @@ Artefact : `m9-browser-visual-d1db122e2b3e83c28758117c38821c4d51fce1cc` (5 captu
 
 ## Revue, sécurité et décision de fusion
 
+- Nouvelle revue Codex sur `b315807` : trois P2 pris en compte avant fusion : migration Marketplace au démarrage de `services:dev`, message de succès Web conservé si un rafraîchissement échoue, et outbox atomique pour les propositions refusées automatiquement lors d'une acceptation. Test unitaire pour les refus concurrents ajoutés. **Les nouvelles CI doivent certifier ces changements.**
 - Codex a rendu deux remarques sur le commit `51b855f` : P1 outbox et P2 HTTP 502. Les correctifs sont présents sur le HEAD `81ff5a4`, la CI et les tests de panne sont verts.
 - Une **relecture Codex du HEAD final** doit être examinée avant de déclarer la PR prête pour fusion ; ne pas assimiler la revue antérieure du commit `51b855f` à une approbation du HEAD actuel.
 - La PR #54 reste **ouverte et en brouillon**. Aucune fusion, activation d'auto-merge ou modification du Codespace/Minikube sans accord explicite du propriétaire.

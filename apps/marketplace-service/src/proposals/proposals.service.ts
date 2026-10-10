@@ -207,7 +207,10 @@ export class ProposalsService {
           );
         }
 
-        await tx.proposal.updateMany({
+        // Return exactly the proposals transitioned by this statement.
+        // Publishing outside the transaction could silently lose automatic
+        // rejections when RabbitMQ is unavailable.
+        const automaticallyRejected = await tx.proposal.updateManyAndReturn({
           where: {
             id: { not: proposal.id },
             targetListingId: proposal.targetListingId,
@@ -217,7 +220,28 @@ export class ProposalsService {
             status: ProposalStatus.REJECTED,
             resolvedAt: new Date(),
           },
+          select: {
+            id: true,
+            targetListingId: true,
+            requesterId: true,
+          },
         });
+
+        if (automaticallyRejected.length > 0) {
+          await tx.marketplaceOutboxEvent.createMany({
+            data: automaticallyRejected.map((rejected) => ({
+              eventId: randomUUID(),
+              type: MARKETPLACE_EVENT_TYPES.PROPOSAL_REJECTED,
+              payload: {
+                proposalId: rejected.id,
+                targetListingId: rejected.targetListingId,
+                requesterId: rejected.requesterId,
+                ownerId,
+              },
+              occurredAt: new Date(),
+            })),
+          });
+        }
 
         return tx.marketplaceTransaction.create({
           data: {

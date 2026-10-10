@@ -83,10 +83,16 @@ export function MarketplaceDashboard() {
       if (action === 'accept') await marketplaceApi.accept(token, id);
       if (action === 'reject') await marketplaceApi.reject(token, id);
       if (action === 'confirm') await marketplaceApi.confirm(token, id);
-      await refresh();
+      // Once the API mutation succeeds, a transient refresh failure must not
+      // present the committed action as a failure (and invite a conflicting retry).
       setNotice(action === 'reject' ? 'Proposition refusée.' : action === 'accept'
         ? 'Proposition acceptée. Les deux participants doivent confirmer la remise.'
         : 'Confirmation enregistrée. La transaction sera clôturée après celle de l’autre participant.');
+      try {
+        await refresh();
+      } catch {
+        setError('Opération enregistrée, mais impossible d’actualiser les échanges. Cliquez sur Actualiser.');
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Opération impossible.');
     } finally {

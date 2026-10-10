@@ -24,12 +24,14 @@ describe('ProposalsService', () => {
     findUnique: jest.fn(),
     findUniqueOrThrow: jest.fn(),
     updateMany: jest.fn(),
+    updateManyAndReturn: jest.fn(),
   };
   const transactionApi = {
     create: jest.fn(),
   };
   const outboxApi = {
     create: jest.fn(),
+    createMany: jest.fn(),
   };
   const tx = {
     proposal: proposalApi,
@@ -91,6 +93,8 @@ describe('ProposalsService', () => {
       ...data,
     }));
     proposalApi.updateMany.mockResolvedValue({ count: 1 });
+    proposalApi.updateManyAndReturn.mockResolvedValue([]);
+    outboxApi.createMany.mockResolvedValue({ count: 0 });
     transactionApi.create.mockImplementation(async ({ data }) => ({
       id: 'tx-1',
       ...data,
@@ -295,6 +299,7 @@ describe('ProposalsService', () => {
       },
     });
     expect(result.id).toBe('tx-1');
+    expect(outboxApi.createMany).not.toHaveBeenCalled();
     expect(events.publish).toHaveBeenCalledWith(
       'proposal.accepted',
       expect.objectContaining({
@@ -304,6 +309,46 @@ describe('ProposalsService', () => {
         requesterId: 'requester-1',
       }),
     );
+  });
+
+  it('atomically enqueues events for all proposals auto-rejected on acceptance', async () => {
+    proposalApi.findUnique.mockResolvedValue(proposal());
+    (catalog.getListing as jest.Mock).mockResolvedValue(listing());
+    proposalApi.updateManyAndReturn.mockResolvedValue([
+      { id: 'proposal-2', targetListingId: 'target-1', requesterId: 'requester-2' },
+      { id: 'proposal-3', targetListingId: 'target-1', requesterId: 'requester-3' },
+    ]);
+
+    await service.accept('proposal-1', 'owner-1');
+
+    expect(proposalApi.updateManyAndReturn).toHaveBeenCalledWith({
+      where: {
+        id: { not: 'proposal-1' },
+        targetListingId: 'target-1',
+        status: ProposalStatus.PENDING,
+      },
+      data: {
+        status: ProposalStatus.REJECTED,
+        resolvedAt: expect.any(Date),
+      },
+      select: { id: true, targetListingId: true, requesterId: true },
+    });
+    const entries = outboxApi.createMany.mock.calls[0][0].data;
+    expect(entries).toHaveLength(2);
+    expect(entries.map((item: { payload: { proposalId: string } }) => item.payload.proposalId))
+      .toEqual(['proposal-2', 'proposal-3']);
+    expect(entries[0]).toEqual(expect.objectContaining({
+      eventId: expect.any(String),
+      type: 'proposal.rejected',
+      occurredAt: expect.any(Date),
+      payload: {
+        proposalId: 'proposal-2',
+        targetListingId: 'target-1',
+        requesterId: 'requester-2',
+        ownerId: 'owner-1',
+      },
+    }));
+    expect(entries[1].eventId).not.toBe(entries[0].eventId);
   });
 
   it('prevents a non-owner from accepting a proposal', async () => {
