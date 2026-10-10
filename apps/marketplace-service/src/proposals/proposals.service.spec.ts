@@ -28,9 +28,13 @@ describe('ProposalsService', () => {
   const transactionApi = {
     create: jest.fn(),
   };
+  const outboxApi = {
+    create: jest.fn(),
+  };
   const tx = {
     proposal: proposalApi,
     marketplaceTransaction: transactionApi,
+    marketplaceOutboxEvent: outboxApi,
   };
   const prisma = {
     proposal: proposalApi,
@@ -225,14 +229,19 @@ describe('ProposalsService', () => {
       data: { status: ProposalStatus.REJECTED, resolvedAt: expect.any(Date) },
     });
     expect(catalog.reserveListing).not.toHaveBeenCalled();
-    expect(events.publish).toHaveBeenCalledWith(
-      'proposal.rejected',
-      expect.objectContaining({
-        proposalId: 'proposal-1',
-        ownerId: 'owner-1',
-        requesterId: 'requester-1',
+    expect(outboxApi.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        eventId: expect.any(String),
+        type: 'proposal.rejected',
+        occurredAt: expect.any(Date),
+        payload: expect.objectContaining({
+          proposalId: 'proposal-1',
+          ownerId: 'owner-1',
+          requesterId: 'requester-1',
+        }),
       }),
-    );
+    });
+    expect(events.publish).not.toHaveBeenCalled();
   });
 
   it('prevents non-owners from rejecting a proposal', async () => {
@@ -256,6 +265,16 @@ describe('ProposalsService', () => {
     (catalog.getListing as jest.Mock).mockResolvedValue(listing());
     await expect(service.reject('proposal-1', 'owner-1'))
       .rejects.toBeInstanceOf(ConflictException);
+    expect(events.publish).not.toHaveBeenCalled();
+    expect(outboxApi.create).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a failed outbox insert instead of a silent rejection', async () => {
+    proposalApi.findUnique.mockResolvedValue(proposal());
+    (catalog.getListing as jest.Mock).mockResolvedValue(listing());
+    outboxApi.create.mockRejectedValueOnce(new Error('PostgreSQL outbox unavailable'));
+    await expect(service.reject('proposal-1', 'owner-1'))
+      .rejects.toThrow('PostgreSQL outbox unavailable');
     expect(events.publish).not.toHaveBeenCalled();
   });
 
