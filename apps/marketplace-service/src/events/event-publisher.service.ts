@@ -107,6 +107,13 @@ export class MarketplaceEventPublisher
       data,
     };
 
+    return this.publishEnvelope(event);
+  }
+
+  // Publish a previously committed event without generating a new eventId.
+  // Retries keep the ID stable for downstream durable deduplication.
+  async publishEnvelope(event: MarketplaceEventEnvelope): Promise<boolean> {
+    const { type } = event;
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       let channel: ConfirmChannel | undefined;
 

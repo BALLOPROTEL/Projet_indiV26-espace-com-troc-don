@@ -92,6 +92,36 @@ describe('M8 Marketplace → Catalog HTTP integration contract', () => {
     await expect(service.reserveListing('abc')).rejects.toBeInstanceOf(BadGatewayException);
   });
 
+  it('queries owned IDs via the authenticated internal Catalog endpoint', async () => {
+    const spy = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(['owned-1', 'owned-2']), { status: 200 }),
+    );
+    await expect(service.getOwnerListingIds('owner/123'))
+      .resolves.toEqual(['owned-1', 'owned-2']);
+    expect(spy).toHaveBeenCalledWith(
+      'http://catalog:3101/internal/listings/owner/owner%2F123/ids',
+      expect.objectContaining({
+        headers: { 'x-internal-service-token': 'm8-test-token' },
+      }),
+    );
+  });
+
+  it('maps malformed HTTP 200 owner-list JSON to upstream 502', async () => {
+    jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response('not JSON', { status: 200 }),
+    );
+    await expect(service.getOwnerListingIds('owner'))
+      .rejects.toBeInstanceOf(BadGatewayException);
+  });
+
+  it('maps an aborted owner-list response body to upstream 502', async () => {
+    const response = new Response('[]', { status: 200 });
+    jest.spyOn(response, 'json').mockRejectedValue(new Error('body stream aborted'));
+    jest.spyOn(global, 'fetch').mockResolvedValue(response);
+    await expect(service.getOwnerListingIds('owner'))
+      .rejects.toBeInstanceOf(BadGatewayException);
+  });
+
   it('fails closed when Catalog URL or internal token is missing', () => {
     // An explicit empty provider avoids reading CI process.env while testing
     // the real client's fail-closed constructor behavior.

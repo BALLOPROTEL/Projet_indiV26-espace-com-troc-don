@@ -3,6 +3,9 @@ import type {
   ListingImage,
   ListingInput,
   ListingStatus,
+  MarketplaceProposal,
+  MarketplaceTransaction,
+  ProposalType,
 } from './types';
 
 const API_URL =
@@ -202,6 +205,52 @@ export const listingsApi = {
         method: 'POST',
         body: JSON.stringify({ reason, reviewedUpdatedAt }),
       },
+      token,
+    ),
+};
+
+export const marketplaceApi = {
+  mine: (token: string) =>
+    request<MarketplaceProposal[]>('/proposals/me', {}, token),
+
+  received: (token: string) =>
+    request<MarketplaceProposal[]>('/proposals/received', {}, token),
+
+  create: (
+    token: string,
+    input: {
+      targetListingId: string;
+      type: ProposalType;
+      offeredListingId?: string;
+      message?: string;
+    },
+  ) =>
+    request<MarketplaceProposal>('/proposals', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }, token),
+
+  accept: (token: string, id: string) =>
+    request<MarketplaceTransaction>(
+      `/proposals/${encodeURIComponent(id)}/accept`,
+      { method: 'POST' },
+      token,
+    ),
+
+  reject: (token: string, id: string) =>
+    request<MarketplaceProposal>(
+      `/proposals/${encodeURIComponent(id)}/reject`,
+      { method: 'POST' },
+      token,
+    ),
+
+  transactions: (token: string) =>
+    request<MarketplaceTransaction[]>('/transactions/me', {}, token),
+
+  confirm: (token: string, id: string) =>
+    request<MarketplaceTransaction>(
+      `/transactions/${encodeURIComponent(id)}/confirm`,
+      { method: 'POST' },
       token,
     ),
 };

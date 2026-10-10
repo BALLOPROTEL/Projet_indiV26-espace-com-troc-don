@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ProposalStatus, ProposalType } from '../../generated/prisma';
+import { randomUUID } from 'node:crypto';
 import { CatalogClientService } from '../catalog/catalog-client.service';
 import { MARKETPLACE_EVENT_TYPES } from '../events/event-contract';
 import { MarketplaceEventPublisher } from '../events/event-publisher.service';
@@ -87,6 +88,68 @@ export class ProposalsService {
     });
   }
 
+  async findReceived(ownerId: string) {
+    const ownedListingIds = await this.catalog.getOwnerListingIds(ownerId);
+    if (ownedListingIds.length === 0) {
+      return [];
+    }
+
+    // Catalog alone owns listing records; Marketplace joins only by IDs.
+    return this.prisma.proposal.findMany({
+      where: { targetListingId: { in: ownedListingIds } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async reject(id: string, ownerId: string) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id },
+    });
+
+    if (!proposal) {
+      throw new NotFoundException('Proposal not found');
+    }
+
+    const target = await this.catalog.getListing(proposal.targetListingId);
+    if (target.ownerId !== ownerId) {
+      throw new ForbiddenException(
+        'Only the target listing owner can reject this proposal',
+      );
+    }
+
+    // The rejection and its event must COMMIT together. A transient
+    // RabbitMQ outage cannot silently lose proposal.rejected: the outbox
+    // worker will publish the persisted envelope after recovery.
+    return this.prisma.$transaction(async (tx) => {
+      const claim = await tx.proposal.updateMany({
+        where: { id: proposal.id, status: ProposalStatus.PENDING },
+        data: {
+          status: ProposalStatus.REJECTED,
+          resolvedAt: new Date(),
+        },
+      });
+      if (claim.count !== 1) {
+        throw new ConflictException('Only a pending proposal can be rejected');
+      }
+
+      await tx.marketplaceOutboxEvent.create({
+        data: {
+          eventId: randomUUID(),
+          type: MARKETPLACE_EVENT_TYPES.PROPOSAL_REJECTED,
+          payload: {
+            proposalId: proposal.id,
+            targetListingId: proposal.targetListingId,
+            requesterId: proposal.requesterId,
+            ownerId,
+          },
+          occurredAt: new Date(),
+        },
+      });
+
+      return tx.proposal.findUniqueOrThrow({ where: { id } });
+    });
+  }
+
   async accept(id: string, ownerId: string) {
     const proposal = await this.prisma.proposal.findUnique({
       where: { id },
@@ -144,7 +207,10 @@ export class ProposalsService {
           );
         }
 
-        await tx.proposal.updateMany({
+        // Return exactly the proposals transitioned by this statement.
+        // Publishing outside the transaction could silently lose automatic
+        // rejections when RabbitMQ is unavailable.
+        const automaticallyRejected = await tx.proposal.updateManyAndReturn({
           where: {
             id: { not: proposal.id },
             targetListingId: proposal.targetListingId,
@@ -154,7 +220,28 @@ export class ProposalsService {
             status: ProposalStatus.REJECTED,
             resolvedAt: new Date(),
           },
+          select: {
+            id: true,
+            targetListingId: true,
+            requesterId: true,
+          },
         });
+
+        if (automaticallyRejected.length > 0) {
+          await tx.marketplaceOutboxEvent.createMany({
+            data: automaticallyRejected.map((rejected) => ({
+              eventId: randomUUID(),
+              type: MARKETPLACE_EVENT_TYPES.PROPOSAL_REJECTED,
+              payload: {
+                proposalId: rejected.id,
+                targetListingId: rejected.targetListingId,
+                requesterId: rejected.requesterId,
+                ownerId,
+              },
+              occurredAt: new Date(),
+            })),
+          });
+        }
 
         return tx.marketplaceTransaction.create({
           data: {

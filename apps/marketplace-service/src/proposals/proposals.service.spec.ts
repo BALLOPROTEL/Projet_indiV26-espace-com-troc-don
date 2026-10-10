@@ -1,6 +1,8 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { ProposalStatus, ProposalType } from '../../generated/prisma';
 import { CatalogClientService } from '../catalog/catalog-client.service';
@@ -20,14 +22,21 @@ describe('ProposalsService', () => {
     create: jest.fn(),
     findMany: jest.fn(),
     findUnique: jest.fn(),
+    findUniqueOrThrow: jest.fn(),
     updateMany: jest.fn(),
+    updateManyAndReturn: jest.fn(),
   };
   const transactionApi = {
     create: jest.fn(),
   };
+  const outboxApi = {
+    create: jest.fn(),
+    createMany: jest.fn(),
+  };
   const tx = {
     proposal: proposalApi,
     marketplaceTransaction: transactionApi,
+    marketplaceOutboxEvent: outboxApi,
   };
   const prisma = {
     proposal: proposalApi,
@@ -37,6 +46,7 @@ describe('ProposalsService', () => {
   } as unknown as PrismaService;
   const catalog = {
     getListing: jest.fn(),
+    getOwnerListingIds: jest.fn(),
     reserveListing: jest.fn(),
     releaseListing: jest.fn(),
   } as unknown as CatalogClientService;
@@ -83,6 +93,8 @@ describe('ProposalsService', () => {
       ...data,
     }));
     proposalApi.updateMany.mockResolvedValue({ count: 1 });
+    proposalApi.updateManyAndReturn.mockResolvedValue([]);
+    outboxApi.createMany.mockResolvedValue({ count: 0 });
     transactionApi.create.mockImplementation(async ({ data }) => ({
       id: 'tx-1',
       ...data,
@@ -186,6 +198,90 @@ describe('ProposalsService', () => {
     });
   });
 
+
+  it('returns received proposals solely for target listing IDs owned by actor', async () => {
+    (catalog.getOwnerListingIds as jest.Mock).mockResolvedValue(['item-a', 'item-b']);
+    proposalApi.findMany.mockResolvedValue([]);
+
+    await service.findReceived('owner-1');
+
+    expect(catalog.getOwnerListingIds).toHaveBeenCalledWith('owner-1');
+    expect(proposalApi.findMany).toHaveBeenCalledWith({
+      where: { targetListingId: { in: ['item-a', 'item-b'] } },
+      orderBy: { createdAt: 'desc' },
+    });
+  });
+
+  it('never queries proposals when the actor owns no listings', async () => {
+    (catalog.getOwnerListingIds as jest.Mock).mockResolvedValue([]);
+    await expect(service.findReceived('owner-1')).resolves.toEqual([]);
+    expect(proposalApi.findMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects a pending proposal owned by actor without reserving Catalog', async () => {
+    proposalApi.findUnique.mockResolvedValue(proposal());
+    proposalApi.findUniqueOrThrow.mockResolvedValue(
+      proposal({ status: ProposalStatus.REJECTED }),
+    );
+    (catalog.getListing as jest.Mock).mockResolvedValue(listing());
+
+    const result = await service.reject('proposal-1', 'owner-1');
+
+    expect(result.status).toBe(ProposalStatus.REJECTED);
+    expect(proposalApi.updateMany).toHaveBeenCalledWith({
+      where: { id: 'proposal-1', status: ProposalStatus.PENDING },
+      data: { status: ProposalStatus.REJECTED, resolvedAt: expect.any(Date) },
+    });
+    expect(catalog.reserveListing).not.toHaveBeenCalled();
+    expect(outboxApi.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        eventId: expect.any(String),
+        type: 'proposal.rejected',
+        occurredAt: expect.any(Date),
+        payload: expect.objectContaining({
+          proposalId: 'proposal-1',
+          ownerId: 'owner-1',
+          requesterId: 'requester-1',
+        }),
+      }),
+    });
+    expect(events.publish).not.toHaveBeenCalled();
+  });
+
+  it('prevents non-owners from rejecting a proposal', async () => {
+    proposalApi.findUnique.mockResolvedValue(proposal());
+    (catalog.getListing as jest.Mock).mockResolvedValue(listing());
+
+    await expect(service.reject('proposal-1', 'stranger'))
+      .rejects.toBeInstanceOf(ForbiddenException);
+    expect(proposalApi.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 for an unknown proposal', async () => {
+    proposalApi.findUnique.mockResolvedValue(null);
+    await expect(service.reject('missing', 'owner-1'))
+      .rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('returns 409 if another action already resolved the proposal', async () => {
+    proposalApi.findUnique.mockResolvedValue(proposal());
+    proposalApi.updateMany.mockResolvedValue({ count: 0 });
+    (catalog.getListing as jest.Mock).mockResolvedValue(listing());
+    await expect(service.reject('proposal-1', 'owner-1'))
+      .rejects.toBeInstanceOf(ConflictException);
+    expect(events.publish).not.toHaveBeenCalled();
+    expect(outboxApi.create).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a failed outbox insert instead of a silent rejection', async () => {
+    proposalApi.findUnique.mockResolvedValue(proposal());
+    (catalog.getListing as jest.Mock).mockResolvedValue(listing());
+    outboxApi.create.mockRejectedValueOnce(new Error('PostgreSQL outbox unavailable'));
+    await expect(service.reject('proposal-1', 'owner-1'))
+      .rejects.toThrow('PostgreSQL outbox unavailable');
+    expect(events.publish).not.toHaveBeenCalled();
+  });
+
   it('accepts a donation proposal and creates a transaction', async () => {
     proposalApi.findUnique.mockResolvedValue(proposal());
     (catalog.getListing as jest.Mock).mockResolvedValue(listing());
@@ -203,6 +299,7 @@ describe('ProposalsService', () => {
       },
     });
     expect(result.id).toBe('tx-1');
+    expect(outboxApi.createMany).not.toHaveBeenCalled();
     expect(events.publish).toHaveBeenCalledWith(
       'proposal.accepted',
       expect.objectContaining({
@@ -212,6 +309,46 @@ describe('ProposalsService', () => {
         requesterId: 'requester-1',
       }),
     );
+  });
+
+  it('atomically enqueues events for all proposals auto-rejected on acceptance', async () => {
+    proposalApi.findUnique.mockResolvedValue(proposal());
+    (catalog.getListing as jest.Mock).mockResolvedValue(listing());
+    proposalApi.updateManyAndReturn.mockResolvedValue([
+      { id: 'proposal-2', targetListingId: 'target-1', requesterId: 'requester-2' },
+      { id: 'proposal-3', targetListingId: 'target-1', requesterId: 'requester-3' },
+    ]);
+
+    await service.accept('proposal-1', 'owner-1');
+
+    expect(proposalApi.updateManyAndReturn).toHaveBeenCalledWith({
+      where: {
+        id: { not: 'proposal-1' },
+        targetListingId: 'target-1',
+        status: ProposalStatus.PENDING,
+      },
+      data: {
+        status: ProposalStatus.REJECTED,
+        resolvedAt: expect.any(Date),
+      },
+      select: { id: true, targetListingId: true, requesterId: true },
+    });
+    const entries = outboxApi.createMany.mock.calls[0][0].data;
+    expect(entries).toHaveLength(2);
+    expect(entries.map((item: { payload: { proposalId: string } }) => item.payload.proposalId))
+      .toEqual(['proposal-2', 'proposal-3']);
+    expect(entries[0]).toEqual(expect.objectContaining({
+      eventId: expect.any(String),
+      type: 'proposal.rejected',
+      occurredAt: expect.any(Date),
+      payload: {
+        proposalId: 'proposal-2',
+        targetListingId: 'target-1',
+        requesterId: 'requester-2',
+        ownerId: 'owner-1',
+      },
+    }));
+    expect(entries[1].eventId).not.toBe(entries[0].eventId);
   });
 
   it('prevents a non-owner from accepting a proposal', async () => {

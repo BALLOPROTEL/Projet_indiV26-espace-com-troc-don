@@ -5,6 +5,7 @@ export const MARKETPLACE_EVENT_VERSION = 1 as const;
 export const MARKETPLACE_EVENT_TYPES = [
   'proposal.created',
   'proposal.accepted',
+  'proposal.rejected',
   'transaction.completed',
 ] as const;
 
@@ -17,6 +18,13 @@ type ProposalCreatedData = {
   requesterId: string;
   proposalType: 'DONATION_REQUEST' | 'TRADE_OFFER';
   offeredListingId: string | null;
+};
+
+type ProposalRejectedData = {
+  proposalId: string;
+  targetListingId: string;
+  requesterId: string;
+  ownerId: string;
 };
 
 type ProposalAcceptedData = {
@@ -40,6 +48,7 @@ type TransactionCompletedData = {
 type MarketplaceEventDataMap = {
   'proposal.created': ProposalCreatedData;
   'proposal.accepted': ProposalAcceptedData;
+  'proposal.rejected': ProposalRejectedData;
   'transaction.completed': TransactionCompletedData;
 };
 
@@ -110,6 +119,12 @@ function commonEnvelope(
     value.eventId.trim().length === 0
   ) {
     throw new Error('RabbitMQ eventId is required');
+  }
+
+  // The durable inbox uses VARCHAR(128); reject non-retryable IDs before
+  // they reach Prisma and cause an endless RabbitMQ nack/requeue loop.
+  if (value.eventId.length > 128) {
+    throw new Error('RabbitMQ eventId must be at most 128 characters');
   }
 
   if (value.version !== MARKETPLACE_EVENT_VERSION) {
@@ -189,6 +204,18 @@ export function parseMarketplaceEvent(
         },
       };
     }
+
+    case 'proposal.rejected':
+      return {
+        ...base,
+        type: 'proposal.rejected',
+        data: {
+          proposalId: requiredString(base.data, 'proposalId'),
+          targetListingId: requiredString(base.data, 'targetListingId'),
+          requesterId: requiredString(base.data, 'requesterId'),
+          ownerId: requiredString(base.data, 'ownerId'),
+        },
+      };
 
     case 'proposal.accepted':
       return {

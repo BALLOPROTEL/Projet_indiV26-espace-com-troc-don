@@ -13,6 +13,7 @@ import {
   operationLabel,
 } from '../lib/presentation';
 import type { Listing } from '../lib/types';
+import { ListingProposalForm } from './listing-proposal-form';
 
 export function ListingDetail({ id }: { id: string }) {
   const [listing, setListing] = useState<Listing | null>(null);
@@ -182,6 +183,8 @@ export function ListingDetail({ id }: { id: string }) {
               </p>
             </section>
           )}
+
+          <ListingProposalForm listing={listing} />
 
           <div className="listing-detail__actions">
             <Link className="button" href="/espace">

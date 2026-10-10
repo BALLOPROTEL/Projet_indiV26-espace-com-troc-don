@@ -6,6 +6,8 @@ on:
     paths:
       - 'scripts/m8-compose-integration.mjs'
       - 'scripts/m8-compose-e2e.mjs'
+      - 'scripts/m9-compose-workflows.mjs'
+      - 'scripts/m9-browser-visual.mjs'
       - 'scripts/m6-compose-smoke.sh'
       - 'compose.yaml'
       - 'apps/**'
@@ -23,14 +25,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 55
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '24'
       - name: Verify integration script syntax
         run: |
           node --check scripts/m8-compose-integration.mjs
           node --check scripts/m8-compose-e2e.mjs
+          node --check scripts/m9-compose-workflows.mjs
+          node --check scripts/m9-browser-visual.mjs
           bash -n scripts/m6-compose-smoke.sh
       - name: Preload official Docker images from ECR Public to avoid Docker Hub anonymous limits
         run: |
@@ -61,7 +65,17 @@ jobs:
         env:
           M8_RUN_INTEGRATION: 'true'
           M8_RUN_E2E: 'true'
+          M9_RUN_WORKFLOWS: 'true'
+          M9_RUN_BROWSER: 'true'
         run: bash scripts/m6-compose-smoke.sh
+      - name: Upload M9 real browser screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: m9-browser-visual-${{ github.sha }}
+          path: reports/m9-browser/*.png
+          if-no-files-found: warn
+          retention-days: 7
       - name: Container logs on failure (never dump secrets or full environment)
         if: failure()
         run: |

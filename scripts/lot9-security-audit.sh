@@ -112,28 +112,31 @@ python3 - <<'PY'
 import re
 from pathlib import Path
 
-workflow = Path(".github/workflows/bootstrap-ci.yml").read_text(
-    encoding="utf-8"
+workflows = sorted(Path(".github/workflows").glob("*.yml")) + sorted(
+    Path(".github/workflows").glob("*.yaml")
 )
-uses = re.findall(
-    r"^\s*uses:\s*([^\s#]+)",
-    workflow,
-    flags=re.MULTILINE,
-)
+if not workflows:
+    raise SystemExit("[FAIL] No GitHub Actions workflows found.")
 
-if not uses:
-    raise SystemExit("[FAIL] No GitHub Actions references found.")
-
+total = 0
 bad = []
-for ref in uses:
-    if ref.startswith("./"):
-        continue
-    if "@" not in ref:
-        bad.append(ref)
-        continue
-    _, version = ref.rsplit("@", 1)
-    if not re.fullmatch(r"[0-9a-f]{40}", version):
-        bad.append(ref)
+for path in workflows:
+    uses = re.findall(
+        r"^\s*(?:-\s*)?uses:\s*([^\s#]+)",
+        path.read_text(encoding="utf-8"),
+        flags=re.MULTILINE,
+    )
+    for ref in uses:
+        if ref.startswith("./"):
+            continue
+        total += 1
+        if "@" not in ref or not re.fullmatch(
+            r"[0-9a-f]{40}", ref.rsplit("@", 1)[1]
+        ):
+            bad.append(f"{path}: {ref}")
+
+if total == 0:
+    raise SystemExit("[FAIL] No GitHub Actions references found.")
 
 if bad:
     raise SystemExit(
@@ -141,9 +144,7 @@ if bad:
         + ", ".join(bad)
     )
 
-print(
-    f"[OK] {len(uses)} action references use immutable commit SHAs."
-)
+print(f"[OK] {total} action references across {len(workflows)} workflow files use immutable SHAs.")
 PY
 
 echo "[CHECK] API / Web hardening controls"

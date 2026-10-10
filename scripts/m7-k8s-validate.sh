@@ -217,6 +217,10 @@ echo "[OK] Notification durable inbox exists in PostgreSQL."
 kubectl -n "${NAMESPACE}" exec deployment/rabbitmq -- rabbitmq-diagnostics -q ping >/dev/null
 echo "[OK] RabbitMQ pod responds to diagnostics."
 
+# Deployment rollout only confirms pod readiness; Kubernetes Service endpoints
+# and kube-proxy routing can take a few more seconds to converge on kind.
+# Retry transient connection refusals instead of incorrectly failing a healthy
+# deployment on the first request. The bounded timeout still detects real faults.
 kubectl -n "${NAMESPACE}" exec deployment/gateway -- node -e "
 const targets = [
   ['legacy', 'http://legacy-api:3099/api/health/live'],
@@ -225,19 +229,37 @@ const targets = [
 ];
 (async () => {
   for (const [name, url] of targets) {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(name + ' -> ' + response.status);
+    let last;
+    for (let attempt = 1; attempt <= 25; attempt++) {
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
+        if (response.ok) { last = undefined; break; }
+        last = new Error(name + ' -> HTTP ' + response.status);
+      } catch (error) {
+        last = error;
+      }
+      if (attempt < 25) await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    if (last) throw new Error(name + ' service not available after retries', { cause: last });
   }
 })().catch((error) => { console.error(error); process.exit(1); });
 "
 echo "[OK] Gateway -> Legacy/Catalog/Marketplace Kubernetes DNS."
 
 kubectl -n "${NAMESPACE}" exec deployment/marketplace-service -- node -e "
-fetch('http://catalog-service:3101/health/ready')
-  .then((response) => {
-    if (!response.ok) throw new Error(String(response.status));
-  })
-  .catch((error) => { console.error(error); process.exit(1); });
+(async () => {
+  let last;
+  for (let attempt = 1; attempt <= 25; attempt++) {
+    try {
+      const response = await fetch('http://catalog-service:3101/health/ready',
+        { signal: AbortSignal.timeout(3000) });
+      if (response.ok) return;
+      last = new Error('Catalog HTTP ' + response.status);
+    } catch (error) { last = error; }
+    if (attempt < 25) await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  throw last;
+})().catch((error) => { console.error(error); process.exit(1); });
 "
 echo "[OK] Marketplace -> Catalog Kubernetes DNS."
 

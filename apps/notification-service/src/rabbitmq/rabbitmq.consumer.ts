@@ -230,18 +230,12 @@ export class RabbitMqConsumer
         this.logger.warn(`Duplicate RabbitMQ event ignored: ${parsed.eventId}`);
       }
     } catch (error) {
-      // DB failures are transient: requeue instead of permanently dropping.
-      this.ready = false;
+      // PostgreSQL health is checked separately by HealthController.
+      // Never overwrite RabbitMQ channel readiness because of a DB failure:
+      // otherwise a successful redelivery can leave the pod permanently 503.
       this.logger.error(`Notification persistence failed, requeuing: ${this.message(error)}`);
       await new Promise((resolve) => setTimeout(resolve, 500));
       try { channel.nack(message, false, true); } catch { /* channel disconnected */ }
-      // Keep readiness meaningful while the database is down.
-      try {
-        await this.store.checkReady();
-        this.ready = this.channel === channel;
-      } catch {
-        this.ready = false;
-      }
     }
   }
 

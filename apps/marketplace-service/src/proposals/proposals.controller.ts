@@ -33,6 +33,19 @@ export class ProposalsController {
     return this.proposals.findMine(this.actorId(request));
   }
 
+  @Get('received')
+  findReceived(@Req() request: AuthenticatedRequest) {
+    return this.proposals.findReceived(this.actorId(request));
+  }
+
+  @Post(':id/reject')
+  reject(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.proposals.reject(id, this.actorId(request));
+  }
+
   @Post(':id/accept')
   accept(
     @Param('id') id: string,

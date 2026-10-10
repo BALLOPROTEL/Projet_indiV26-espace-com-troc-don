@@ -67,3 +67,15 @@ model MarketplaceTransaction {
   @@index([targetListingId, status])
   @@index([offeredListingId, status])
 }
+
+model MarketplaceOutboxEvent {
+  eventId      String    @id @db.VarChar(128)
+  type         String    @db.VarChar(64)
+  payload      Json
+  occurredAt   DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  publishedAt  DateTime?
+  attempts     Int       @default(0)
+
+  @@index([publishedAt, createdAt])
+}
