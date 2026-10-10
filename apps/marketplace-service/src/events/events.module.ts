@@ -5,7 +5,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 
 @Global()
 @Module({
-  providers: [MarketplaceEventPublisher],
+  imports: [PrismaModule],
+  providers: [MarketplaceEventPublisher, MarketplaceOutboxWorker],
   exports: [MarketplaceEventPublisher],
 })
 export class EventsModule {}
