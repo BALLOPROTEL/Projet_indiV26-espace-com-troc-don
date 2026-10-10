@@ -66,7 +66,7 @@ export class MarketplaceOutboxWorker implements OnModuleInit, OnModuleDestroy {
         version: MARKETPLACE_EVENT_VERSION,
         occurredAt: item.occurredAt.toISOString(),
         source: 'marketplace-service',
-        data: item.payload as Record<string, string | null>,
+        data: item.payload as unknown as Record<string, string | null>,
       };
       // Always preserve the originally committed ID across retries.
       const published = await this.publisher.publishEnvelope(envelope);
