@@ -194,6 +194,58 @@ async function loginAsDemoOwner() {
   console.log('[M9 Browser] Keycloak login as demo owner + rejected inbox: PASS');
 }
 
+async function loginAsDemoRequester() {
+  const logoutClicked = await evaluate(`(() => {
+    const button = [...document.querySelectorAll('header button')]
+      .find(element => element.textContent?.trim() === 'Sortir');
+    if (!button) return false;
+    button.click();
+    return true;
+  })()`);
+  assert.equal(logoutClicked, true, 'Owner logout button must be available');
+
+  await waitUntil('Keycloak logout returns to the public app', `(
+    location.origin === ${JSON.stringify(new URL(base).origin)} &&
+    !document.body.innerText.includes('Demo Moderator')
+  )`, 100);
+
+  await command('Page.navigate', { url: new URL('/espace', base).href });
+  await waitUntil('Member login gate after logout', `!!document.querySelector('.gate-card button')`, 90);
+
+  const clicked = await evaluate(`(() => {
+    const button = document.querySelector('.gate-card button');
+    if (!button) return false;
+    button.click();
+    return true;
+  })()`);
+  assert.equal(clicked, true);
+
+  await waitUntil('requester Keycloak login form', `!!document.querySelector('#username') &&
+    !!document.querySelector('#password')`, 90);
+  const submitted = await evaluate(`(() => {
+    const user = document.querySelector('#username');
+    const password = document.querySelector('#password');
+    const form = user?.closest('form') ?? document.querySelector('#kc-form-login');
+    if (!user || !password || !form) return false;
+    user.value = 'demo-user';
+    password.value = 'demo-user-local';
+    user.dispatchEvent(new Event('input', { bubbles: true }));
+    password.dispatchEvent(new Event('input', { bubbles: true }));
+    form.requestSubmit();
+    return true;
+  })()`);
+  assert.equal(submitted, true, 'Requester login form not submitted');
+
+  await waitUntil('authenticated requester sent rejected proposal', `(
+    location.origin === ${JSON.stringify(new URL(base).origin)} &&
+    document.body.innerText.includes('Demo User') &&
+    !!document.querySelector('.marketplace-dashboard') &&
+    document.querySelector('.marketplace-dashboard').innerText.includes('Mes demandes envoyées') &&
+    document.querySelector('.marketplace-dashboard').innerText.toLocaleLowerCase('fr').includes('refusée')
+  )`, 120);
+  console.log('[M9 Browser] Keycloak login as requester + rejected sent proposal: PASS');
+}
+
 try {
   await startCdp(await waitForPort());
   await capture('/annonces/' + encodeURIComponent(id), 1440, 1000,
@@ -205,7 +257,10 @@ try {
   await loginAsDemoOwner();
   await capture('/espace', 1440, 980,
     'espace-owner-inbox-desktop', 'Refusée', '.marketplace-dashboard');
-  console.log('[M9 Browser] Chrome desktop/mobile + authenticated owner inbox: PASS');
+  await loginAsDemoRequester();
+  await capture('/espace', 1440, 980,
+    'espace-requester-outbox-desktop', 'Mes demandes envoyées', '.marketplace-dashboard');
+  console.log('[M9 Browser] Chrome desktop/mobile + both authenticated user roles: PASS');
 } finally {
   if (socket && socket.readyState === WebSocket.OPEN) socket.close();
   for (const task of pending.values()) clearTimeout(task.timeout);
