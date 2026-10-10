@@ -102,7 +102,7 @@ async function capture(route, width, height, filename, expected, selector) {
     });
     const snapshot = result.result?.value;
     last = snapshot?.text?.slice(0, 500) ?? '';
-    if (snapshot?.found && snapshot.text.includes(expected)) {
+    if (snapshot?.found && snapshot.text.toLocaleLowerCase('fr').includes(expected.toLocaleLowerCase('fr'))) {
       ready = true;
       break;
     }
@@ -189,7 +189,7 @@ async function loginAsDemoOwner() {
     location.origin === ${JSON.stringify(new URL(base).origin)} &&
     !!document.querySelector('.marketplace-dashboard') &&
     document.body.innerText.includes('Mes dons et trocs') &&
-    document.body.innerText.includes('Refusée')
+    document.body.innerText.toLocaleLowerCase('fr').includes('refusée')
   )`, 120);
   console.log('[M9 Browser] Keycloak login as demo owner + rejected inbox: PASS');
 }
