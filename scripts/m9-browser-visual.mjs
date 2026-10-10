@@ -352,10 +352,30 @@ async function journeyWaitCard(targetListingId, status) {
   await waitUntil('UI listing ' + targetListingId + ' status ' + status, predicate, 120);
 }
 
+async function journeyWaitAction(targetListingId, buttonLabel) {
+  const predicate = '(() => {const id=' + JSON.stringify(targetListingId) +
+    ';const label=' + JSON.stringify(buttonLabel) +
+    ';return [...document.querySelectorAll(".marketplace-dashboard .marketplace-entry")].some(card=>' +
+    '[...card.querySelectorAll("a[href]")].some(a=>a.getAttribute("href")==="/annonces/"+id)' +
+    '&&[...card.querySelectorAll("button")].some(b=>b.textContent.trim()===label&&!b.disabled));})()';
+  await waitUntil('enabled ' + buttonLabel + ' for ' + targetListingId, predicate, 120);
+}
+
+async function journeyWaitConfirmation(targetListingId) {
+  const predicate = '(() => {const id=' + JSON.stringify(targetListingId) +
+    ';return [...document.querySelectorAll(".marketplace-transactions .marketplace-entry")].some(card=>' +
+    '[...card.querySelectorAll("a[href]")].some(a=>a.getAttribute("href")==="/annonces/"+id)' +
+    '&&card.innerText.includes("Votre confirmation : reçue"));})()';
+  await waitUntil('stored visible first confirmation for ' + targetListingId, predicate, 120);
+}
+
 async function journeyOffer(targetId, offeredId, label) {
   await journeyOpen('/annonces/' + encodeURIComponent(targetId), '.marketplace-action form',
     'authenticated ' + label + ' form');
   if (offeredId) {
+    await waitUntil('approved trade offer loaded into the select',
+      '[...document.querySelectorAll(".marketplace-action select option")].some(option=>option.value===' +
+      JSON.stringify(offeredId) + ')', 120);
     const change = '(() => {const element=document.querySelector(".marketplace-action select");' +
       'if(!element)return false;' +
       'const setter=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,"value").set;' +
@@ -449,28 +469,33 @@ async function runRealBrowserJourneys() {
   // Owner makes real rejection and acceptance clicks, not API POST requests.
   await journeySwitchUser('demo-moderator');
   await journeyWaitCard(browserIds.rejected, 'En attente');
+  await journeyWaitAction(browserIds.rejected, 'Refuser');
   await journeyClick('Refuser', browserIds.rejected);
   await journeyWaitCard(browserIds.rejected, 'Refusée');
   browserFindProposal(await browserApi(owner, '/api/proposals/received'), browserIds.rejected, 'REJECTED');
   await journeyScreenshot('m9-journey-owner-rejected');
 
+  await journeyWaitAction(browserIds.donation, 'Accepter');
   await journeyClick('Accepter', browserIds.donation);
   await journeyWaitCard(browserIds.donation, 'Acceptée');
   browserFindTransaction(await browserApi(owner, '/api/transactions/me'), browserIds.donation, 'IN_PROGRESS');
   await journeyScreenshot('m9-journey-owner-donation-accepted');
 
+  await journeyWaitAction(browserIds.trade, 'Accepter');
   await journeyClick('Accepter', browserIds.trade);
   await journeyWaitCard(browserIds.trade, 'Acceptée');
   browserFindTransaction(await browserApi(owner, '/api/transactions/me'), browserIds.trade, 'IN_PROGRESS');
   await journeyScreenshot('m9-journey-owner-trade-accepted');
 
+  await journeyWaitAction(browserIds.donation, 'Confirmer la remise');
   await journeyClick('Confirmer la remise', browserIds.donation);
-  await waitUntil('owner donation confirmation shown',
-    'document.body.innerText.includes("Votre confirmation : reçue")', 120);
+  await journeyWaitConfirmation(browserIds.donation);
   let ownerTx = await browserApi(owner, '/api/transactions/me');
   assert.ok(browserFindTransaction(ownerTx, browserIds.donation, 'IN_PROGRESS').ownerConfirmedAt,
     'First donation confirmation must be stored without completing the transaction');
+  await journeyWaitAction(browserIds.trade, 'Confirmer la remise');
   await journeyClick('Confirmer la remise', browserIds.trade);
+  await journeyWaitConfirmation(browserIds.trade);
   ownerTx = await browserApi(owner, '/api/transactions/me');
   assert.ok(browserFindTransaction(ownerTx, browserIds.trade, 'IN_PROGRESS').ownerConfirmedAt,
     'First trade confirmation must not finish the transaction');
@@ -479,12 +504,14 @@ async function runRealBrowserJourneys() {
   // Second real user finishes BOTH transactions via the visible buttons.
   await journeySwitchUser('demo-user');
   await journeyWaitCard(browserIds.rejected, 'Refusée');
+  await journeyWaitAction(browserIds.donation, 'Confirmer la remise');
   await journeyClick('Confirmer la remise', browserIds.donation);
   await waitUntil('DON completed in browser',
     '(() => {const id=' + JSON.stringify(browserIds.donation) +
     ';return [...document.querySelectorAll(".marketplace-transactions .marketplace-entry")].some(c=>' +
     '[...c.querySelectorAll("a[href]")].some(a=>a.getAttribute("href")==="/annonces/"+id)' +
     '&&c.innerText.includes("Terminé"));})()', 120);
+  await journeyWaitAction(browserIds.trade, 'Confirmer la remise');
   await journeyClick('Confirmer la remise', browserIds.trade);
   await waitUntil('TROC completed in browser',
     '(() => {const id=' + JSON.stringify(browserIds.trade) +
