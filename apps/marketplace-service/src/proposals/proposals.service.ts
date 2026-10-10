@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ProposalStatus, ProposalType } from '../../generated/prisma';
+import { randomUUID } from 'node:crypto';
 import { CatalogClientService } from '../catalog/catalog-client.service';
 import { MARKETPLACE_EVENT_TYPES } from '../events/event-contract';
 import { MarketplaceEventPublisher } from '../events/event-publisher.service';
@@ -116,26 +117,37 @@ export class ProposalsService {
       );
     }
 
-    // Atomic transition also protects races against an incoming accept.
-    const claim = await this.prisma.proposal.updateMany({
-      where: { id: proposal.id, status: ProposalStatus.PENDING },
-      data: {
-        status: ProposalStatus.REJECTED,
-        resolvedAt: new Date(),
-      },
-    });
-    if (claim.count !== 1) {
-      throw new ConflictException('Only a pending proposal can be rejected');
-    }
+    // The rejection and its event must COMMIT together. A transient
+    // RabbitMQ outage cannot silently lose proposal.rejected: the outbox
+    // worker will publish the persisted envelope after recovery.
+    return this.prisma.$transaction(async (tx) => {
+      const claim = await tx.proposal.updateMany({
+        where: { id: proposal.id, status: ProposalStatus.PENDING },
+        data: {
+          status: ProposalStatus.REJECTED,
+          resolvedAt: new Date(),
+        },
+      });
+      if (claim.count !== 1) {
+        throw new ConflictException('Only a pending proposal can be rejected');
+      }
 
-    await this.events.publish(MARKETPLACE_EVENT_TYPES.PROPOSAL_REJECTED, {
-      proposalId: proposal.id,
-      targetListingId: proposal.targetListingId,
-      requesterId: proposal.requesterId,
-      ownerId,
-    });
+      await tx.marketplaceOutboxEvent.create({
+        data: {
+          eventId: randomUUID(),
+          type: MARKETPLACE_EVENT_TYPES.PROPOSAL_REJECTED,
+          payload: {
+            proposalId: proposal.id,
+            targetListingId: proposal.targetListingId,
+            requesterId: proposal.requesterId,
+            ownerId,
+          },
+          occurredAt: new Date(),
+        },
+      });
 
-    return this.prisma.proposal.findUniqueOrThrow({ where: { id } });
+      return tx.proposal.findUniqueOrThrow({ where: { id } });
+    });
   }
 
   async accept(id: string, ownerId: string) {
