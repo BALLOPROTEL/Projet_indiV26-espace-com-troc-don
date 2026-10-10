@@ -252,12 +252,17 @@ async function loginAsDemoRequester() {
 // All listings belong to the disposable Compose stack and all accounts are
 // demo Keycloak users. API calls below ONLY seed fixture identity / verify
 // persisted outcomes; business mutations must go through the browser UI.
+// Each fixture must have a DIFFERENT first eight characters: the listing
+// detail only renders id.slice(0,8), which is our browser readiness proof.
+// Shared prefixes could mistake the previous page for the new one.
 const browserIds = {
-  donation: 'm9-browser-donation-' + randomUUID(),
-  rejected: 'm9-browser-rejected-' + randomUUID(),
-  trade: 'm9-browser-trade-' + randomUUID(),
-  offered: 'm9-browser-offered-' + randomUUID(),
+  donation: 'don-accepted-' + randomUUID(),
+  rejected: 'don-rejected-' + randomUUID(),
+  trade: 'troc-requested-' + randomUUID(),
+  offered: 'troc-offered-' + randomUUID(),
 };
+assert.equal(new Set(Object.values(browserIds).map(id => id.slice(0, 8))).size, 4,
+  'All M9 browser fixture IDs must have unique rendered eight-character prefixes');
 const browserGateway = 'http://127.0.0.1:' + (process.env.GATEWAY_HOST_PORT ?? '13000');
 
 async function browserToken(username) {
