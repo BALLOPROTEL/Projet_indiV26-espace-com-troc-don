@@ -1,49 +1,47 @@
 # M9 — Workflows DON et TROC — LOT 9B-D / LOT 9B-E
 
-Issue #44 (migration), issue #35 (parcours métier). Reprise du modèle microservices M8 fusionné.
+Issue #44 (migration microservices), issue #35 (parcours métier). Base `main` intégrant M8 via PR #53.
 
-## Déjà certifié par M8
+## Périmètre réalisé
 
-- Création de demandes `DONATION_REQUEST` et offres `TRADE_OFFER` par le Marketplace Service
-- Conditions d'acceptation et réservation Catalog pour un ou deux objets
-- Double confirmation d'une transaction et état `COMPLETED`
-- JWT Keycloak / ownership, événements RabbitMQ, déduplication durable
-- E2E DON/TROC dans la CI, **mais sur annonces précréées**, sans parcours frontend utilisateur.
-
-## M9 — Livrables développés sur la branche
-
-### Backend
-
-- `GET /api/proposals/received` : propositions adressées aux annonces du membre authentifié.
-  Marketplace récupère uniquement les identifiants de ses annonces depuis
-  `GET /internal/listings/owner/:ownerId/ids`, protégé par `InternalServiceGuard` ;
-  aucun accès Prisma cross-service.
-- `POST /api/proposals/:id/reject` : refus strictement réservé au propriétaire
-  de l'annonce cible, transition conditionnelle `PENDING → REJECTED` avec
-  `resolvedAt`, refus concurrent `409`, réponse `403` pour un non-propriétaire.
-  Aucune réservation Catalog lors d'un refus.
-- `proposal.rejected` : nouvel événement RabbitMQ version 1, validé et conservé
-  par le Notification Service PostgreSQL durable.
+### Backend microservices
+- `GET /api/proposals/received` : boîte de réception authentifiée du propriétaire, via `GET /internal/listings/owner/:ownerId/ids` protégé par `InternalServiceGuard`. Aucun accès à la base Catalog depuis Marketplace.
+- `POST /api/proposals/:id/reject` : refus autorisé uniquement au propriétaire de l'annonce cible ; transition conditionnelle `PENDING → REJECTED`, `resolvedAt`, HTTP 403 non-propriétaire et HTTP 409 après décision. Pas de réservation Catalog lors du refus.
+- `proposal.rejected` version 1 consommé et dédupliqué durablement dans Notification/PostgreSQL.
+- Correction Codex P1 : transition du refus et écriture `MarketplaceOutboxEvent` atomiques dans une transaction Prisma. Worker de republication RabbitMQ, `eventId` stable et déduplication Notification.
+- Correction Codex P2 : erreurs de lecture/JSON de la liste d'annonces du propriétaire renvoyées en HTTP 502 ; tests de réponse non JSON et de corps interrompu.
+- Les parcours M8 de création de demande, acceptation, réservation et double confirmation sont conservés.
 
 ### Frontend
+- Fiche DON : demande depuis une session Keycloak, message facultatif.
+- Fiche TROC : sélection d'une annonce personnelle approuvée et disponible, comparaison visuelle des deux fiches, message facultatif.
+- Espace membre : demandes envoyées/reçues, refus/acceptation, suivi des transactions et confirmation par les deux participants.
+- Accès aux données privées uniquement avec JWT ; affichage adapté aux annonces indisponibles.
 
-- Fiche publique DON : demande authentifiée avec message facultatif ;
-- Fiche publique TROC : sélection d'un de ses objets `APPROVED / AVAILABLE`,
-  comparaison des deux fiches avant envoi, message facultatif ;
-- Espace membre : demandes envoyées/reçues, boutons accepter/refuser,
-  visualisation des contreparties, transactions et confirmations des deux
-  participants ; données privées consultées seulement avec JWT ;
-- Affichage informatif si une annonce n'est plus disponible.
+## CI certifiées sur `81ff5a42a7e5a90a0d57cd52d4aa2c4c371093da` (10 octobre 2026)
 
-## Gates à terminer avant fusion
+| Gate | GitHub Actions | Résultat |
+| --- | --- | --- |
+| Bootstrap CI (migrations, tests services, web, Docker Compose, Kubernetes, Trivy) | [#38083313818](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38083313818) | SUCCESS |
+| M8 Microservices Contracts (contrats Gateway, Catalog, Notification) | [#38083313823](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38083313823) | SUCCESS |
+| M8 Real Microservice E2E Integration (DON/TROC, auth, RabbitMQ, pannes, M9 et navigateur) | [#38083313814](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38083313814) | SUCCESS |
+| M9 Web Donation Trade Quality (lint, typecheck, unitaires, build) | [#38083313820](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38083313820) | SUCCESS |
 
-- Types/lint/build Web ; tests unitaires Marketplace / Notification ;
-- Contrats Gateway / Catalog interne ; tests E2E DON/TROC de M8 sans régression ;
-- Nouveau E2E réel M9 : propriétaire reçoit proposition, refuse, 409 en cas
-  de double refus/acceptation, notification RabbitMQ `proposal.rejected`,
-  aucune réservation après refus, comparaison des deux annonces ;
-- Vérification CI sécurité, Bootstrap complète, revue de PR et corrections ;
-- Vérifications UX sans toucher au Minikube Codespaces M7/M8 (disque limité).
+Le journal E2E #38083313814 atteste : accès propriétaire/demandeur, refus et conflits HTTP 409, absence de réservation au refus, `proposal.rejected` stocké une fois, arrêt réel de RabbitMQ puis livraison de l'outbox après reprise.
 
-**Statut initial : EN COURS.** La PR reste en brouillon tant que la CI
-et les parcours réels M9 n'ont pas été certifiés.
+### Navigateur réel (Chrome headless, stack Compose jetable)
+
+Run [#38083313814](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38083313814) : PASS pour la fiche DON desktop/mobile, écran de connexion, connexion Keycloak du propriétaire et boîte de réception montrant « refusée », déconnexion, connexion Keycloak du demandeur et liste envoyée montrant « refusée ».
+
+Artefact : `m9-browser-visual-d1db122e2b3e83c28758117c38821c4d51fce1cc` (5 captures : `don-detail-desktop.png`, `don-detail-mobile.png`, `espace-login-desktop.png`, `espace-owner-inbox-desktop.png`, `espace-requester-outbox-desktop.png`).
+
+**Limite de couverture explicite :** ce smoke navigateur confirme l'authentification des deux rôles et l'affichage des états, pas l'intégralité des interactions navigateur « création de demande DON/TROC → acceptation → double confirmation ». Le parcours backend réel associé est couvert par les E2E microservices ; une recette visuelle/manuelle de ces clics reste recommandée avant la fusion.
+
+## Revue, sécurité et décision de fusion
+
+- Codex a rendu deux remarques sur le commit `51b855f` : P1 outbox et P2 HTTP 502. Les correctifs sont présents sur le HEAD `81ff5a4`, la CI et les tests de panne sont verts.
+- Une **relecture Codex du HEAD final** doit être examinée avant de déclarer la PR prête pour fusion ; ne pas assimiler la revue antérieure du commit `51b855f` à une approbation du HEAD actuel.
+- La PR #54 reste **ouverte et en brouillon**. Aucune fusion, activation d'auto-merge ou modification du Codespace/Minikube sans accord explicite du propriétaire.
+- CI GitHub Actions utilise une stack Docker Compose jetable : le Codespace à espace disque limité reste intact.
+
+**Statut : validations automatisées M9 réussies ; revue du HEAD final et GO utilisateur pour fusion encore requis.**
