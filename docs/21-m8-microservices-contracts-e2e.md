@@ -1,5 +1,8 @@
 # M8 — Contrats, intégration, E2E et sécurité microservices
 
+> **Statut actuel au 12 octobre 2026 : DONE / FUSIONNÉ** via [PR #53](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/53), merge `7958e61`. Les sections ci-dessous décrivent les étapes historiques (leurs mentions « à certifier » ne doivent pas être interprétées comme l'état final). Contrats, intégration E2E DON/TROC, résilience, persistance Notification et tests multi-réplicas sont validés. Le périmètre ultérieur M9 a été fusionné par PR #54.
+
+
 > Issue #44. Branche `test/44-m8-microservices-contracts-e2e`.
 > Après fusion M7 (PR #52), sans déploiement supplémentaire du Codespace saturé.
 
@@ -25,7 +28,7 @@ La clôture de M8 exige :
 6. **CI et preuves** : tests reproductibles, journaux et critères d'acceptation
    traçables. Pas de validation fondée uniquement sur des recherches statiques.
 
-## M8-A — Première gate de compatibilité (en cours)
+## M8-A — Première gate de compatibilité (historique, validée)
 
 Exécution locale ou CI :
 
@@ -49,7 +52,7 @@ pull request. Il s'agit d'une **première régression de compatibilité**, pas
 d'une certification de bout en bout du comportement réseau, des données,
 des rôles ou des transactions.
 
-## M8-A.2 — Contrat HTTP Marketplace → Catalog (en cours)
+## M8-A.2 — Contrat HTTP Marketplace → Catalog (historique, validé)
 
 Les tests de l'implémentation réelle `CatalogClientService`, avec `fetch`
 simulé et assertions sur les requêtes, sont dans

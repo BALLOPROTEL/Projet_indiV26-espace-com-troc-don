@@ -1,111 +1,89 @@
 # Projet_individuel26 — Espace communautaire de troc & don
 
-POC individuel réalisé dans le cadre du bloc **« Superviser et assurer le développement des applications logicielles »**.
+Projet individuel pour le bloc **« Superviser et assurer le développement des applications logicielles »**. Le POC de *La Petite Maison de l'Épouvante* démontre une véritable verticale métier DON/TROC avec modération, transactions et exigences d'industrialisation.
 
-## Objectif
+> **État vérifié au 12 octobre 2026 : M9 fusionné dans `main` (PR #54, merge `d29d499`) ; LOT 9B-F et M10/LOT 10 encore à livrer.** Le POC n'est pas un service de production et n'a pas de déploiement public permanent certifié.
 
-Démontrer une verticale métier complète et industrialisée : un utilisateur authentifié publie une annonce de **troc** ou de **don**, puis un modérateur l'approuve ou la refuse avant publication.
+## Fonctionnalités livrées
 
-Le projet est volontairement limité fonctionnellement afin de concentrer l'évaluation sur la qualité d'ingénierie : architecture, sécurité, tests, CI/CD, conteneurisation, orchestration, observabilité, montée en charge, audit et remédiation.
+- Authentification Keycloak / OIDC (Authorization Code + PKCE) et rôles `USER`, `MODERATOR`, `ADMIN`.
+- Création d'annonces DON/TROC ; galerie MinIO (5 à 8 images) ; au moins 5 souhaits pour le TROC ; validation des fichiers.
+- Modération `PENDING / APPROVED / REJECTED` distincte de la disponibilité `AVAILABLE / RESERVED / COMPLETED`.
+- Visiteur : consultation des annonces approuvées. Membre : demandes envoyées/reçues, choix de sa contrepartie TROC, comparaison et suivi.
+- Propriétaire : acceptation/refus, réservation ; double confirmation des participants et clôture transactionnelle.
+- Notification Service : événements RabbitMQ, stockage PostgreSQL et déduplication ; outbox transactionnelle sur les refus métier.
+- Tests unitaires, intégration, contrats, E2E HTTP/JWT, navigateur Chrome + comptes Keycloak, audit de dépendances et Trivy.
 
-## Périmètre V1
-
-- Authentification et rôles `USER`, `MODERATOR`, `ADMIN`
-- Création d'une annonce
-- Statuts `PENDING`, `APPROVED`, `REJECTED`
-- Modération
-- Consultation publique des annonces approuvées
-- Tests automatisés
-- CI/CD
-- Docker + Kubernetes
-- Observabilité
-- Tests de charge
-- Analyse de sécurité et plan de remédiation
-
-## Architecture cible
-
-- Frontend : Next.js / React
-- Backend : NestJS
-- ORM : Prisma
-- Base de données : PostgreSQL
-- Identity Provider : Keycloak / OIDC / RBAC
-- CI/CD : GitHub Actions
-- Registry : GHCR
-- Conteneurs : Docker
-- Orchestration : Kubernetes / Minikube pour le POC
-- Observabilité : Prometheus + Grafana
-- Charge : JMeter
-- Sécurité supply-chain : Trivy + audit des dépendances
-
-Voir [docs/01-architecture.md](docs/01-architecture.md).
-
-## Quality Gates initiaux
-
-1. Couverture backend métier ≥ 80 %
-2. 0 erreur lint/typecheck et 0 anomalie bloquante/critique de l'analyse statique retenue
-3. 0 vulnérabilité Critical/High non acceptée dans les dépendances ou l'image livrée
-4. Objectif initial de latence p95 < 500 ms sur le scénario de référence documenté
-
-Les seuils sont des **objectifs de cadrage** : toute modification doit être justifiée par des mesures réelles.
-
-## Stratégie Git
-
-- `main` : branche de référence
-- Une branche courte par issue : `feat/<issue>-...`, `fix/<issue>-...`, `chore/<issue>-...`, `docs/<issue>-...`
-- Pull Request avant intégration des changements applicatifs
-- Conventional Commits recommandés
-- Une PR doit référencer l'issue associée et fournir les preuves utiles
-
-Voir [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Roadmap
-
-- [EPIC LOT 0 — Initialisation #19](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/19)
-- LOT 1 — Base technique : [#9](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/9)
-- LOT 2 — Identité et RBAC : [#10](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/10)
-- LOT 3 — Verticale métier troc/don : [#11](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/11)
-- LOT 4 — Qualité et tests : [#12](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/12)
-- LOT 5 — Supply chain / Docker / scans : [#13](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/13)
-- LOT 6 — Kubernetes : [#14](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/14)
-- LOT 7 — Observabilité : [#15](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/15)
-- LOT 8 — Charge et expérimentations : [#16](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/16)
-- LOT 9 — Audit sécurité et remédiation : [#17](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/17)
-- LOT 10 — Consolidation des preuves et soutenance : [#18](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/18)
-
-Voir la vue détaillée dans [docs/03-roadmap.md](docs/03-roadmap.md).
-
-## Structure cible
+## Architecture microservices en place
 
 ```text
-.
-├── apps/
-│   ├── api/
-│   └── web/
-├── docs/
-├── infra/
-│   └── k8s/
-├── tests/
-│   └── load/
-├── .github/
-│   ├── ISSUE_TEMPLATE/
-│   └── workflows/
-└── README.md
+Navigateur → Web (Next.js :3001) → API Gateway (:3000) → Catalog (:3101) → MinIO
+                                                 ├→ Marketplace (:3102) → Catalog API interne
+                                                 │                └→ RabbitMQ → Notification (:3103)
+                                                 └→ Legacy API (:3099), fallback temporaire
+Keycloak → OIDC/JWT                  PostgreSQL : ownerships public, catalog, marketplace, notification
 ```
 
-## État actuel
+- **Catalog Service** possède annonces, images, souhaits et modération ; Marketplace ne consulte ses objets que par API.
+- **Marketplace Service** possède demandes/propositions, transactions et confirmations.
+- **Notification Service** consomme RabbitMQ ; une inbox PostgreSQL et une clé `eventId` permettent de dédupliquer les réceptions.
+- **Gateway** préserve les URLs publiques `/api/...` et les jetons JWT ; le fallback Legacy reste une dette Strangler documentée.
+- **Docker Compose / Codespaces** et **Kubernetes kind/Minikube** ont des recettes et des tests CI ; observabilité Prometheus/Grafana et expérimentation JMeter/HPA.
 
-**LOT 0 — Initialisation : EN COURS**
+Voir [architecture](docs/01-architecture.md), [migration](docs/18-microservices-migration.md), [Kubernetes](docs/20-m7-kubernetes-microservices.md) et [workflows M9](docs/22-m9-donation-trade-workflows.md).
 
-Déjà réalisé :
-- structure du dépôt ;
-- cadrage, architecture et Quality Gates ;
-- conventions Git et templates ;
-- baseline sécurité ;
-- backlog LOT 1 → LOT 10 ;
-- CI de bootstrap : **verte**.
+## Démarrer le POC dans GitHub Codespaces
 
-Restent avant le GO LOT 1 :
-- GitHub Project / Kanban ;
-- protection de `main` ;
-- environnement local de développement ;
-- revue finale du gate LOT 0.
+Depuis la racine du dépôt, en vérifiant l'espace disque **avant** tout build :
+
+```bash
+git status
+df -h .
+docker system df
+pnpm codespaces:up
+pnpm codespaces:check
+```
+
+Ouvrir le port `3001` via l'onglet **PORTS** ; Keycloak utilise le port `8081`. Pour les journaux : `pnpm codespaces:dev` ; pour arrêter sans supprimer les volumes : `pnpm codespaces:down`.
+
+La CI utilise des environnements Docker/Kind jetables pour éviter de saturer le Codespace. **Ne pas effacer les PVC ni lancer de nettoyage destructeur automatiquement.** Voir [guide Codespaces](docs/18-codespaces.md).
+
+## État des lots (12 octobre 2026)
+
+| Lot / jalon | Résultat |
+| --- | --- |
+| LOT 0–5 | **Terminé** — gouvernance, API, Keycloak, catalogue, modération, qualité, supply-chain |
+| LOT 6–6B | **Terminé** — Kubernetes, TLS, HPA et frontend Next.js |
+| LOT 7–9 | **Terminé** — observabilité, JMeter, sécurité et corrections |
+| LOT 9B-A/B/C | **Terminé** — règles métier, images MinIO, publication enrichie |
+| M0–M4 | **Fusionné** — extraction Catalog/Marketplace et API Gateway |
+| M5–M7 | **Fusionné** — RabbitMQ/Notification, Compose/Codespaces, Kubernetes multi-services |
+| M8 | **Fusionné** — contrats, E2E microservices, pannes et notifications durables |
+| M9 / LOT 9B-D/E | **Fusionné** — workflow DON/TROC et recette Chrome réelle, PR #54 |
+| LOT 9B-F | **À finaliser** — certification transversale incluant de vraies galeries et données de démonstration |
+| M10 / LOT 10 | **À préparer** — architecture finale, preuves, présentation et répétition jury |
+
+Piloter les travaux via les [issues #35](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/35), [#44](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/44), [#18](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/18), et les tâches [#55 à #59](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues?q=is%3Aissue+is%3Aopen).
+
+## Preuves récentes vérifiées
+
+- M9 fusionné dans `main` : [PR #54](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/54) ; commit de merge [`d29d499`](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/commit/d29d4997c70f10594fc137f66361fbc46698b269).
+- Sur le dernier HEAD M9 `7a5e353` : [Bootstrap CI](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618276), [Contrats](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618272), [E2E Chrome](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618298) et [Web](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618285) : **4/4 SUCCESS**.
+- Sur `main` après fusion : [Bootstrap CI #38091686672](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38091686672) **SUCCESS**, y compris tests, Compose, Kubernetes kind, Trivy et publication GHCR.
+- Les captures Chrome sont archivées 7 jours par GitHub Actions : les conserver durablement pour LOT 10.
+
+## Qualité, performance et limites
+
+Le seuil de couverture métier, les validations lint/typecheck et les gates de sécurité sont exécutés en CI. La mesure de laboratoire M7 a observé un **p95 de 399 ms**, environ **0,067 % d'erreurs** et un HPA Gateway **1→4 réplicas** ; ce ne sont pas des garanties de production.
+
+Risques résiduels documentés : absence de NetworkPolicy Kubernetes et de rate limiting distribué, images tierces pas toutes épinglées par digest, fallback legacy encore présent, effets externes SMS/e-mail non garantis exactly-once. Pas de paiement réel, de chat complet ni de certification RGAA exhaustive.
+
+## Prochain ordre de travail
+
+1. [#55](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55) — documentation/roadmap et pilotage.
+2. [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56) — LOT 9B-F, recette complète et données.
+3. [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57) — M10, documentation architecture finale.
+4. [#58](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58) — dossier de preuves jury.
+5. [#59](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59) — support 20 min, répétition et vidéo.
+
+**Règle d'exécution :** ne pas prolonger les séances pour attendre les CI longues ; transmettre la PR et les liens de runs, puis vérifier leurs résultats sur demande. Une PR ne sera fusionnée qu'après les validations exigées et l'accord du propriétaire.
