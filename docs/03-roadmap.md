@@ -43,21 +43,40 @@ Règle de pilotage :
 - une PR ouverte fait passer l'item en **Review** ;
 - **Done** exige la Definition of Done et les preuves attendues.
 
-## État actuel
+## État réel — audit du 12 octobre 2026
 
-- LOT 0 : **Done**
-- LOT 1 : **Done**
-- LOT 2 : **Done**
-- LOT 3 : **Done**
-- LOT 4 : **Done**
-- LOT 5 : **Done**
-- LOT 6 : **Done**
-- LOT 6B : **Done**
-- LOT 7 : **Done**
-- LOT 8 : **Done**
-- LOT 9 : **Done**
-- LOT 9B-A : **Done**
-- LOT 9B-B : **Done** — PR #38, squash `46c1a29a2137897dea0e340e6414102da81b8dba`
-- LOT 9B-C : **In Progress** — Publication enrichie
-- LOT 9B-D à LOT 9B-F : **Backlog**
-- LOT 10 : **Backlog**
+| Lot ou jalon | Statut | Preuve |
+| --- | --- | --- |
+| LOT 0–5 | **Done** | Issues historiques #19, #9–#13 clôturées |
+| LOT 6–6B | **Done** | #14 / #26 clôturées : Kubernetes, TLS, HPA, Next.js |
+| LOT 7–9 | **Done** | #15–#17 clôturées : observabilité, JMeter, sécurité |
+| LOT 9B-A/B/C | **Done** | PR #36, #38, #40 fusionnées |
+| M0–M4 | **Done** | PR #47, #48 et #49 fusionnées |
+| M5–M7 | **Done** | PR #50, #51 et #52 fusionnées |
+| M8 | **Done** | PR #53 fusionnée |
+| M9 / LOT 9B-D/E | **Done** | PR #54 fusionnée (commit d29d499), Chrome 2 comptes |
+| LOT 9B-F | **Ready** | #56 — certification finale de #35 ; pas encore achevée |
+| M10 / LOT 10 | **Backlog** | #57, #58, #59 ; pilotage #44 et #18 |
+
+### Plan d'exécution approuvé
+
+| Ordre | Issue | Domaine | Statut cible Kanban |
+| --- | --- | --- | --- |
+| 1 | [#55](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55) | Documentation / synchronisation des issues et Kanban | **In Progress** |
+| 2 | [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56) | LOT 9B-F : recette intégrée avec vrais médias | **Ready** |
+| 3 | [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57) | M10 : architecture, diagrammes, séquences | **Backlog** |
+| 4 | [#58](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58) | LOT 10-A : dossier de preuves | **Backlog** |
+| 5 | [#59](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59) | LOT 10-B : support, répétition, vidéo | **Backlog** |
+
+Les statuts ci-dessus sont le **plan documentaire** ; leur application aux colonnes du GitHub Project nécessite une mise à jour spécifique du board (non pilotée par le connecteur GitHub Issues).
+
+### Références de certification
+
+- PR #54 : https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/54
+- M9 4/4 CI SUCCESS : [Bootstrap #38090618276](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618276), [Contracts #38090618272](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618272), [Chrome #38090618298](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618298), [Web #38090618285](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618285).
+- CI post-fusion `main` : [#38091686672](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38091686672) **SUCCESS**.
+- Les derniers E2E Chrome ont certifié des fixtures métier jetables, mais pas encore le parcours complet depuis l'upload de **5–8 images** : rester vigilant pour #56.
+
+### Règle de travail
+
+Une seule grosse tâche de développement est en cours à la fois. Ne pas bloquer la conversation pour les CI longues : la PR et le lien des runs sont transmis dès le lancement ; les résultats sont vérifiés sur demande.

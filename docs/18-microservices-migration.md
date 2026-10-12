@@ -2,9 +2,9 @@
 
 ## Pourquoi ce chantier
 
-Le jury demande une architecture microservices pour la soutenance. Le backend actuel `apps/api` est un monolithe NestJS qui charge dans un même processus l'authentification, les annonces, la modération, le stockage, les règles marketplace, Prisma et l'observabilité.
+Le jury demande une architecture microservices pour la soutenance. Le backend historique `apps/api` était un monolithe NestJS qui charge dans un même processus l'authentification, les annonces, la modération, le stockage, les règles marketplace, Prisma et l'observabilité.
 
-La migration est incrémentale afin de conserver les parcours déjà certifiés et le contrat HTTP consommé par `apps/web`.
+La migration, désormais réalisée de M0 à M9, a été incrémentale afin de conserver les parcours déjà certifiés et le contrat HTTP consommé par `apps/web`.
 
 ## M0 — cartographie du monolithe
 
@@ -200,3 +200,15 @@ Pour la démonstration jury et les tests, il conserve les 50 derniers événemen
 - le smoke M5 construit lui-même Marketplace et corrèle les trois événements à un identifiant de listing unique au run.
 
 Le publisher attend la confirmation RabbitMQ après le commit métier, mais un broker durablement indisponible ne rollback pas une transaction métier déjà validée. Un **transactional outbox** reste donc le durcissement recommandé si une garantie de livraison at-least-once à travers une panne longue entre commit DB et publication devient obligatoire.
+
+
+## État du chantier — 12 octobre 2026
+
+**M0 à M9 : DONE / FUSIONNÉ**. Les jalons sont traçables dans les PR #47 à #54 : extraction Catalog et Marketplace, Gateway, bus RabbitMQ et Notification, Compose/Codespaces, Kubernetes multi-services, contrats/E2E et workflows DON/TROC. Les références M5 ci-dessus constituent un instantané historique : l'outbox a été ajoutée ensuite **pour les refus M9**, sans prétendre sécuriser la totalité des futurs effets externes.
+
+- PR #54 : https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/54 — fusion `d29d499`.
+- CI M9 4/4 succès : Bootstrap #38090618276, Contracts #38090618272, E2E #38090618298, Web #38090618285.
+- Bootstrap post-merge `main` #38091686672 : SUCCESS (dont GHCR).
+- Le **fallback Legacy API :3099** n'est pas supprimé. Toute extinction exige de vérifier les routes utilisées, le rollback et les migrations.
+
+**M10 : À FAIRE**, issue [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57) rattachée à [#44](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/44) : schémas d'architecture finale, séquences métier synchrones/asynchrones, ownership, limites, déploiement et présentation jury. Ne pas clôturer #44 avant ce livrable.
