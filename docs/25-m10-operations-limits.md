@@ -14,7 +14,7 @@
 | Santé | Healthchecks de démarrage Compose | Probes startup/liveness/readiness avec ressources |
 | Scaling / monitor | Vérifications HTTP en CI jetable | Gateway HPA min 1/max 4 CPU 60 % ; Prometheus/Grafana |
 
-L'instance PostgreSQL est partagée pour simplifier le laboratoire ; l'**ownership logique** demeure strictement séparé. Les secrets du Compose sont des valeurs d'exemple locales, **jamais** de production.
+L'instance PostgreSQL est partagée pour simplifier le laboratoire ; l'**ownership logique** est une **convention Prisma/code**, non une barrière d'autorisations SQL. En Compose, `public`, `catalog`, `marketplace` et `notification` utilisent le **même rôle `app` et son mot de passe** ; Minikube génère également les DSN métier avec un principal PostgreSQL commun. Un service compromis pourrait donc potentiellement lire ou altérer un autre schéma ; une production exige des rôles SQL distincts, des droits minimum et un cloisonnement réseau. Les secrets du Compose sont des valeurs d'exemple locales, **jamais** de production.
 
 ## 2. Endpoints et chemins de diagnostic
 
@@ -54,7 +54,7 @@ kubectl get pods -n projet-indiv26
 
 ## 4. Mécanique métier et recovery
 
-- **Publication** : une annonce est d'abord `PENDING` ; 5–8 images privées stockées dans MinIO ; modérateur doit ouvrir la galerie privée avant approbation. Une annonce approuvée ne peut plus être librement éditée. Les routes publiques ne servent pas les photos privées tant que l'annonce est `PENDING`.
+- **Publication** : une annonce est d'abord `PENDING` ; 5–8 images privées stockées dans MinIO. **Procédure manuelle recommandée :** le modérateur ouvre et inspecte la galerie privée **avant** de cliquer sur « Approuver ». **Cette consultation n'est pas une précondition technique vérifiée par l'API** : le bouton reste actif et l'approbation vérifie notamment le nombre d'images, le statut et `reviewedUpdatedAt`, pas la lecture préalable. Une annonce approuvée ne peut plus être librement éditée. Les routes publiques ne servent pas les photos privées tant que l'annonce est `PENDING`.
 - **Acceptation DON** : `POST /internal/listings/:id/reserve` fait passer l'annonce à `RESERVED` ; Marketplace effectue le claim conditionnel de l'acceptation et stocke `MarketplaceTransaction`. En conflit, le service tente `release`.
 - **TROC** : réservation séquentielle **des deux** annonces, puis création d'une seule transaction. En cas d'échec sur la seconde réservation, compensation `release` de la première ; cette compensation est *best effort*. Vérifier manuellement les états en cas de panne au milieu.
 - **Deux confirmations** : le premier accusé de remise laisse la transaction `IN_PROGRESS` ; le second complète les annonces via Catalog puis fait passer Marketplace à `COMPLETED`. L'écriture interservices n'est pas atomique. En cas d'erreur réseau, **diagnostiquer** les deux fiches Catalog, la transaction Marketplace et l'outbox ; ne pas relancer aveuglément une confirmation.
@@ -65,13 +65,15 @@ kubectl get pods -n projet-indiv26
 
 | Symptôme | Diagnostic non destructif | Limite et remédiation |
 | --- | --- | --- |
-| Gateway 502 | Consulter `/api/health/ready` + santé Catalog/Marketplace/Legacy ; logs Gateway | Timeout proxy 15 s ; ne jamais présenter Gateway comme coupe-circuit complet |
+| Gateway 502 | Consulter `/api/health/ready` + santé Catalog/Marketplace/Legacy ; logs Gateway | Timeout proxy 15 s ; ne jamais présenter Gateway comme coupe-circuit complet. **Les routes non auth de Legacy restent joignables directement** via son port interne/local, hors Gateway. |
 | `401/403` | Vérifier issuer, audience, roles, propriété et token interne pour `/internal` | 401 auth absente/invalide ; 403 souvent propriété/rôle métier |
 | `409` sur transaction | Consulter disponibilité Catalog et état `Proposal` / `MarketplaceTransaction` | Claims conditionnels ; concurrence légitime ou reprise partielle |
-| Images privées impossibles à charger | Vérifier MinIO, identité propriétaire/modérateur, statut PENDING, signature MIME | Ne pas activer un bucket public pour masquer le problème |
+| Images privées impossibles à charger | Vérifier MinIO, identité propriétaire/modérateur, statut PENDING, signature MIME | Ne pas activer un bucket public pour masquer le problème ; **Legacy possède encore des identifiants MinIO dans ce laboratoire**, dette de surface d'accès |
 | Événements absents | Examiner publisher, outbox si refus, queue RabbitMQ, inbox Notification par `eventId` | Outbox **partielle** : événements hors outbox non rejouables automatiquement depuis la DB |
 | Deux annonces avec états divergents | Comparer la transaction et chaque disponibilité Catalog | Aucune saga de réparation entièrement automatique démontrée |
 | Keycloak redémarre et sujet change | Vérifier issuer, UUID `sub`, procédure de snapshot M7 | Ne pas considérer `start-dev` comme production |
+| Compromission d’un service SQL | Contrôler les privilèges du principal PG partagé et journaliser les accès croisés | Le paramètre Prisma `?schema=` **n'empêche pas** un rôle PG commun d'accéder aux autres schémas |
+| Métriques absentes d'un service non Gateway | Vérifier la configuration du job Prometheus `gateway-pods` | Seul le Gateway est réellement scruté ; les probes des autres services ne sont pas des exports Prometheus |
 
 ## 6. Stratégie de retour arrière / démo de secours technique
 
