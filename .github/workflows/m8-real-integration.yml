@@ -8,6 +8,7 @@ on:
       - 'scripts/m8-compose-e2e.mjs'
       - 'scripts/m9-compose-workflows.mjs'
       - 'scripts/m9-browser-visual.mjs'
+      - 'scripts/lot9bf-media-certification.mjs'
       - 'scripts/m6-compose-smoke.sh'
       - 'compose.yaml'
       - 'apps/**'
@@ -35,6 +36,7 @@ jobs:
           node --check scripts/m8-compose-e2e.mjs
           node --check scripts/m9-compose-workflows.mjs
           node --check scripts/m9-browser-visual.mjs
+          node --check scripts/lot9bf-media-certification.mjs
           bash -n scripts/m6-compose-smoke.sh
       - name: Preload official Docker images from ECR Public to avoid Docker Hub anonymous limits
         run: |
@@ -67,6 +69,7 @@ jobs:
           M8_RUN_E2E: 'true'
           M9_RUN_WORKFLOWS: 'true'
           M9_RUN_BROWSER: 'true'
+          LOT9BF_RUN_MEDIA: 'true'
         run: bash scripts/m6-compose-smoke.sh
       - name: Upload M9 real browser screenshots
         if: always()

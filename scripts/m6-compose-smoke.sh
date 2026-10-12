@@ -151,6 +151,11 @@ if [[ "${M8_RUN_INTEGRATION:-false}" == "true" ]]; then
     echo "=== M9 real DON/TROC owner inbox and rejection workflow ==="
     node scripts/m9-compose-workflows.mjs
 
+    if [[ "${LOT9BF_RUN_MEDIA:-false}" == "true" ]]; then
+      echo "=== LOT 9B-F: real five-photo MinIO publication and moderation ==="
+      node scripts/lot9bf-media-certification.mjs
+    fi
+
     if [[ "${M9_RUN_BROWSER:-false}" == "true" ]]; then
       echo "=== M9 real Chrome visual acceptance — anonymous views ==="
       node scripts/m9-browser-visual.mjs
