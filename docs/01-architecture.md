@@ -1,5 +1,7 @@
 # Architecture — référence historique et état microservices
 
+> **Document actuel pour M10 :** [architecture finale — six diagrammes Mermaid](24-m10-architecture-finale.md) et [guide d'exploitation/limites](25-m10-operations-limits.md). La V1 monolithique ci-dessous n'est conservée que pour l'historique des décisions.
+
 ## Décision initiale (historique)
 
 La V1 utilise un **monolithe modulaire conteneurisé**. Une architecture microservices n'est pas retenue pour le POC car elle augmenterait fortement la complexité d'exploitation sans bénéfice démontré pour le périmètre initial.
@@ -83,4 +85,4 @@ Keycloak (OIDC/JWT) sert de fournisseur d'identité transversal aux utilisateurs
 
 Références : [migration #44](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/44), [M7 Kubernetes](20-m7-kubernetes-microservices.md), [M8 E2E](21-m8-microservices-contracts-e2e.md), [M9 DONE](22-m9-donation-trade-workflows.md).
 
-**M10 demeure à faire** : diagrammes C4 finaux et de séquence au format de la soutenance, détaillant modes de panne, réservations, outbox, déduplication et rollback. Issue [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57).
+**M10 en cours de revue (issue #57)** : les diagrammes de conteneurs, de publication, DON, TROC, propriété des données et topologie Minikube, ainsi que les limites et le runbook, sont désormais détaillés dans [le dossier M10](24-m10-architecture-finale.md). Leur intégration dans `main` reste conditionnée à la revue/CI de la PR M10. Issue [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57).

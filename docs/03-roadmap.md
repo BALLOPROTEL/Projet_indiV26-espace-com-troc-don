@@ -43,7 +43,7 @@ Règle de pilotage :
 - une PR ouverte fait passer l'item en **Review** ;
 - **Done** exige la Definition of Done et les preuves attendues.
 
-## État réel — audit du 12 octobre 2026
+## État réel — actualisé au 13 octobre 2026
 
 | Lot ou jalon | Statut | Preuve |
 | --- | --- | --- |
@@ -55,16 +55,19 @@ Règle de pilotage :
 | M5–M7 | **Done** | PR #50, #51 et #52 fusionnées |
 | M8 | **Done** | PR #53 fusionnée |
 | M9 / LOT 9B-D/E | **Done** | PR #54 fusionnée (commit d29d499), Chrome 2 comptes |
-| LOT 9B-F | **Ready** | #56 — certification finale de #35 ; pas encore achevée |
-| M10 / LOT 10 | **Backlog** | #57, #58, #59 ; pilotage #44 et #18 |
+| LOT 9B-F | **Certification technique fusionnée** | PR #61, 2 CI vertes et 35 captures ; kit de démo jury #56 ouvert |
+| M10 | **Review** | #57 — six diagrammes Mermaid et runbook en revue, pas encore fusionnés |
+| Frontend (nouvelle étape) | **Bloquée : attente GO utilisateur** | Aucun développement frontend commencé |
+| LOT 10-A/B | **Backlog** | #58/#59, après frontend |
 
 ### Plan d'exécution approuvé
 
 | Ordre | Issue | Domaine | Statut cible Kanban |
 | --- | --- | --- | --- |
 | 1 | [#55](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55) | Documentation / synchronisation des issues et Kanban | **In Progress** |
-| 2 | [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56) | LOT 9B-F : recette intégrée avec vrais médias | **Ready** |
-| 3 | [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57) | M10 : architecture, diagrammes, séquences | **Backlog** |
+| 2 | [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56) | LOT 9B-F : certification technique livrée ; kit de démo à achever | **In Progress** |
+| 3 | [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57) | M10 : six diagrammes et runbook, revue technique | **Review** |
+| 3B | **Frontend — attente du GO** | Nouvelle phase de développement/qualité visuelle, **non commencée** | **Blocked** |
 | 4 | [#58](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58) | LOT 10-A : dossier de preuves | **Backlog** |
 | 5 | [#59](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59) | LOT 10-B : support, répétition, vidéo | **Backlog** |
 
@@ -75,8 +78,14 @@ Les statuts ci-dessus sont le **plan documentaire** ; leur application aux colon
 - PR #54 : https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/54
 - M9 4/4 CI SUCCESS : [Bootstrap #38090618276](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618276), [Contracts #38090618272](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618272), [Chrome #38090618298](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618298), [Web #38090618285](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618285).
 - CI post-fusion `main` : [#38091686672](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38091686672) **SUCCESS**.
-- Les derniers E2E Chrome ont certifié des fixtures métier jetables, mais pas encore le parcours complet depuis l'upload de **5–8 images** : rester vigilant pour #56.
+- Le dernier E2E Chrome sur [PR #61](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/61) **a certifié la publication depuis l'interface, l'upload de cinq images par annonce, la modération privée, le DON/TROC et la double confirmation** : [Bootstrap #38313602241](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38313602241) et [E2E #38313602213](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38313602213) SUCCESS. L'archivage des captures est indépendant d'Actions. Les données crédibles du jury restent à préparer (#56).
 
 ### Règle de travail
 
 Une seule grosse tâche de développement est en cours à la fois. Ne pas bloquer la conversation pour les CI longues : la PR et le lien des runs sont transmis dès le lancement ; les résultats sont vérifiés sur demande.
+
+### Ordre de développement explicitement confirmé le 13 octobre 2026
+
+**M10 (#57) → frontend (attente GO explicite) → consolidation des preuves (#58) → préparation de la présentation (#59).** Les travaux sur le frontend ne commencent pas par la publication de M10, et aucun lot de preuves ou slides n'est ouvert prématurément.
+
+Architecture M10 : [six diagrammes](24-m10-architecture-finale.md) et [runbook d'exploitation](25-m10-operations-limits.md). Les statuts de ce fichier **ne constituent pas une mise à jour des colonnes GitHub Projects V2**.
