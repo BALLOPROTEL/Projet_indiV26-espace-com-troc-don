@@ -77,20 +77,25 @@ sequenceDiagram
     GW->>Cat: POST /listings (JWT préservé)
     Cat->>DB: Enregistrer annonce PENDING + souhaits
     DB-->>Cat: ID annonce
-    Cat-->>Web: ID + statut PENDING
+    Cat-->>GW: ID + statut PENDING
+    GW-->>Web: ID + statut PENDING
     Web->>GW: PUT /api/listings/:id/images (multipart + JWT)
     GW->>Cat: PUT /listings/:id/images
     Cat->>Min: Écrire 5 à 8 objets privés
     Cat->>DB: Métadonnées images par position
-    Cat-->>Web: Galerie enregistrée
+    Cat-->>GW: Métadonnées des images
+    GW-->>Web: Galerie enregistrée
     Mod->>Web: Ouvrir /moderation
     Web->>GW: GET /api/moderation/listings (JWT modérateur)
     GW->>Cat: Demander les fiches PENDING
     Cat-->>Web: Titres, images, updatedAt
     Mod->>Web: Voir les 5 images privées
-    Web->>Cat: Via Gateway : GET .../content/authorized (JWT)
-    Cat->>Min: Lire les objets privés
-    Min-->>Web: Contenu image via Catalog / Gateway
+    Web->>GW: GET /api/listings/:id/images/:imageId/content/authorized
+    GW->>Cat: JWT modérateur conservé
+    Cat->>Min: Lire objet privé
+    Min-->>Cat: Contenu binaire
+    Cat-->>GW: Image protégée
+    GW-->>Web: Réponse image avec contrôle des rôles
     Mod->>Web: Approuver la fiche
     Web->>GW: POST /api/moderation/listings/:id/approve
     GW->>Cat: JWT + reviewedUpdatedAt
