@@ -629,13 +629,13 @@ async function enrichedCreateListing(username, type, label) {
   await journeyOpen('/espace', '.form-panel form.listing-form',
     'authenticated listing editor for ' + username);
 
+  const radioSelector = '.form-panel input[name="operationType"][value="' + type + '"]';
   const selected = await evaluate('(() => {' +
-    'const radio=document.querySelector(".form-panel input[name=operationType][value=' +
-    JSON.stringify(type) + ']");if(!radio)return false;radio.click();return true;})()');
+    'const radio=document.querySelector(' + JSON.stringify(radioSelector) + ');' +
+    'if(!radio)return false;radio.click();return true;})()');
   assert.equal(selected, true, 'Missing operationType radio ' + type);
   await waitUntil('Selected ' + type + ' in publication editor',
-    '!!document.querySelector(".form-panel input[name=operationType][value=' +
-    JSON.stringify(type) + ']:checked")', 60);
+    '!!document.querySelector(' + JSON.stringify(radioSelector + ':checked') + ')', 60);
 
   const fillForm = '(() => {' +
     'const form=document.querySelector(".form-panel form.listing-form");' +
