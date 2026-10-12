@@ -329,7 +329,7 @@ async function journeyScreenshot(name) {
   console.log('[M9 Journey] Screenshot ' + name + ': PASS');
 }
 
-async function journeyOpen(route, expectedSelector, label) {
+async function journeyOpen(route, expectedSelector, label, expectedTitle = null) {
   const destination = new URL(route, base);
   // CDP Page.navigate resolves before the new document is guaranteed to load.
   // Never accept a matching form from the page we are leaving: successive
@@ -343,6 +343,10 @@ async function journeyOpen(route, expectedSelector, label) {
     ' || document.readyState === "loading") return false;' +
     'if (!document.querySelector(' + JSON.stringify(expectedSelector) + ')) return false;' +
     'const listingId=' + JSON.stringify(listingId) + ';' +
+    // CUIDs generated in quick succession may share the first 8 chars: verify
+    // a distinct title in addition to the displayed index when supplied.
+    'const expectedTitle=' + JSON.stringify(expectedTitle) + ';' +
+    'if (expectedTitle && !(document.body?.innerText??"").includes(expectedTitle)) return false;' +
     'if (!listingId) return true;' +
     // The listing index is populated only after the requested detail loaded.
     'const displayed=document.querySelector(".listing-detail__index")?.textContent ?? "";' +
@@ -392,9 +396,12 @@ async function journeyWaitConfirmation(targetListingId) {
   await waitUntil('stored visible first confirmation for ' + targetListingId, predicate, 120);
 }
 
-async function journeyOffer(targetId, offeredId, label, offeredTitle = 'M9 visual trade offered') {
+async function journeyOffer(targetId, offeredId, label,
+  offeredTitle = 'M9 visual trade offered',
+  comparisonScreenshot = 'm9-journey-trade-comparison',
+  targetTitle = null) {
   await journeyOpen('/annonces/' + encodeURIComponent(targetId), '.marketplace-action form',
-    'authenticated ' + label + ' form');
+    'authenticated ' + label + ' form', targetTitle);
   if (offeredId) {
     await waitUntil('approved trade offer loaded into the select',
       '[...document.querySelectorAll(".marketplace-action select option")].some(option=>option.value===' +
@@ -407,7 +414,7 @@ async function journeyOffer(targetId, offeredId, label, offeredTitle = 'M9 visua
     assert.equal(await evaluate(change), true, 'Missing TROC offered-listing selector');
     await waitUntil('TROC visual side-by-side preview',
       '(document.querySelector(".marketplace-compare")?.innerText??"").includes(' + JSON.stringify(offeredTitle) + ')', 120);
-    await journeyScreenshot('m9-journey-trade-comparison');
+    await journeyScreenshot(comparisonScreenshot);
   }
   const fill = '(() => {' +
     'const field=document.querySelector(".marketplace-action textarea");if(!field)return false;' +
@@ -625,6 +632,9 @@ function enrichedFiles(slug) {
 async function enrichedCreateListing(username, type, label) {
   const slug = randomUUID().slice(0, 8);
   const title = '9BF Chrome ' + label + ' ' + slug;
+  const expectedWishes = type === 'TRADE'
+    ? Array.from({ length: 5 }, (_, i) => '9BF contrepartie ' + (i + 1))
+    : [];
   const memberToken = await browserToken(username);
   await journeyOpen('/espace', '.form-panel form.listing-form',
     'authenticated listing editor for ' + username);
@@ -661,7 +671,7 @@ async function enrichedCreateListing(username, type, label) {
   if (type === 'TRADE') {
     for (let index = 0; index < 5; index++) {
       await fillReactField('.form-panel form.listing-form .wish-editor input',
-        '9BF contrepartie ' + (index + 1), index);
+        expectedWishes[index], index);
     }
   }
   await waitUntil('React form values retained',
@@ -696,10 +706,11 @@ async function enrichedCreateListing(username, type, label) {
   assert.ok(created, 'Browser-submitted listing must be stored in Catalog');
   assert.equal(created.status, 'PENDING', 'Publication must require moderation');
   assert.equal(created.images.length, 5, 'Browser must have uploaded five real photos');
-  assert.equal(created.tradeWishes.length, type === 'TRADE' ? 5 : 0);
+  assert.deepEqual(created.tradeWishes.map(w => w.label), expectedWishes,
+    'All five trade wishes must be persisted exactly as typed by Chrome');
   await journeyScreenshot('9bf-pending-' + label);
   console.log('[LOT9B-F Chrome] Member UI published ' + label + ' with 5 images: PASS');
-  return { id: created.id, title, token: memberToken };
+  return { id: created.id, title, token: memberToken, photoPaths: paths, expectedWishes };
 }
 
 async function enrichedModerate(listing, moderatorToken) {
@@ -721,7 +732,7 @@ async function enrichedModerate(listing, moderatorToken) {
     '.find(c=>c.textContent.includes(' + JSON.stringify(listing.title) + '));' +
     'const images=[...(card?.querySelectorAll(".moderation-gallery img")??[])];' +
     'return images.length===5&&images.every(img=>img.complete&&img.naturalWidth>0);})()', 120);
-  await journeyScreenshot('9bf-moderator-private-' + listing.id.slice(0, 8));
+  await journeyScreenshot('9bf-moderator-private-' + listing.id);
   const approve = '(() => {' +
     'const card=[...document.querySelectorAll(".moderation-list .moderation-item")]' +
     '.find(c=>c.textContent.includes(' + JSON.stringify(listing.title) + '));' +
@@ -735,7 +746,7 @@ async function enrichedModerate(listing, moderatorToken) {
   const approved = await browserApi(moderatorToken, '/api/listings/' + listing.id);
   assert.equal(approved.status, 'APPROVED');
   assert.equal(approved.images.length, 5);
-  await journeyScreenshot('9bf-approved-' + listing.id.slice(0, 8));
+  await journeyScreenshot('9bf-approved-' + listing.id);
   console.log('[LOT9B-F Chrome] Moderator UI reviewed 5 private images and approved ' + listing.id + ': PASS');
 }
 
@@ -759,8 +770,10 @@ async function runEnrichedBrowserJourneys() {
     await enrichedModerate(listing, ownerToken);
 
   await journeySwitchUser('demo-user');
-  await journeyOffer(donated.id, null, '9bf-don');
-  await journeyOffer(traded.id, offered.id, '9bf-troc', offered.title);
+  await journeyOffer(donated.id, null, '9bf-don',
+    undefined, undefined, donated.title);
+  await journeyOffer(traded.id, offered.id, '9bf-troc', offered.title,
+    '9bf-journey-trade-comparison', traded.title);
   await journeyOpen('/espace', '.marketplace-dashboard', '9BF outgoing requests');
   await journeyWaitCard(donated.id, 'En attente');
   await journeyWaitCard(traded.id, 'En attente');
@@ -807,7 +820,19 @@ async function runEnrichedBrowserJourneys() {
     assert.equal(published.availabilityStatus, 'COMPLETED');
     assert.equal(published.images.length, 5,
       'Real browser-uploaded images must survive the completed trade');
+    assert.deepEqual(published.tradeWishes.map(w => w.label), listing.expectedWishes,
+      'Trade wishes typed in Chrome must survive publication and transaction');
+    for (const [index, image] of published.images.entries()) {
+      const url = '/api/listings/' + listing.id + '/images/' + image.id + '/content';
+      const response = await fetch(browserGateway + url, { signal: AbortSignal.timeout(12000) });
+      assert.equal(response.status, 200, 'MinIO public content must be readable: ' + url);
+      assert.equal(response.headers.get('content-type')?.split(';')[0], 'image/png');
+      const content = Buffer.from(await response.arrayBuffer());
+      assert.deepEqual(content, readFileSync(listing.photoPaths[index]),
+        'Photo ' + index + ' overwritten or altered after all three browser uploads: ' + listing.id);
+    }
   }
+  console.log('[LOT9B-F Chrome] 15 image bytes + wish labels verified AFTER all Chrome publications: PASS');
   console.log('[LOT9B-F Chrome] Real Chrome: 3 listings, 15 photos, private moderation, DON/TROC two confirmations, COMPLETED: PASS');
 }
 
