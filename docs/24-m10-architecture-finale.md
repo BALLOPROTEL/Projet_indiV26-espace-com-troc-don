@@ -286,7 +286,8 @@ flowchart TB
       NOT["Deployment Notification : 2 replicas"]
       LEG["Deployment Legacy"]
       KC["Deployment Keycloak"]
-      INF["PostgreSQL / RabbitMQ / MinIO + PVC"]
+      INF["PostgreSQL / MinIO + PVC"]
+      RMQ["RabbitMQ + PVC"]
       JOB["Jobs : 4 migrations Prisma + MinIO bootstrap"]
       PRO["Prometheus"]
       GRAF["Grafana"]
@@ -299,7 +300,8 @@ flowchart TB
     GW --> CAT
     GW --> MAR
     GW --> LEG
-    MAR --> NOT
+    MAR --> RMQ
+    RMQ --> NOT
     CAT --> INF
     MAR --> INF
     NOT --> INF
@@ -311,7 +313,7 @@ flowchart TB
 - **Compose :** services HTTP en ports locaux (`3000` Gateway, `3001` Web, `3099` Legacy, `3101` Catalog, `3102` Marketplace, `3103` Notification`), Keycloak `8081`, MinIO `9000`, RabbitMQ et PostgreSQL. Dépendances de démarrage et checks santé dans `compose.yaml` ; migrations `legacy/catalog/marketplace/notification` et init MinIO.
 - **Kubernetes :** `infra/k8s/minikube/kustomization.yaml`, Services ClusterIP, probes startup/liveness/readiness, requests/limits, Secrets générés hors dépôt, PostgreSQL/RabbitMQ/MinIO persistants, 4 Jobs Prisma. L'Ingress expose `app.projet-indiv26.test`, `api.projet-indiv26.test` et `auth.projet-indiv26.test` via TLS de **labo**, non un certificat public de production.
 - **Observabilité :** Prometheus/Grafana, `/api/metrics` et probes santé, JMeter et HPA de Gateway (CPU 60 %, 1–4 pods). Le `/api/health/ready` est agrégé pour diagnostic, alors que la readiness Kubernetes du Gateway utilise `/api/health/live`, par choix d'isolation.
-- **Attention au graphe :** Notification ne communique pas avec Marketplace en HTTP applicatif ; le lien logique passe par **RabbitMQ**. L'arête simplifiée `Marketplace → Notification` de cette figure signifie une relation événementielle asynchrone, détaillée en sections 1, 3 et 4.
+- **Dans cette topologie, les événements passent exclusivement de Marketplace vers Notification par le broker RabbitMQ**, sans lien HTTP applicatif direct. Voir les séquences et les limites de la livraison aux sections 3, 4 et 8.
 
 ## 8. Risques et écarts POC / production — à annoncer au jury
 
