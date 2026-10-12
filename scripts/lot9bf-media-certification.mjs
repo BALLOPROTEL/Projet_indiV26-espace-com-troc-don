@@ -14,6 +14,7 @@ const gateway = 'http://127.0.0.1:' + (process.env.GATEWAY_HOST_PORT ?? '13000')
 const keycloak = process.env.KEYCLOAK_PUBLIC_URL ?? 'http://localhost:18081';
 const wishes = ['Roman', 'Jeu de société', 'Échiquier', 'Album', 'Sac'];
 const imageHeader = Buffer.from('89504e470d0a1a0a', 'hex');
+let listingSerial = 0;
 
 function chunk(type, data) {
   const name = Buffer.from(type, 'ascii');
@@ -79,7 +80,8 @@ async function login(username) {
   return (await res.json()).access_token;
 }
 
-async function checkListing(label, type, owner, moderator, other, checkOwnership) {
+async function checkListing(label, type, owner, moderator, unprivileged, imageIntruder, pendingNonOwner) {
+  const listingNumber = ++listingSerial;
   const body = {
     title: '9BF ' + label + ' ' + randomUUID(),
     description: 'Annonce enrichie de démonstration, entièrement jetable dans GitHub Actions.',
@@ -96,22 +98,23 @@ async function checkListing(label, type, owner, moderator, other, checkOwnership
     body: { reviewedUpdatedAt: created.updatedAt },
   });
   await http('/api/moderation/listings/' + created.id + '/approve', {
-    method: 'POST', auth: other, status: 403,
+    method: 'POST', auth: unprivileged, status: 403,
     body: { reviewedUpdatedAt: created.updatedAt },
   });
 
-  const assets = Array.from({ length: 5 }, (_, i) => picture(17 + 39 * i));
+  // A unique pixel payload for EACH of the fifteen files catches MinIO object-key
+  // collisions across listings as well as collisions across image positions.
+  const assets = Array.from({ length: 5 }, (_, i) =>
+    picture(17 + 39 * i + 7 * listingNumber));
   const makeForm = () => {
     const data = new FormData();
     assets.forEach((png, i) => data.append('images',
       new Blob([png], { type: 'image/png' }), 'certification-' + (i + 1) + '.png'));
     return data;
   };
-  if (checkOwnership) {
-    await http('/api/listings/' + created.id + '/images', {
-      method: 'PUT', auth: other, status: 403, body: makeForm(),
-    });
-  }
+  await http('/api/listings/' + created.id + '/images', {
+    method: 'PUT', auth: imageIntruder, status: 403, body: makeForm(),
+  });
   const saved = await http('/api/listings/' + created.id + '/images', {
     method: 'PUT', auth: owner, body: makeForm(),
   });
@@ -122,17 +125,42 @@ async function checkListing(label, type, owner, moderator, other, checkOwnership
   assert.ok(pending && pending.images.length === 5);
 
   const queue = await http('/api/moderation/listings?status=PENDING', { auth: moderator });
-  assert.ok(queue.some(x => x.id === created.id && x.images.length === 5),
+  const queued = queue.find(x => x.id === created.id);
+  assert.ok(queued && queued.images.length === 5,
     'Moderator should see five images in pending listing');
+  assert.equal(queued.updatedAt, pending.updatedAt,
+    'Moderation queue must expose fresh listing updatedAt');
+
+  // The public media endpoints must not reveal a PENDING listing, but
+  // ModerationGallery must be able to read the actual private MinIO bytes.
+  await http('/api/listings/' + created.id + '/images', { status: 404 });
+  for (const [i, image] of queued.images.entries()) {
+    const prefix = '/api/listings/' + created.id + '/images/' + image.id + '/content';
+    await http(prefix, { status: 404 });
+    await http(prefix + '/authorized', { status: 401 });
+    if (pendingNonOwner) {
+      await http(prefix + '/authorized', { auth: pendingNonOwner, status: 403 });
+    }
+    const privateImage = await http(prefix + '/authorized', {
+      auth: moderator, binary: true,
+    });
+    assert.deepEqual(privateImage.bytes, assets[i],
+      'ModerationGallery must show the original bytes before approval');
+    const ownerImage = await http(prefix + '/authorized', { auth: owner, binary: true });
+    assert.deepEqual(ownerImage.bytes, assets[i], 'Owner must also read own pending photos');
+  }
+
   const approved = await http('/api/moderation/listings/' + created.id + '/approve', {
     method: 'POST', auth: moderator,
-    body: { reviewedUpdatedAt: pending.updatedAt },
+    body: { reviewedUpdatedAt: queued.updatedAt },
   });
   assert.equal(approved.status, 'APPROVED');
 
   const publicListing = await http('/api/listings/' + created.id);
   assert.equal(publicListing.images.length, 5);
-  assert.equal(publicListing.tradeWishes.length, type === 'TRADE' ? 5 : 0);
+  assert.deepEqual(publicListing.tradeWishes.map(x => x.label),
+    type === 'TRADE' ? wishes : [],
+    'Catalog must persist all five original distinct wishes, in order');
   for (const [i, image] of publicListing.images.entries()) {
     assert.equal(image.mimeType, 'image/png');
     const served = await http('/api/listings/' + created.id + '/images/' + image.id + '/content',
@@ -147,9 +175,15 @@ async function checkListing(label, type, owner, moderator, other, checkOwnership
 async function run() {
   const moderator = await login('demo-moderator');
   const requester = await login('demo-user');
-  const don = await checkListing('DON', 'DONATION', moderator, moderator, requester, true);
-  const troc = await checkListing('TROC', 'TRADE', moderator, moderator, requester, true);
-  const offer = await checkListing('OFFER', 'TRADE', requester, moderator, requester, false);
+  // Moderator's listings: an ordinary user is unauthorized to moderate, upload,
+  // or read their private images. Requester's listing: the MODERATOR is forbidden
+  // to replace another user's images, even with elevated privileges.
+  const don = await checkListing('DON', 'DONATION',
+    moderator, moderator, requester, requester, requester);
+  const troc = await checkListing('TROC', 'TRADE',
+    moderator, moderator, requester, requester, requester);
+  const offer = await checkListing('OFFER', 'TRADE',
+    requester, moderator, requester, moderator, null);
   const publicListings = await http('/api/listings');
   for (const id of [don, troc, offer]) {
     assert.ok(publicListings.some(x => x.id === id && x.images.length === 5),

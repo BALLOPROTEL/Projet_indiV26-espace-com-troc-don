@@ -4,12 +4,14 @@
 
 ## Gate A — Galerie et modération réelles
 
-`scripts/lot9bf-media-certification.mjs` est lancé dans le même Compose **jetable** que M8/M9, lorsque `LOT9BF_RUN_MEDIA=true`. Il refuse d'exécuter des mutations dans un Compose non nommé `projet-indiv26-m6-ci` ou sans `M8_RUN_INTEGRATION=true`.
+`scripts/lot9bf-media-certification.mjs` est lancé dans le même Compose **jetable** que M8/M9, lorsque `LOT9BF_RUN_MEDIA=true` et `M8_RUN_INTEGRATION=true` ; `M9_RUN_WORKFLOWS` n'est pas obligatoire. Il refuse d'exécuter des mutations dans un Compose non nommé `projet-indiv26-m6-ci` ou sans `M8_RUN_INTEGRATION=true`.
 
 - Création réelle via API Gateway de trois annonces PENDING : un DON, un TROC et une contrepartie TROC.
-- Génération locale de 15 images PNG uniques (5 par annonce, sans dépendance ni image tierce).
+- Génération locale de 15 images PNG uniques entre les trois annonces et entre chaque position (5 par annonce, sans dépendance ni image tierce).
 - Upload multipart authentifié via Gateway vers Catalog / MinIO ; lecture publique avec comparaison octet pour octet.
-- Accès à une annonce PENDING : 404 ; modération avant 5 images : 400 ; non-modérateur : 403 ; upload d'un tiers : 403.
+- Accès à une annonce PENDING : 404 ; modération avant 5 images : 400 ; non-modérateur : 403 ; upload d'un tiers, même modérateur : 403.
+- Pour chacune des 15 images PENDING : lecture publique 404 et lecture sans JWT 401 ; lecture privée modérateur et propriétaire comparée octet pour octet ; lecture privée par un autre simple membre refusée 403 (annonces du modérateur).
+- La publication utilise le timestamp effectivement lu dans la file de modération (identique au frontend), et les cinq souhaits TROC sont comparés à leurs libellés originaux, pas seulement comptés.
 - Approbation avec `reviewedUpdatedAt` après relecture dans l'inbox modération.
 - Publication de 3 annonces avec 5 images chacune ; vérification de 5 souhaits distincts pour les 2 TROC.
 
