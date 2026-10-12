@@ -637,22 +637,33 @@ async function enrichedCreateListing(username, type, label) {
   await waitUntil('Selected ' + type + ' in publication editor',
     '!!document.querySelector(' + JSON.stringify(radioSelector + ':checked') + ')', 60);
 
-  const fillForm = '(() => {' +
-    'const form=document.querySelector(".form-panel form.listing-form");' +
-    'if(!form)return false;' +
-    'const title=form.querySelector("label.field input"),' +
-    'desc=form.querySelector("label.field textarea");' +
-    'if(!title||!desc)return false;' +
-    'function set(element,value){const descriptor=Object.getOwnPropertyDescriptor(' +
-    'element.tagName==="TEXTAREA"?HTMLTextAreaElement.prototype:HTMLInputElement.prototype,"value");' +
-    'descriptor.set.call(element,value);element.dispatchEvent(new Event("input",{bubbles:true}));}' +
-    'set(title,' + JSON.stringify(title) + ');' +
-    'set(desc,' + JSON.stringify('Certification LOT 9B-F, publication réelle avec cinq photographies de test indépendantes.') + ');' +
-    'const wishes=[...form.querySelectorAll(".wish-editor input")];' +
-    'if(' + JSON.stringify(type) + '==="TRADE"&&wishes.length!==5)return false;' +
-    'wishes.forEach((input,index)=>set(input,"9BF contrepartie "+(index+1)));' +
-    'return true;})()';
-  assert.equal(await evaluate(fillForm), true, 'Unable to fill real publication form');
+  // React controlled inputs are updated one at a time, allowing each onChange
+  // commit before the next field. A batch of synthetic input events in a
+  // single CDP evaluation may reuse stale React state between event handlers.
+  async function fillReactField(selector, value, index = null) {
+    const nodes = 'document.querySelectorAll(' + JSON.stringify(selector) + ')';
+    const code = '(() => {' +
+      'const nodes=' + nodes + ';' +
+      'const element=nodes[' + (index === null ? '0' : index) + '];' +
+      'if(!element)return false;' +
+      'const proto=element.tagName==="TEXTAREA"?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;' +
+      'Object.getOwnPropertyDescriptor(proto,"value").set.call(element,' + JSON.stringify(value) + ');' +
+      'element.dispatchEvent(new Event("input",{bubbles:true}));return true;})()';
+    assert.equal(await evaluate(code), true, 'Missing React field ' + selector);
+    await sleep(90);
+    const read = nodes + '[' + (index === null ? '0' : index) + ']?.value';
+    assert.equal(await evaluate(read), value,
+      'React field state did not retain ' + selector + ' ' + index);
+  }
+  await fillReactField('.form-panel form.listing-form label.field input', title);
+  await fillReactField('.form-panel form.listing-form label.field textarea',
+    'Certification LOT 9B-F, publication réelle avec cinq photographies de test indépendantes.');
+  if (type === 'TRADE') {
+    for (let index = 0; index < 5; index++) {
+      await fillReactField('.form-panel form.listing-form .wish-editor input',
+        '9BF contrepartie ' + (index + 1), index);
+    }
+  }
   await waitUntil('React form values retained',
     '(() => {const f=document.querySelector(".form-panel form.listing-form");' +
     'return !!f&&f.querySelector("label.field input")?.value===' + JSON.stringify(title) +
