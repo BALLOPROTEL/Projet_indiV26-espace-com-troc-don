@@ -169,7 +169,7 @@ async function checkListing(label, type, owner, moderator, unprivileged, imageIn
     assert.deepEqual(served.bytes, assets[i], 'Original bytes must survive Gateway + MinIO');
   }
   console.log('[LOT9B-F] ' + label + ': 5 real PNGs + MinIO + moderation + public catalog: PASS');
-  return created.id;
+  return { id: created.id, assets };
 }
 
 async function run() {
@@ -185,10 +185,20 @@ async function run() {
   const offer = await checkListing('OFFER', 'TRADE',
     requester, moderator, requester, moderator, null);
   const publicListings = await http('/api/listings');
-  for (const id of [don, troc, offer]) {
-    assert.ok(publicListings.some(x => x.id === id && x.images.length === 5),
+  for (const { id, assets } of [don, troc, offer]) {
+    const listing = publicListings.find(x => x.id === id);
+    assert.ok(listing && listing.images.length === 5,
       'All three real enriched listings must be public');
+    // IMPORTANT: re-read ALL images only after every upload. A regression that
+    // overwrites MinIO object keys across listings must break this assertion.
+    for (const [index, image] of listing.images.entries()) {
+      const served = await http('/api/listings/' + id + '/images/' +
+        image.id + '/content', { binary: true });
+      assert.deepEqual(served.bytes, assets[index],
+        'The first listing must still contain its own bytes after later uploads');
+    }
   }
+  console.log('[LOT9B-F] All fifteen MinIO objects retain their bytes AFTER all three publications: PASS');
   console.log('[LOT9B-F] PART A: 3 enriched listings, 15 PNGs, 5 trade wishes, RBAC: PASS');
   console.log('[LOT9B-F] Full Chrome create/upload/moderate workflow remains to certify');
 }
