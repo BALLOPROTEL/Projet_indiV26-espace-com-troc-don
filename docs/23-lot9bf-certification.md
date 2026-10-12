@@ -29,9 +29,15 @@ Les seize captures PNG du [run Chrome M9 #38090618298](https://github.com/BALLOP
 ## Gates restantes
 
 - [ ] Gate A exécutée et verte en CI sur le dernier HEAD, après revue Codex.
-- [ ] Extension navigateur : publier et modérer avec cinq fichiers via le formulaire avant le workflow transactionnel existant.
+- [ ] **Extension navigateur implémentée, CI encore à certifier** : vrais clics formulaires Next.js, 5 fichiers PNG chargés via Chrome DevTools Protocol, galerie privée modération, approbation, DON/TROC et double confirmation jusqu’à COMPLETED. Ne cocher qu'après E2E vert sur le HEAD.
 - [ ] Jeu de données de démonstration crédible, reproductible et légalement réutilisable.
 - [ ] Vérifications sécurité, pannes, intégration complète et preuves durables.
 - [ ] Dossier de recette final et validation explicite pour fermer #35.
 
 Ne pas lancer cette recette contre le Codespace ou Minikube persistants. Ne pas attendre les CI longues en conversation : transmettre les références et vérifier sur demande.
+
+## Recette B — navigateur bout en bout (en attente de validation)
+
+Le script `scripts/m9-browser-visual.mjs` inclut un scénario opt-in `LOT9BF_RUN_BROWSER=true` qui démarre après M9 (environnement Compose jetable). Trois annonces enrichies sont réellement déposées par les comptes Keycloak demo-user/demo-moderator **en cliquant le formulaire Web** avec cinq PNG chacun. Les 15 images sont choisies via CDP `DOM.setFileInputFiles`; le modérateur consulte les cinq images de chaque annonce dans la galerie privée **avant** l'approbation puis approuve via les boutons Web. Le demandeur propose DON/TROC, le propriétaire accepte, chaque utilisateur confirme et le système doit aboutir à `COMPLETED` en conservant les galeries.
+
+**Statut : scénario codé et CI déclenchée ; non certifié tant que ses E2E ne sont pas verts.** Les artefacts Chrome restent à réarchiver après réussite.

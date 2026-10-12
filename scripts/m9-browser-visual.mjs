@@ -4,6 +4,7 @@
 // Captures only synthetic public listing and unauthenticated member entry.
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { deflateSync } from 'node:zlib';
 import { readFileSync, mkdirSync, statSync, writeFileSync, mkdtempSync, existsSync, rmSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
@@ -391,7 +392,7 @@ async function journeyWaitConfirmation(targetListingId) {
   await waitUntil('stored visible first confirmation for ' + targetListingId, predicate, 120);
 }
 
-async function journeyOffer(targetId, offeredId, label) {
+async function journeyOffer(targetId, offeredId, label, offeredTitle = 'M9 visual trade offered') {
   await journeyOpen('/annonces/' + encodeURIComponent(targetId), '.marketplace-action form',
     'authenticated ' + label + ' form');
   if (offeredId) {
@@ -405,7 +406,7 @@ async function journeyOffer(targetId, offeredId, label) {
       'element.dispatchEvent(new Event("change",{bubbles:true}));return true;})()';
     assert.equal(await evaluate(change), true, 'Missing TROC offered-listing selector');
     await waitUntil('TROC visual side-by-side preview',
-      '(document.querySelector(".marketplace-compare")?.innerText??"").includes("M9 visual trade offered")', 120);
+      '(document.querySelector(".marketplace-compare")?.innerText??"").includes(' + JSON.stringify(offeredTitle) + ')', 120);
     await journeyScreenshot('m9-journey-trade-comparison');
   }
   const fill = '(() => {' +
@@ -569,6 +570,236 @@ async function runRealBrowserJourneys() {
   console.log('[M9 Journey] Real Chrome DON/TROC: create, reject, accept, 2 confirmations, COMPLETED, no duplicate: PASS');
 }
 
+
+// LOT 9B-F end-to-end Chrome acceptance. Browser actions mutate real data;
+// authenticated Gateway GET requests are only used for verification.
+let enrichedColorSeed = 0;
+function enrichedChunk(type, data) {
+  const name = Buffer.from(type, 'ascii');
+  let crc = 0xffffffff;
+  for (const byte of Buffer.concat([name, data])) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++)
+      crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+  }
+  const length = Buffer.alloc(4);
+  length.writeUInt32BE(data.length);
+  const checksum = Buffer.alloc(4);
+  checksum.writeUInt32BE((crc ^ 0xffffffff) >>> 0);
+  return Buffer.concat([length, name, data, checksum]);
+}
+
+function enrichedPng(color) {
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(64, 0);
+  header.writeUInt32BE(64, 4);
+  header[8] = 8;
+  header[9] = 6;
+  const row = Buffer.alloc(1 + 64 * 4);
+  for (let x = 0; x < 64; x++) {
+    const offset = 1 + x * 4;
+    row[offset] = color;
+    row[offset + 1] = (color + x * 3) % 256;
+    row[offset + 2] = 255 - color;
+    row[offset + 3] = 255;
+  }
+  return Buffer.concat([
+    Buffer.from('89504e470d0a1a0a', 'hex'),
+    enrichedChunk('IHDR', header),
+    enrichedChunk('IDAT', deflateSync(Buffer.concat(Array.from({ length: 64 }, () => row)))),
+    enrichedChunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+function enrichedFiles(slug) {
+  const directory = join(profileDir, '9bf-photos-' + slug);
+  mkdirSync(directory, { recursive: true });
+  const serial = enrichedColorSeed++;
+  return Array.from({ length: 5 }, (_, index) => {
+    const path = join(directory, 'photo-' + (index + 1) + '.png');
+    writeFileSync(path, enrichedPng(12 + serial * 23 + index * 33));
+    return path;
+  });
+}
+
+async function enrichedCreateListing(username, type, label) {
+  const slug = randomUUID().slice(0, 8);
+  const title = '9BF Chrome ' + label + ' ' + slug;
+  const memberToken = await browserToken(username);
+  await journeyOpen('/espace', '.form-panel form.listing-form',
+    'authenticated listing editor for ' + username);
+
+  const selected = await evaluate('(() => {' +
+    'const radio=document.querySelector(".form-panel input[name=operationType][value=' +
+    JSON.stringify(type) + ']");if(!radio)return false;radio.click();return true;})()');
+  assert.equal(selected, true, 'Missing operationType radio ' + type);
+  await waitUntil('Selected ' + type + ' in publication editor',
+    '!!document.querySelector(".form-panel input[name=operationType][value=' +
+    JSON.stringify(type) + ']:checked")', 60);
+
+  const fillForm = '(() => {' +
+    'const form=document.querySelector(".form-panel form.listing-form");' +
+    'if(!form)return false;' +
+    'const title=form.querySelector("label.field input"),' +
+    'desc=form.querySelector("label.field textarea");' +
+    'if(!title||!desc)return false;' +
+    'function set(element,value){const descriptor=Object.getOwnPropertyDescriptor(' +
+    'element.tagName==="TEXTAREA"?HTMLTextAreaElement.prototype:HTMLInputElement.prototype,"value");' +
+    'descriptor.set.call(element,value);element.dispatchEvent(new Event("input",{bubbles:true}));}' +
+    'set(title,' + JSON.stringify(title) + ');' +
+    'set(desc,' + JSON.stringify('Certification LOT 9B-F, publication réelle avec cinq photographies de test indépendantes.') + ');' +
+    'const wishes=[...form.querySelectorAll(".wish-editor input")];' +
+    'if(' + JSON.stringify(type) + '==="TRADE"&&wishes.length!==5)return false;' +
+    'wishes.forEach((input,index)=>set(input,"9BF contrepartie "+(index+1)));' +
+    'return true;})()';
+  assert.equal(await evaluate(fillForm), true, 'Unable to fill real publication form');
+  await waitUntil('React form values retained',
+    '(() => {const f=document.querySelector(".form-panel form.listing-form");' +
+    'return !!f&&f.querySelector("label.field input")?.value===' + JSON.stringify(title) +
+    '&&(!f.querySelector(".wish-editor")||[...f.querySelectorAll(".wish-editor input")].every(x=>x.value.trim()));})()', 60);
+
+  // Unlike API-level fixture creation, this genuinely selects five files on
+  // the browser's file input, firing the React change handler via Chrome CDP.
+  const root = await command('DOM.getDocument', { depth: -1, pierce: true });
+  const input = await command('DOM.querySelector', {
+    nodeId: root.root.nodeId,
+    selector: '.form-panel form.listing-form input[type=file]',
+  });
+  assert.ok(input.nodeId, 'Missing publication input[type=file]');
+  const paths = enrichedFiles(slug);
+  await command('DOM.setFileInputFiles', { nodeId: input.nodeId, files: paths });
+  await waitUntil('Five image previews in React publication form',
+    '(() => {const f=document.querySelector(".form-panel form.listing-form");' +
+    'return !!f&&f.querySelector("input[type=file]")?.files.length===5' +
+    '&&f.querySelectorAll(".upload-gallery img").length===5;})()', 120);
+  await journeyScreenshot('9bf-form-' + label + '-5-photos');
+
+  const submit = await evaluate('(() => {const button=document.querySelector(".form-panel form.listing-form button[type=submit]");' +
+    'if(!button||button.disabled)return false;button.click();return true;})()');
+  assert.equal(submit, true, 'Cannot submit enriched listing with Chrome');
+  await waitUntil('Real Chrome publication success ' + label,
+    '(document.querySelector(".form-panel .notice--success")?.textContent??"").includes("Annonce complète déposée")' +
+    '||(document.querySelector(".feedback-stack .notice--success")?.textContent??"").includes("Annonce complète déposée")', 150);
+  const mine = await browserApi(memberToken, '/api/listings/me');
+  const created = mine.find(x => x.title === title);
+  assert.ok(created, 'Browser-submitted listing must be stored in Catalog');
+  assert.equal(created.status, 'PENDING', 'Publication must require moderation');
+  assert.equal(created.images.length, 5, 'Browser must have uploaded five real photos');
+  assert.equal(created.tradeWishes.length, type === 'TRADE' ? 5 : 0);
+  await journeyScreenshot('9bf-pending-' + label);
+  console.log('[LOT9B-F Chrome] Member UI published ' + label + ' with 5 images: PASS');
+  return { id: created.id, title, token: memberToken };
+}
+
+async function enrichedModerate(listing, moderatorToken) {
+  await journeyOpen('/moderation', '.moderation-list',
+    'real moderation inbox for ' + listing.title);
+  const cardPredicate = '(() => [' +
+    '...document.querySelectorAll(".moderation-list .moderation-item")].some(' +
+    'c=>c.textContent.includes(' + JSON.stringify(listing.title) + ')))()';
+  await waitUntil('Pending listing in real moderation UI', cardPredicate, 120);
+  const openGallery = '(() => {' +
+    'const card=[...document.querySelectorAll(".moderation-list .moderation-item")]' +
+    '.find(c=>c.textContent.includes(' + JSON.stringify(listing.title) + '));' +
+    'const button=card?.querySelector(".moderation-gallery-gate button");' +
+    'if(!button||button.disabled)return false;button.click();return true;})()';
+  assert.equal(await evaluate(openGallery), true,
+    'Moderator must be able to request private images through UI');
+  await waitUntil('Private gallery hydrated with all 5 photos for ' + listing.title,
+    '(() => {const card=[...document.querySelectorAll(".moderation-list .moderation-item")]' +
+    '.find(c=>c.textContent.includes(' + JSON.stringify(listing.title) + '));' +
+    'const images=[...(card?.querySelectorAll(".moderation-gallery img")??[])];' +
+    'return images.length===5&&images.every(img=>img.complete&&img.naturalWidth>0);})()', 120);
+  await journeyScreenshot('9bf-moderator-private-' + listing.id.slice(0, 8));
+  const approve = '(() => {' +
+    'const card=[...document.querySelectorAll(".moderation-list .moderation-item")]' +
+    '.find(c=>c.textContent.includes(' + JSON.stringify(listing.title) + '));' +
+    'const button=[...(card?.querySelectorAll("button")??[])].find(b=>' +
+    'b.textContent?.trim()==="Approuver la fiche");' +
+    'if(!button||button.disabled)return false;button.click();return true;})()';
+  assert.equal(await evaluate(approve), true, 'Cannot approve browser-submitted listing');
+  await waitUntil('Listing removed from moderation inbox after approval',
+    '!([...document.querySelectorAll(".moderation-list .moderation-item")].some(' +
+    'c=>c.textContent.includes(' + JSON.stringify(listing.title) + ')))', 120);
+  const approved = await browserApi(moderatorToken, '/api/listings/' + listing.id);
+  assert.equal(approved.status, 'APPROVED');
+  assert.equal(approved.images.length, 5);
+  await journeyScreenshot('9bf-approved-' + listing.id.slice(0, 8));
+  console.log('[LOT9B-F Chrome] Moderator UI reviewed 5 private images and approved ' + listing.id + ': PASS');
+}
+
+async function runEnrichedBrowserJourneys() {
+  assert.equal(process.env.LOT9BF_RUN_BROWSER, 'true');
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 1440, height: 1024, deviceScaleFactor: 1, mobile: false,
+  });
+  const ownerToken = await browserToken('demo-moderator');
+  const requesterToken = await browserToken('demo-user');
+
+  // M9's tested script ends with demo-user signed in. Browser fixture creation
+  // now happens exclusively through the member forms, not Prisma or POST API.
+  const offered = await enrichedCreateListing('demo-user', 'TRADE', 'offered');
+  await journeySwitchUser('demo-moderator');
+  const donated = await enrichedCreateListing('demo-moderator', 'DONATION', 'donated');
+  const traded = await enrichedCreateListing('demo-moderator', 'TRADE', 'traded');
+
+  // The two accounts' PENDING listings must appear in the moderator inbox.
+  for (const listing of [offered, donated, traded])
+    await enrichedModerate(listing, ownerToken);
+
+  await journeySwitchUser('demo-user');
+  await journeyOffer(donated.id, null, '9bf-don');
+  await journeyOffer(traded.id, offered.id, '9bf-troc', offered.title);
+  await journeyOpen('/espace', '.marketplace-dashboard', '9BF outgoing requests');
+  await journeyWaitCard(donated.id, 'En attente');
+  await journeyWaitCard(traded.id, 'En attente');
+  browserFindProposal(await browserApi(requesterToken, '/api/proposals/me'), donated.id, 'PENDING');
+  browserFindProposal(await browserApi(requesterToken, '/api/proposals/me'), traded.id, 'PENDING');
+  await journeyScreenshot('9bf-both-proposals-pending');
+
+  await journeySwitchUser('demo-moderator');
+  for (const listing of [donated, traded]) {
+    await journeyWaitAction(listing.id, 'Accepter');
+    await journeyClick('Accepter', listing.id);
+    await journeyWaitCard(listing.id, 'Acceptée');
+    browserFindTransaction(await browserApi(ownerToken, '/api/transactions/me'),
+      listing.id, 'IN_PROGRESS');
+  }
+  await journeyScreenshot('9bf-owner-accepted-don-troc');
+  for (const listing of [donated, traded]) {
+    await journeyWaitAction(listing.id, 'Confirmer la remise');
+    await journeyClick('Confirmer la remise', listing.id);
+    await journeyWaitConfirmation(listing.id);
+  }
+  await journeyScreenshot('9bf-first-confirmation');
+
+  await journeySwitchUser('demo-user');
+  for (const listing of [donated, traded]) {
+    await journeyWaitAction(listing.id, 'Confirmer la remise');
+    await journeyClick('Confirmer la remise', listing.id);
+    await waitUntil('9BF completed transaction in browser for ' + listing.id,
+      '(() => [...document.querySelectorAll(".marketplace-transactions .marketplace-entry")]' +
+      '.some(c=>[...c.querySelectorAll("a[href]")].some(a=>a.getAttribute("href")===' +
+      JSON.stringify('/annonces/' + listing.id) + ')&&c.innerText.includes("Terminé")))()', 120);
+  }
+  await journeyScreenshot('9bf-full-enriched-don-troc-completed');
+
+  const finalTransactions = await browserApi(requesterToken, '/api/transactions/me');
+  for (const listing of [donated, traded]) {
+    const transaction = browserFindTransaction(finalTransactions, listing.id, 'COMPLETED');
+    assert.ok(transaction.ownerConfirmedAt && transaction.requesterConfirmedAt &&
+      transaction.completedAt, 'Both real user confirmations must persist');
+  }
+  for (const listing of [donated, traded, offered]) {
+    const published = await browserApi(requesterToken, '/api/listings/' + listing.id);
+    assert.equal(published.status, 'APPROVED');
+    assert.equal(published.availabilityStatus, 'COMPLETED');
+    assert.equal(published.images.length, 5,
+      'Real browser-uploaded images must survive the completed trade');
+  }
+  console.log('[LOT9B-F Chrome] Real Chrome: 3 listings, 15 photos, private moderation, DON/TROC two confirmations, COMPLETED: PASS');
+}
+
 try {
   await startCdp(await waitForPort());
   await capture('/annonces/' + encodeURIComponent(id), 1440, 1000,
@@ -585,6 +816,7 @@ try {
     'espace-requester-outbox-desktop', 'Mes demandes envoyées', '.marketplace-dashboard');
   console.log('[M9 Browser] Chrome desktop/mobile + both authenticated user roles: PASS');
   await runRealBrowserJourneys();
+  if (process.env.LOT9BF_RUN_BROWSER === 'true') await runEnrichedBrowserJourneys();
 } finally {
   if (socket && socket.readyState === WebSocket.OPEN) socket.close();
   for (const task of pending.values()) clearTimeout(task.timeout);
