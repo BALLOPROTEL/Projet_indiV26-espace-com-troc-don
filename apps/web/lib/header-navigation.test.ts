@@ -11,13 +11,14 @@ describe('headerLinks role-aware navigation', () => {
       .toEqual(['/', '/espace']);
   });
 
-  it.each([['MODERATOR'], ['ADMIN'], ['USER', 'MODERATOR']] as const)(
-    'shows moderation for an authenticated elevated role %s',
-    (roles) => {
-      expect(headerLinks(true, roles).map((item) => item.href))
-        .toEqual(['/', '/espace', '/moderation']);
-    },
-  );
+  it.each([
+    { roles: ['MODERATOR'] as const },
+    { roles: ['ADMIN'] as const },
+    { roles: ['USER', 'MODERATOR'] as const },
+  ])('shows moderation for an authenticated elevated role $roles', ({ roles }) => {
+    expect(headerLinks(true, roles).map((item) => item.href))
+      .toEqual(['/', '/espace', '/moderation']);
+  });
 
   it('never exposes an unsupported /admin or fake messages link', () => {
     const urls = headerLinks(true, ['ADMIN']).map((item) => item.href);
