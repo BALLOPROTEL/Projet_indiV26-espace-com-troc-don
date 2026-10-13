@@ -241,8 +241,9 @@ sequenceDiagram
         GW->>M: Deuxième confirmation
         M->>DB: requesterConfirmedAt
         M->>C: POST cible /complete
+        C-->>M: Fiche cible COMPLETED (premier commit)
         M->>C: POST contrepartie /complete
-        C-->>M: Les deux COMPLETED
+        C-->>M: Contrepartie COMPLETED (second commit)
         M->>DB: Claim transaction COMPLETED
         M->>MQ: transaction.completed (best effort)
         MQ-->>M: Confirmation broker ou échec après tentatives
