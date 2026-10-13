@@ -91,7 +91,7 @@ sequenceDiagram
     GW->>Cat: Demander les fiches PENDING
     Cat-->>GW: Titres, images, updatedAt
     GW-->>Web: File de modération (statut PENDING)
-    Mod->>Web: Voir les 5 images privées
+    Mod->>Web: Inspecter toute la galerie privée (5 à 8 images)
     Web->>GW: GET /api/listings/:id/images/:imageId/content/authorized
     GW->>Cat: JWT modérateur conservé
     Cat->>Min: Lire objet privé
@@ -141,13 +141,15 @@ sequenceDiagram
     GW->>M: Lire propositions pour ses listings
     M->>C: GET /internal/listings/owner/:ownerId/ids
     C-->>M: Identifiants possédés
-    M-->>O: Propositions reçues
+    M-->>GW: Propositions reçues
+    GW-->>O: Réponse HTTP
     alt Refus
         O->>GW: POST /api/proposals/:id/reject
         GW->>M: Rejeter si propriétaire
         M->>DB: TX : PENDING vers REJECTED + outbox
         DB-->>M: Commit atomique
-        M-->>O: Refus enregistré
+        M-->>GW: Refus enregistré
+        GW-->>O: Réponse HTTP (worker outbox indépendant)
         M->>MQ: Worker outbox : proposal.rejected (retry / même eventId)
         MQ-->>N: Livraison éventuellement répétée
         N->>ND: INSERT unique(eventId), ignorer doublon
@@ -160,11 +162,14 @@ sequenceDiagram
         M->>DB: TX : ACCEPTED + rejets concurrents + transaction IN_PROGRESS
         DB-->>M: Commit
         M->>MQ: Publier proposal.accepted (best effort)
-        M-->>O: Transaction IN_PROGRESS
+        MQ-->>M: Confirmation broker ou échec après tentatives
+        M-->>GW: Transaction IN_PROGRESS
+        GW-->>O: Réponse HTTP après publisher confirms
         O->>GW: POST /api/transactions/:id/confirm
         GW->>M: ownerConfirmedAt
         M->>DB: Persister première confirmation
-        M-->>O: Toujours IN_PROGRESS
+        M-->>GW: Toujours IN_PROGRESS
+        GW-->>O: Réponse HTTP
         R->>GW: POST /api/transactions/:id/confirm
         GW->>M: requesterConfirmedAt
         M->>DB: Persister seconde confirmation
@@ -172,7 +177,9 @@ sequenceDiagram
         C-->>M: RESERVED vers COMPLETED
         M->>DB: Claim conditionnel : transaction COMPLETED
         M->>MQ: Publier transaction.completed (best effort)
-        M-->>R: Transaction terminée
+        MQ-->>M: Confirmation broker ou échec après tentatives
+        M-->>GW: Transaction terminée
+        GW-->>R: Réponse HTTP
     end
 ```
 
@@ -216,16 +223,20 @@ sequenceDiagram
         C-->>M: 409 / erreur
         M->>C: POST /release des réservations réussies
         Note over M,C: Compensation best effort, sans transaction SQL distribuée
-        M-->>B: Échec (pas de transaction complète)
+        M-->>GW: Échec (pas de transaction complète)
+        GW-->>B: Réponse HTTP d'erreur
     else Deux réservations réussies
         C-->>M: Contrepartie RESERVED
         M->>DB: TX : ACCEPTED + rejets PENDING visant la cible + outbox + transaction IN_PROGRESS
         M->>MQ: proposal.accepted (best effort)
-        M-->>B: Transaction en cours
+        MQ-->>M: Confirmation broker ou échec après tentatives
+        M-->>GW: Transaction en cours
+        GW-->>B: Réponse HTTP
         B->>GW: POST /api/transactions/:id/confirm
         GW->>M: Première confirmation
         M->>DB: ownerConfirmedAt
-        M-->>B: IN_PROGRESS
+        M-->>GW: IN_PROGRESS
+        GW-->>B: Réponse HTTP
         A->>GW: POST /api/transactions/:id/confirm
         GW->>M: Deuxième confirmation
         M->>DB: requesterConfirmedAt
@@ -234,7 +245,9 @@ sequenceDiagram
         C-->>M: Les deux COMPLETED
         M->>DB: Claim transaction COMPLETED
         M->>MQ: transaction.completed (best effort)
-        M-->>A: Échange terminé
+        MQ-->>M: Confirmation broker ou échec après tentatives
+        M-->>GW: Échange terminé
+        GW-->>A: Réponse HTTP
     end
 ```
 
@@ -339,6 +352,7 @@ flowchart TB
 | Risque / écart | Statut effectivement constaté | Ce que M10 ne prétend pas |
 | --- | --- | --- |
 | Outbox partielle | Outbox transactionnelle sur `proposal.rejected` uniquement ; autres événements publiés après commit | Pas d'exactly-once ni d'outbox universelle |
+| Rétention événements | Inbox Notification conserve tous les `eventId` uniques ; outbox Marketplace conserve les rejets publiés avec `publishedAt` ; `recent()` n'extrait que 50 résultats, sans purge | Pas d'archivage, TTL ou quota de rétention automatique : prévoir capacité/alertes, durée de déduplication et purge compatible avec les retries |
 | Cohérence distribuée | Réservations séquentielles, compensation `release` best effort ; clôture des annonces séquentielle | Pas de saga persistée / 2PC / reprise automatique complète |
 | Legacy | Seul `/api/auth*` est routé par Gateway, mais modules Listings/Marketplace, base `public` et accès MinIO demeurent dans le service directement joignable | Pas de confinement effectif du legacy ni de retrait complet du monolithe |
 | Isolation réseau / SQL | Pas de NetworkPolicy ; token partagé interservices, rôle PostgreSQL partagé entre les schémas métier **et la base Keycloak dans Minikube** | Pas de service mesh/mTLS ni de principal SQL dédié à l'identité ou de permissions limitées par service |
