@@ -14,7 +14,7 @@
 | Santé | Healthchecks de démarrage Compose | Probes startup/liveness/readiness avec ressources |
 | Scaling / monitor | Vérifications HTTP en CI jetable | Gateway HPA min 1/max 4 CPU 60 % ; Prometheus/Grafana |
 
-L'instance PostgreSQL est partagée pour simplifier le laboratoire ; l'**ownership logique** est une **convention Prisma/code**, non une barrière d'autorisations SQL. En Compose, `public`, `catalog`, `marketplace` et `notification` utilisent le **même rôle `app` et son mot de passe** ; Minikube génère également les DSN métier avec un principal PostgreSQL commun. Un service compromis pourrait donc potentiellement lire ou altérer un autre schéma ; une production exige des rôles SQL distincts, des droits minimum et un cloisonnement réseau. Les secrets du Compose sont des valeurs d'exemple locales, **jamais** de production.
+L'instance PostgreSQL est partagée pour simplifier le laboratoire ; l'**ownership logique** est une **convention Prisma/code**, non une barrière d'autorisations SQL. En Compose, `public`, `catalog`, `marketplace` et `notification` utilisent le **même rôle `app` et son mot de passe** ; Minikube génère également les DSN métier avec un principal PostgreSQL commun. **En Minikube, la base `keycloak` utilise également ce même principal** : son mot de passe est lu depuis `postgres-credentials` dans `keycloak-deployment.yaml` et cette base est créée avec `POSTGRES_USER`. Un service métier compromis peut alors aussi compromettre les **identités Keycloak**, pas uniquement les quatre schémas Prisma. Une production exige des rôles SQL distincts par service **et pour la base d'identité**, des droits minimum et un cloisonnement réseau. Les secrets du Compose sont des valeurs d'exemple locales, **jamais** de production.
 
 ## 2. Endpoints et chemins de diagnostic
 
@@ -72,7 +72,7 @@ kubectl get pods -n projet-indiv26
 | Événements absents | Examiner publisher, outbox si refus, queue RabbitMQ, inbox Notification par `eventId` | Outbox **partielle** : événements hors outbox non rejouables automatiquement depuis la DB |
 | Deux annonces avec états divergents | Comparer la transaction et chaque disponibilité Catalog | Aucune saga de réparation entièrement automatique démontrée |
 | Keycloak redémarre et sujet change | Vérifier issuer, UUID `sub`, procédure de snapshot M7 | Ne pas considérer `start-dev` comme production |
-| Compromission d’un service SQL | Contrôler les privilèges du principal PG partagé et journaliser les accès croisés | Le paramètre Prisma `?schema=` **n'empêche pas** un rôle PG commun d'accéder aux autres schémas |
+| Compromission d’un service SQL | Contrôler les privilèges du principal PG partagé et journaliser les accès croisés, **y compris à la base `keycloak` en Minikube** | Le paramètre Prisma `?schema=` **n'empêche pas** l'accès aux autres schémas ni à la base d'identité si les mêmes credentials PG sont partagés |
 | Métriques absentes d'un service non Gateway | Vérifier la configuration du job Prometheus `gateway-pods` | Seul le Gateway est réellement scruté ; les probes des autres services ne sont pas des exports Prometheus |
 
 ## 6. Stratégie de retour arrière / démo de secours technique

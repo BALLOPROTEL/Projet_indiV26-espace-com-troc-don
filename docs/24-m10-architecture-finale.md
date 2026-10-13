@@ -52,7 +52,7 @@ flowchart LR
     PGK --- PG
 ```
 
-**Interprétation :** les services partagent une **instance PostgreSQL de laboratoire** avec **schémas Prisma distincts** ; aucune jointure ni relation SQL interservices n'est implémentée **dans les nouveaux services**. Cette séparation est une **convention de code et de schéma Prisma**, **pas** une isolation de permissions SQL : les quatre URLs métier utilisent le même rôle PostgreSQL `app` (Compose) ou un même principal généré (Minikube), qui pourrait accéder à plusieurs schémas si un service était compromis. Les références d'annonces circulent par identifiant et contrat HTTP. En **Compose**, Keycloak démarre en `start-dev --import-realm` sans base PostgreSQL Keycloak dédiée ; en **Minikube**, il dispose de la **base PostgreSQL distincte `keycloak`** (et non d'un schéma Prisma). Le dessin différencie cette particularité.
+**Interprétation :** les services partagent une **instance PostgreSQL de laboratoire** avec **schémas Prisma distincts** ; aucune jointure ni relation SQL interservices n'est implémentée **dans les nouveaux services**. Cette séparation est une **convention de code et de schéma Prisma**, **pas** une isolation de permissions SQL : les quatre URLs métier utilisent le même rôle PostgreSQL `app` (Compose) ou un même principal généré (Minikube), qui pourrait accéder à plusieurs schémas si un service était compromis. **Dans Minikube, ce principal possède aussi la base d'identité `keycloak`** : le risque inclut l'altération des comptes/rôles et pas seulement la lecture croisée des schémas métier. Les références d'annonces circulent par identifiant et contrat HTTP. En **Compose**, Keycloak démarre en `start-dev --import-realm` sans base PostgreSQL Keycloak dédiée ; en **Minikube**, il dispose de la **base PostgreSQL distincte `keycloak`** (et non d'un schéma Prisma). Le dessin différencie cette particularité.
 
 **Routage réellement en place :** `apps/gateway/src/routes.ts` route seulement `/api/listings*` et `/api/moderation/listings*` vers Catalog, `/api/proposals*` et `/api/transactions*` vers Marketplace, `/api/auth*` vers Legacy et `/api/health/{live,ready}` et `/api/metrics` vers Gateway. **Le Gateway ne bascule pas automatiquement toute route inconnue vers Legacy** : le « fallback Strangler » est un routage résiduel explicite. **Attention :** le processus Legacy inclut encore ses modules `ListingsModule` et `MarketplaceModule` et conserve des credentials PostgreSQL `public` et MinIO lecture/écriture. Ces capacités sont encore joignables **directement sur le service local/ClusterIP**, même si le Gateway public ne les route pas ; c’est une dette de confinement et de retrait, pas une isolation technique absolue.
 
@@ -130,10 +130,13 @@ sequenceDiagram
     C-->>M: Statut, type, ownerId, disponibilité
     M->>DB: Insérer proposition PENDING
     M->>MQ: Publier proposal.created (best effort)
+    MQ-->>M: Confirmation broker RabbitMQ (pas ACK Notification)
+    M-->>GW: Proposition créée, sans attendre Notification
+    GW-->>R: Réponse HTTP proposition créée
+    Note over MQ,N: Consommation asynchrone, peut survenir avant ou après HTTP
     MQ-->>N: Livrer événement
     N->>ND: Insérer inbox unique(eventId)
     N-->>MQ: ACK après persistance
-    M-->>R: Proposition créée
     O->>GW: GET /api/proposals/received (JWT)
     GW->>M: Lire propositions pour ses listings
     M->>C: GET /internal/listings/owner/:ownerId/ids
@@ -198,8 +201,12 @@ sequenceDiagram
     C-->>M: Propriétaire demandeur, statut
     M->>DB: Créer proposition PENDING
     M->>MQ: proposal.created (best effort)
+    MQ-->>M: Confirmation broker, pas ACK consommateur
+    M-->>GW: Offre enregistrée
+    GW-->>A: Réponse HTTP sans attendre Notification
+    Note over MQ,N: Livraison/traitement asynchrones, ordre non imposé avec HTTP
     MQ-->>N: Événement
-    M-->>A: Offre enregistrée
+    N->>MQ: ACK après persistance en base notification
     B->>GW: POST /api/proposals/:id/accept
     GW->>M: Acceptation du propriétaire
     M->>C: POST cible /reserve
@@ -212,7 +219,7 @@ sequenceDiagram
         M-->>B: Échec (pas de transaction complète)
     else Deux réservations réussies
         C-->>M: Contrepartie RESERVED
-        M->>DB: TX : ACCEPTED + rejets concurrents/outbox + transaction IN_PROGRESS
+        M->>DB: TX : ACCEPTED + rejets PENDING visant la cible + outbox + transaction IN_PROGRESS
         M->>MQ: proposal.accepted (best effort)
         M-->>B: Transaction en cours
         B->>GW: POST /api/transactions/:id/confirm
@@ -230,6 +237,8 @@ sequenceDiagram
         M-->>A: Échange terminé
     end
 ```
+
+**Attention aux propositions concurrentes :** lors d'un TROC, les rejets automatiques et événements outbox concernent **uniquement les autres propositions visant l'annonce cible** (`targetListingId`), et **non celles visant l'annonce proposée en contrepartie** : ces dernières peuvent rester `PENDING` alors que la contrepartie a été réservée. Un futur travail de cohérence/reconciliation doit traiter ce cas.
 
 **Important :** le code effectue les deux changements Catalog successivement ; s'il échoue après le premier `complete`, aucune **transaction distribuée** n'annule automatiquement cette première clôture. Les réservations ont une compensation `release` *best effort* en cas d'échec d'acceptation ; l'état partiellement clos exige diagnostic et réparation opérateur. Les claims SQL conditionnels limitent les doubles transitions mais ne valent pas exactement-once interservices.
 
@@ -332,7 +341,7 @@ flowchart TB
 | Outbox partielle | Outbox transactionnelle sur `proposal.rejected` uniquement ; autres événements publiés après commit | Pas d'exactly-once ni d'outbox universelle |
 | Cohérence distribuée | Réservations séquentielles, compensation `release` best effort ; clôture des annonces séquentielle | Pas de saga persistée / 2PC / reprise automatique complète |
 | Legacy | Seul `/api/auth*` est routé par Gateway, mais modules Listings/Marketplace, base `public` et accès MinIO demeurent dans le service directement joignable | Pas de confinement effectif du legacy ni de retrait complet du monolithe |
-| Isolation réseau / SQL | Pas de NetworkPolicy ; token partagé interservices **et principal PostgreSQL partagé entre les schémas métier** | Pas de service mesh/mTLS ni de permissions SQL limitées par service |
+| Isolation réseau / SQL | Pas de NetworkPolicy ; token partagé interservices, rôle PostgreSQL partagé entre les schémas métier **et la base Keycloak dans Minikube** | Pas de service mesh/mTLS ni de principal SQL dédié à l'identité ou de permissions limitées par service |
 | Protection contre surcharge | HPA sur Gateway, protections ponctuelles, pas de rate limiter distribué démontré | Pas de quota global multi-replica certifié |
 | Stockage / identité | PostgreSQL/MinIO/RabbitMQ PVC de labo ; Keycloak en `start-dev` (Compose et manifest Minikube) | Pas de HA multi-zone, sauvegarde automatique ni Keycloak prod durci |
 | Accès et secrets | Secrets hors versionnage pour K8s ; Compose contient des identifiants explicitement **locaux** | Ne jamais réutiliser ces secrets en production |
@@ -341,7 +350,7 @@ flowchart TB
 
 ## 9. Vérification, preuves et séquence des prochains chantiers
 
-**Sources de vérité** : `apps/gateway/src/routes.ts` ; `apps/marketplace-service/src/proposals/proposals.service.ts`, `transactions/transactions.service.ts`, `events/outbox.worker.ts` ; `apps/catalog-service/src/internal/internal-listings.controller.ts` ; `apps/notification-service/src/rabbitmq/rabbitmq.consumer.ts` ; les trois `prisma/schema.prisma` ; `compose.yaml` et `infra/k8s/minikube`.
+**Sources de vérité** : `apps/gateway/src/routes.ts` ; `apps/marketplace-service/src/proposals/proposals.service.ts`, `transactions/transactions.service.ts`, `events/outbox.worker.ts` ; `apps/catalog-service/src/internal/internal-listings.controller.ts` ; `apps/notification-service/src/rabbitmq/rabbitmq.consumer.ts` ; les **quatre** schémas Prisma (`apps/api/prisma/schema.prisma`, `apps/catalog-service/prisma/schema.prisma`, `apps/marketplace-service/prisma/schema.prisma`, `apps/notification-service/prisma/schema.prisma`) ; `compose.yaml` et `infra/k8s/minikube`.
 
 **Certifications précédentes** :
 - [PR #61 — LOT 9B-F](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/61) (merge `53fb2df`) : [Bootstrap #38313602241](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38313602241) et [E2E Chrome #38313602213](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38313602213), revus sur HEAD `7e346cd`.
