@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { headerLinks } from '../lib/header-navigation';
 import { useAuth } from './auth-provider';
 
 type IconName = 'home' | 'box' | 'shield' | 'menu' | 'chevron' | 'sign-out';
 
 function HeaderIcon({ name }: { name: IconName }) {
-  const paths: Record<IconName, React.ReactNode> = {
+  const paths: Record<IconName, ReactNode> = {
     home: <><path d="m3 10 9-7 9 7v10H3z" /><path d="M9 20v-7h6v7" /></>,
     box: <><path d="m3 7 9-4 9 4v10l-9 4-9-4z" /><path d="m3 7 9 4 9-4M12 11v10" /></>,
     shield: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></>,
@@ -120,9 +120,9 @@ export function SiteHeader() {
                   <p>Connecté avec Keycloak</p>
                   <Link href="/espace">Mes articles et échanges</Link>
                   {elevatedRole ? <Link href="/moderation">Espace de modération</Link> : null}
-                  <button type="button" onClick={() => void logout()}>
+                  <button type="button" aria-label="Se déconnecter" onClick={() => void logout()}>
                     <HeaderIcon name="sign-out" />
-                    Se déconnecter
+                    Sortir
                   </button>
                 </div>
               </details>
