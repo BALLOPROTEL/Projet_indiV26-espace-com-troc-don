@@ -14,6 +14,7 @@ import {
 } from '../lib/presentation';
 import type { Listing } from '../lib/types';
 import { ListingProposalForm } from './listing-proposal-form';
+import { ListingImageGallery } from './listing-image-gallery';
 
 export function ListingDetail({ id }: { id: string }) {
   const [listing, setListing] = useState<Listing | null>(null);
@@ -80,7 +81,7 @@ export function ListingDetail({ id }: { id: string }) {
           été approuvée par la réserve.
         </p>
         <Link className="button" href="/">
-          Retour au cabinet
+          Retour aux annonces
         </Link>
       </section>
     );
@@ -93,18 +94,18 @@ export function ListingDetail({ id }: { id: string }) {
         <h1>Impossible d’ouvrir cette fiche.</h1>
         <p>{error ?? 'Une erreur inattendue est survenue.'}</p>
         <Link className="button" href="/">
-          Retour au cabinet
+          Retour aux annonces
         </Link>
       </section>
     );
   }
 
   return (
-    <article className="listing-detail">
+    <article className="listing-detail listing-detail-v2">
       <div className="listing-detail__breadcrumbs">
-        <Link href="/">Le cabinet</Link>
+        <Link href="/">Accueil</Link>
         <span aria-hidden="true">/</span>
-        <span>Fiche admise</span>
+        <span>Fiche article</span>
       </div>
 
       <div className="listing-detail__layout">
@@ -124,32 +125,11 @@ export function ListingDetail({ id }: { id: string }) {
 
           <h1>{listing.title}</h1>
 
-          {listing.images.length > 0 ? (
-            <section
-              className="listing-gallery"
-              aria-label="Galerie de l’objet"
-            >
-              {listing.images.map((image, index) => (
-                <figure
-                  className={
-                    index === 0
-                      ? 'listing-gallery__item listing-gallery__item--lead'
-                      : 'listing-gallery__item'
-                  }
-                  key={image.id}
-                >
-                  <img
-                    src={listingAssetUrl(image.contentUrl)}
-                    alt={`${listing.title} — vue ${index + 1}`}
-                    loading={index === 0 ? 'eager' : 'lazy'}
-                  />
-                  <figcaption>
-                    Vue {(index + 1).toString().padStart(2, '0')}
-                  </figcaption>
-                </figure>
-              ))}
-            </section>
-          ) : null}
+          <ListingImageGallery
+            key={listing.id}
+            listingTitle={listing.title}
+            images={listing.images}
+          />
 
           <div className="listing-detail__description">
             <span className="eyebrow">À propos de l’objet</span>
@@ -200,19 +180,20 @@ export function ListingDetail({ id }: { id: string }) {
           <span className="listing-detail__seal" aria-hidden="true">
             PM
           </span>
-          <span className="eyebrow">Fiche relue</span>
-          <h2>Admise dans le cabinet</h2>
-          <p>
-            Cette annonce a été relue par la réserve avant de devenir
-            visible publiquement.
-          </p>
+          <span className="eyebrow">Annonce publiée</span>
+          <h2>Informations sur l'annonce</h2>
+          <p>Cette annonce est publiée après modération. Les informations ci-dessous proviennent de sa fiche réelle.</p>
           <div className="listing-detail__rule">
             <span>Statut</span>
-            <strong>Approuvée</strong>
+            <strong>{listing.availabilityStatus === 'AVAILABLE' ? 'Disponible' : listing.availabilityStatus === 'RESERVED' ? 'Réservé' : 'Terminé'}</strong>
           </div>
           <div className="listing-detail__rule">
             <span>Nature</span>
             <strong>{operationLabel(listing.operationType)}</strong>
+          </div>
+          <div className="listing-detail__rule">
+            <span>Référence</span>
+            <strong>{listing.id.slice(0, 8)}</strong>
           </div>
           <div className="listing-detail__rule">
             <span>Galerie</span>
