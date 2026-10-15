@@ -28,8 +28,6 @@ export function HomeExperience() {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(null);
     void listingsApi.public()
       .then((data) => {
         if (active) {
@@ -171,7 +169,11 @@ export function HomeExperience() {
           <div className="home-v2__error" role="alert">
             <strong>Impossible de charger le catalogue.</strong>
             <p>{error}</p>
-            <button type="button" onClick={() => setReload((count) => count + 1)}>
+            <button type="button" onClick={() => {
+              setLoading(true);
+              setError(null);
+              setReload((count) => count + 1);
+            }}>
               Réessayer
             </button>
           </div>
