@@ -58,11 +58,11 @@ describe('ADMIN Catalog summary contract', () => {
     );
   });
 
-  it.each([[AppRole.USER], [AppRole.MODERATOR]] as AppRole[][])(
+  it.each([AppRole.USER, AppRole.MODERATOR])(
     'rejects %s from ADMIN-only data (403)',
-    (roles) => {
+    (role) => {
       expect(() =>
-        rolesGuard.canActivate(makeContext('Bearer valid', roles)),
+        rolesGuard.canActivate(makeContext('Bearer valid', [role])),
       ).toThrow(ForbiddenException);
     },
   );
