@@ -1935,7 +1935,7 @@ summary:focus-visible {
 .brand__copy strong span { color: var(--pm-green); }
 .brand__copy small {
   margin-top: 5px;
-  color: #668074;
+  color: #455e52;
   font-size: .64rem;
   font-weight: 700;
   text-transform: none;
@@ -2130,4 +2130,11 @@ summary:focus-visible {
 }
 @media (prefers-reduced-motion: reduce) {
   .primary-nav__link { transition: none; }
+}
+
+/* Narrow portrait smartphones: protect the logged-out action from brand overlap. */
+@media (max-width: 380px) {
+  .site-header__inner { gap: 7px; }
+  .brand__copy { display: none; }
+  .site-header__login { padding: 10px 11px; font-size: .77rem; white-space: nowrap; }
 }
