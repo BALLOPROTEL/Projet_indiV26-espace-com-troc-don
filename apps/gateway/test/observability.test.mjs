@@ -103,3 +103,34 @@ test('adds security headers, request correlation and Gateway metrics', async (t)
   );
 
 });
+
+test('labels ADMIN summary separately for 200, 401 and 403 responses', async (t) => {
+  const metrics = new GatewayMetrics();
+  const middleware = createGatewayObservabilityMiddleware(metrics);
+  const server = createServer((request, response) => {
+    middleware(request, response, () => {
+      const status = Number(request.headers['x-demo-response']);
+      response.statusCode = status;
+      response.end();
+    });
+  });
+  const origin = await listen(server);
+  t.after(() => close(server));
+
+  for (const status of [401, 403, 200]) {
+    const response = await fetch(new URL('/api/admin/catalog/summary?foo=bar', origin), {
+      headers: { 'x-demo-response': String(status) },
+    });
+    assert.equal(response.status, status);
+  }
+  const results = metrics.metrics();
+  for (const code of [401, 403, 200]) {
+    assert.ok(
+      results.includes(
+        'method="GET",route="/api/admin/catalog/summary",status_code="' + code + '"',
+      ),
+      'Missing dedicated ADMIN route metrics for HTTP ' + code,
+    );
+  }
+  assert.ok(!results.includes('route="unknown"'), 'ADMIN should not be grouped into unknown routes');
+});
