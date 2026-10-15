@@ -836,6 +836,106 @@ async function runEnrichedBrowserJourneys() {
   console.log('[LOT9B-F Chrome] Real Chrome: 3 listings, 15 photos, private moderation, DON/TROC two confirmations, COMPLETED: PASS');
 }
 
+
+async function runFrontV2HomeJourney() {
+  assert.equal(process.env.FRONT_V2_RUN_HOME, 'true');
+  const moderatorToken = await browserToken('demo-moderator');
+  let publicListings = await browserApi(moderatorToken, '/api/listings');
+
+  // Ensure a real approved catalogue spanning at least two pages.
+  // New fixtures are published through the actual Chrome form and approved
+  // after private gallery review, never inserted directly into the UI.
+  const needed = Math.max(0, 7 - publicListings.length);
+  if (needed) await journeySwitchUser('demo-moderator');
+  for (let index = 0; index < needed; index++) {
+    const entry = await enrichedCreateListing('demo-moderator', 'DONATION', 'f1-extra-' + index);
+    await enrichedModerate(entry, moderatorToken);
+  }
+  publicListings = await browserApi(moderatorToken, '/api/listings');
+  assert.ok(publicListings.length >= 7, 'F1 requires at least seven real approved articles');
+
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false,
+  });
+  await journeyOpen('/', '.home-v2__welcome h1', 'FRONT-V2 F1 public homepage');
+  await waitUntil('F1 exactly six cards on the first page',
+    'document.querySelectorAll(".home-v2__grid .listing-card").length===6' +
+    '&&document.querySelector(".home-v2__results")?.innerText.includes("sur")', 120);
+
+  const reportedTotal = Number(await evaluate(
+    'document.querySelector(".home-v2__facts strong")?.textContent',
+  ));
+  assert.equal(reportedTotal, publicListings.length,
+    'The hero must show the actual number of approved Catalog listings');
+  const firstLinks = await evaluate('([...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
+    '.map(a=>a.getAttribute("href")) )');
+  assert.equal(firstLinks.length, 6);
+  await journeyScreenshot('f1-catalog-six-articles-desktop');
+
+  assert.equal(await evaluate('(() => {' +
+    'const button=document.querySelector(".home-v2__pagination button[aria-label=\\"Page 2\\"]");' +
+    'if(!button)return false;button.click();return true;})()'), true,
+  'F1 must display a usable second page');
+  const secondSize = Math.min(6, publicListings.length - 6);
+  await waitUntil('F1 second page has new records and correct count',
+    '(() => {const cards=[...document.querySelectorAll(".home-v2__grid .listing-card__link")];' +
+    'return cards.length===' + secondSize +
+    '&&document.querySelector(".home-v2__pagination button[aria-current=page]")?.textContent==="2"' +
+    '&&cards[0]?.getAttribute("href")!==' + JSON.stringify(firstLinks[0]) + ';})()', 120);
+  const secondLinks = await evaluate('[...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
+    '.map(a=>a.getAttribute("href"))');
+  assert.ok(secondLinks.every(url => !firstLinks.includes(url)),
+    'No duplicate listing may appear across the first two pages');
+  await journeyScreenshot('f1-catalog-second-page');
+
+  // Changing the type while page 2 is active must reset pagination to page 1.
+  const filterSet = await evaluate('(() => {const select=document.querySelector(".home-v2__filter-type select");' +
+    'if(!select)return false;select.value="DONATION";' +
+    'select.dispatchEvent(new Event("change",{bubbles:true}));return true;})()');
+  assert.equal(filterSet, true, 'Missing real DON filter');
+  const donationIds = publicListings.filter(item => item.operationType === 'DONATION')
+    .map(item => '/annonces/' + item.id);
+  const expectedDonLinks = donationIds.slice(0, 6);
+  await waitUntil('F1 DON filter shows only donation listings and resets page', '(() => {' +
+    'const links=[...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
+    '.map(a=>a.getAttribute("href"));' +
+    'const expected=' + JSON.stringify(expectedDonLinks) + ';' +
+    'return document.querySelector(".home-v2__filter-type select")?.value==="DONATION"' +
+    ' && links.length===expected.length && links.every((href,i)=>href===expected[i])' +
+    ' && !document.querySelector(".home-v2__pagination button[aria-current=page]")?.textContent?.includes("2");' +
+    '})()', 120);
+  assert.deepEqual(await evaluate('[...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
+    '.map(a=>a.getAttribute("href"))'), expectedDonLinks,
+    'Every filtered page-one card must have type DONATION');
+
+  // Search for a real title, never for a mocked or hardcoded catalogue item.
+  const title = publicListings.find(item => item.title.startsWith('9BF Chrome'))?.title;
+  assert.ok(title, 'Missing real Chrome enriched listing to test search');
+  const searchSet = await evaluate('(() => {const select=document.querySelector(".home-v2__filter-type select");' +
+    'select.value="ALL";select.dispatchEvent(new Event("change",{bubbles:true}));return true;})()');
+  assert.equal(searchSet, true);
+  await sleep(150);
+  assert.equal(await evaluate('(() => {const input=document.querySelector("#home-v2-search");' +
+    'if(!input)return false;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,' +
+    JSON.stringify(title) + ');input.dispatchEvent(new Event("input",{bubbles:true}));return true;})()'),
+    true, 'F1 search input must be interactive');
+  await waitUntil('F1 search finds exactly the real listing',
+    '(() => {const cards=[...document.querySelectorAll(".home-v2__grid .listing-card")];' +
+    'return cards.length===1&&cards[0].textContent.includes(' + JSON.stringify(title) + ');})()', 120);
+  await journeyScreenshot('f1-catalog-search-live-title');
+
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
+  });
+  await journeyOpen('/', '.home-v2__welcome h1', 'F1 mobile homepage');
+  await waitUntil('F1 mobile six cards',
+    'document.querySelectorAll(".home-v2__grid .listing-card").length===6', 120);
+  assert.equal(await evaluate('getComputedStyle(document.querySelector(".home-v2__grid")).gridTemplateColumns.split(" ").length'),
+    1, 'Mobile F1 catalogue must have one card per row');
+  await journeyScreenshot('f1-catalog-six-articles-mobile');
+  console.log('[FRONT-V2/F1] Chrome: true Catalog ≥7; six per page; page 2 distinct; DON filter; live search; mobile: PASS');
+}
+
 try {
   await startCdp(await waitForPort());
   await capture('/annonces/' + encodeURIComponent(id), 1440, 1000,
@@ -853,6 +953,7 @@ try {
   console.log('[M9 Browser] Chrome desktop/mobile + both authenticated user roles: PASS');
   await runRealBrowserJourneys();
   if (process.env.LOT9BF_RUN_BROWSER === 'true') await runEnrichedBrowserJourneys();
+  if (process.env.FRONT_V2_RUN_HOME === 'true') await runFrontV2HomeJourney();
 } finally {
   if (socket && socket.readyState === WebSocket.OPEN) socket.close();
   for (const task of pending.values()) clearTimeout(task.timeout);

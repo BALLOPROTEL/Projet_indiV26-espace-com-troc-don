@@ -71,6 +71,7 @@ jobs:
           M9_RUN_BROWSER: 'true'
           LOT9BF_RUN_MEDIA: 'true'
           LOT9BF_RUN_BROWSER: 'true'
+          FRONT_V2_RUN_HOME: 'true'
         run: bash scripts/m6-compose-smoke.sh
       - name: Upload M9 real browser screenshots
         if: always()
