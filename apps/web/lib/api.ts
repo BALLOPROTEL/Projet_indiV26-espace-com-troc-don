@@ -1,4 +1,5 @@
 import type {
+  AdminCatalogSummary,
   Listing,
   ListingImage,
   ListingInput,
@@ -207,6 +208,12 @@ export const listingsApi = {
       },
       token,
     ),
+};
+
+/** This API is protected by JWT + ADMIN in Catalog; UI role gates are not security. */
+export const adminApi = {
+  catalogSummary: (token: string) =>
+    request<AdminCatalogSummary>('/admin/catalog/summary', {}, token),
 };
 
 export const marketplaceApi = {
