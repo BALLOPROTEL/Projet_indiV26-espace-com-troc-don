@@ -1,11 +1,9 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
   ApiError,
-  listingAssetUrl,
   listingsApi,
 } from '../lib/api';
 import {
@@ -181,7 +179,7 @@ export function ListingDetail({ id }: { id: string }) {
             PM
           </span>
           <span className="eyebrow">Annonce publiée</span>
-          <h2>Informations sur l'annonce</h2>
+          <h2>Informations sur l&apos;annonce</h2>
           <p>Cette annonce est publiée après modération. Les informations ci-dessous proviennent de sa fiche réelle.</p>
           <div className="listing-detail__rule">
             <span>Statut</span>
