@@ -53,11 +53,24 @@
 }
 .product-gallery__navigation button {
   pointer-events: auto; display: grid; place-items: center;
-  width: 42px; height: 42px; border: 1px solid #dde9e1;
+  width: 44px; height: 44px; border: 1px solid #dde9e1;
   background: rgba(255,255,255,.94); color: #166344; border-radius: 100%;
   font-size: 1.15rem; cursor: pointer;
 }
-.product-gallery__navigation button:hover { background: #e0f3e8; }
+/* Hover belongs to precise pointers; touch keeps press feedback. */
+@media (hover: hover) and (pointer: fine) {
+  .product-gallery__navigation button:hover { background: #e0f3e8; }
+}
+.product-gallery__navigation button,
+.product-gallery__thumbnails button {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.product-gallery__navigation button:active {
+  background: #cdebd9;
+}
 .product-gallery__thumbnails { display: flex; gap: 9px; overflow-x: auto; padding: 5px 2px 9px; }
 .product-gallery__thumbnails button {
   flex: 0 0 86px; height: 69px; padding: 3px; border-radius: 10px;
@@ -82,5 +95,17 @@
   .listing-detail-v2 .listing-detail__main h1 { font-size: 1.85rem; }
   .product-gallery__main { aspect-ratio: 4/3; }
   .product-gallery__thumbnails button { flex-basis: 70px; height: 59px; }
-  .product-gallery__navigation button { width: 37px; height: 37px; }
+  .product-gallery__navigation button { width: 44px; height: 44px; }
+}
+
+/* break-ui: real-world long article names must stay inside the detail grid. */
+.listing-detail-v2 .listing-detail__main h1,
+.listing-detail-v2 .listing-detail__description,
+.product-gallery__help {
+  overflow-wrap: anywhere;
+}
+.product-gallery__navigation button:focus-visible,
+.product-gallery__thumbnails button:focus-visible {
+  outline: 3px solid #0b6842;
+  outline-offset: 3px;
 }

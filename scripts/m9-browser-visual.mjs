@@ -807,6 +807,13 @@ async function runF2GalleryJourneys(listing) {
   const width = await evaluate('({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth})');
   assert.ok(width.scroll <= width.client + 2,
     'F2 mobile gallery must not overflow the viewport: ' + JSON.stringify(width));
+  const controls = await evaluate('(() => {' +
+    'return [...document.querySelectorAll(".product-gallery__navigation button, .product-gallery__thumbnails button")]' +
+    '.map(button => ({width:button.getBoundingClientRect().width,' +
+    'height:button.getBoundingClientRect().height}));})()');
+  assert.equal(controls.length, 7, 'F2 five-image gallery must expose seven photo controls');
+  assert.ok(controls.every(({width,height}) => width >= 44 && height >= 44),
+    'F2 mobile gallery touch targets must be at least 44×44px: ' + JSON.stringify(controls));
   await journeyScreenshot('f2-gallery-five-photos-mobile');
   console.log('[FRONT-V2/F2] Chrome: 5 MinIO photos loaded, thumbnails, next/previous, keyboard, responsive: PASS');
 }
