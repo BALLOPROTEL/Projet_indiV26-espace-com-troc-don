@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { headerLinks } from '../lib/header-navigation';
 import { useAuth } from './auth-provider';
 
@@ -37,6 +37,13 @@ function HeaderIcon({ name }: { name: IconName }) {
 export function SiteHeader() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDetailsElement>(null);
+  const closeAccountMenu = () => {
+    if (accountMenuRef.current) accountMenuRef.current.open = false;
+  };
+  useEffect(() => {
+    closeAccountMenu();
+  }, [pathname]);
   const { ready, authenticated, username, roles, login, logout } = useAuth();
   const links = headerLinks(authenticated, roles);
   const elevatedRole = roles.includes('ADMIN')
@@ -45,7 +52,7 @@ export function SiteHeader() {
       ? 'Modérateur'
       : null;
   const label = username?.trim() || 'Mon compte';
-  const initial = label.charAt(0).toLocaleUpperCase('fr');
+  const initial = (Array.from(label)[0] ?? 'M').toLocaleUpperCase('fr');
 
   return (
     <header className="site-header">
@@ -107,7 +114,7 @@ export function SiteHeader() {
                   {elevatedRole}
                 </span>
               ) : null}
-              <details className="session__menu">
+              <details className="session__menu" ref={accountMenuRef}>
                 <summary aria-label={'Compte de ' + label}>
                   <span className="session__avatar" aria-hidden="true">{initial}</span>
                   <span className="session__identity">
@@ -118,9 +125,9 @@ export function SiteHeader() {
                 </summary>
                 <div className="session__dropdown">
                   <p>Connecté avec Keycloak</p>
-                  <Link href="/espace">Mes articles et échanges</Link>
-                  {elevatedRole ? <Link href="/moderation">Espace de modération</Link> : null}
-                  <button type="button" aria-label="Se déconnecter" onClick={() => void logout()}>
+                  <Link href="/espace" onClick={closeAccountMenu}>Mes articles et échanges</Link>
+                  {elevatedRole ? <Link href="/moderation" onClick={closeAccountMenu}>Espace de modération</Link> : null}
+                  <button type="button" onClick={() => void logout()}>
                     <HeaderIcon name="sign-out" />
                     Sortir
                   </button>
