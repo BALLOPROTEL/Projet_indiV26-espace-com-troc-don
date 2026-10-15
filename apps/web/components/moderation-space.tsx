@@ -28,6 +28,7 @@ export function ModerationSpace() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!ready || !authenticated || !canModerate) {
@@ -41,12 +42,13 @@ export function ModerationSpace() {
       .then((data) => {
         if (active) {
           setQueue(data);
+          setLoadError(null);
           setError(null);
         }
       })
       .catch((reason: unknown) => {
         if (active) {
-          setError(
+          setLoadError(
             reason instanceof Error
               ? reason.message
               : 'Impossible de charger la réserve.',
@@ -192,13 +194,13 @@ export function ModerationSpace() {
             <span className="management-v2__role">{role}</span>
           </div>
           <div className="management-v2__stats" aria-label="Indicateurs réels de la file d’attente">
-            <div><span>À examiner</span><strong>{loading || error ? '—' : metrics.total}</strong><small>Annonces en attente</small></div>
-            <div><span>Dons</span><strong>{loading || error ? '—' : metrics.donations}</strong><small>Dons en attente</small></div>
-            <div><span>Trocs</span><strong>{loading || error ? '—' : metrics.trades}</strong><small>Trocs en attente</small></div>
+            <div><span>À examiner</span><strong>{loading || loadError ? '—' : metrics.total}</strong><small>Annonces en attente</small></div>
+            <div><span>Dons</span><strong>{loading || loadError ? '—' : metrics.donations}</strong><small>Dons en attente</small></div>
+            <div><span>Trocs</span><strong>{loading || loadError ? '—' : metrics.trades}</strong><small>Trocs en attente</small></div>
           </div>
           <div className="management-v2__section-head">
             <div><span>Validation des annonces</span><h2>File de modération</h2></div>
-            <strong>{loading ? 'Chargement…' : error ? 'File indisponible' : metrics.total + ' à traiter'}</strong>
+            <strong>{loading ? 'Chargement…' : loadError ? 'File indisponible' : metrics.total + ' à traiter'}</strong>
           </div>
           <form className="management-v2__filters" role="search" onSubmit={(event) => event.preventDefault()}>
             <label>Rechercher une fiche
@@ -214,7 +216,7 @@ export function ModerationSpace() {
             </label>
           </form>
           <p className="management-v2__result-count" role="status" aria-live="polite" aria-atomic="true">
-            {loading ? 'Chargement des annonces…' : error ? 'Résultats indisponibles.' :
+            {loading ? 'Chargement des annonces…' : loadError ? 'Résultats indisponibles.' :
               `${visibleQueue.length} annonce${visibleQueue.length === 1 ? '' : 's'} correspond${visibleQueue.length === 1 ? '' : 'ent'} aux filtres sur ${metrics.total} en attente.`}
           </p>
           <p className="moderation-intro">
@@ -222,9 +224,9 @@ export function ModerationSpace() {
             Leur consultation est recommandée, mais n’est pas une condition imposée par l’API.
           </p>
 
-      {error ? (
+      {loadError || error ? (
         <div className="notice notice--error" role="alert">
-          {error}
+          {loadError ?? error}
         </div>
       ) : null}
 
@@ -235,7 +237,7 @@ export function ModerationSpace() {
         </div>
       ) : null}
 
-      {!loading && !error && queue.length === 0 ? (
+      {!loading && !loadError && queue.length === 0 ? (
         <EmptyState
           eyebrow="Réserve à jour"
           title="Aucune fiche ne vous attend."
@@ -243,12 +245,12 @@ export function ModerationSpace() {
         />
       ) : null}
 
-      {!loading && !error && queue.length > 0 && visibleQueue.length === 0 ? (
+      {!loading && !loadError && queue.length > 0 && visibleQueue.length === 0 ? (
         <EmptyState eyebrow="Recherche" title="Aucune fiche ne correspond aux filtres."
           text="Essayez un autre titre ou sélectionnez « Toutes »." />
       ) : null}
       <div className="moderation-list management-v2__queue">
-        {!loading && !error && visibleQueue.map((listing, index) => (
+        {!loading && !loadError && visibleQueue.map((listing, index) => (
           <div className="moderation-item management-v2__item" key={listing.id}>
             <span className="moderation-item__number">
               {(index + 1).toString().padStart(2, '0')}

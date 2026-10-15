@@ -7,7 +7,7 @@
 }
 .management-v2__brand { display: grid; gap: 3px; padding: 6px 10px 21px; }
 .management-v2__brand strong { font-weight: 850; color: #106740; }
-.management-v2__brand small { color: #687d70; font-size: .75rem; }
+.management-v2__brand small { color: #425f4f; font-size: .75rem; }
 .management-v2__sidebar nav { display: grid; gap: 5px; }
 .management-v2__sidebar nav a { display: block; padding: 12px 10px; font-size: .8rem; font-weight: 800; border-radius: 11px; text-decoration: none; color: #3b6350; }
 .management-v2__sidebar nav a[aria-current=page], .management-v2__sidebar nav a:hover { background: #e4f5eb; color: #0b6e48; }
@@ -15,11 +15,11 @@
 .management-v2__content { min-width: 0; }
 .management-v2__hero {
   margin: 0 0 19px; display: flex; justify-content: space-between; align-items: center; gap: 20px;
-  background: linear-gradient(120deg,#0b6948,#1b9562); border-radius: 19px; color: white; padding: 30px 34px;
+  background: linear-gradient(120deg,#06472f,#0d6342); border-radius: 19px; color: white; padding: 30px 34px;
 }
 .management-v2__hero h1 { color: white; font-family: inherit; font-size: clamp(1.75rem,3vw,2.55rem); margin: 7px 0; letter-spacing: -.035em; }
-.management-v2__hero p { margin: 0; color: #ddf5e6; font-size: .84rem; }
-.management-v2__eyebrow { color: #c4f4d9; text-transform: uppercase; font-size: .68rem; font-weight: 850; letter-spacing: .1em; }
+.management-v2__hero p { margin: 0; color: #fff; font-size: .84rem; }
+.management-v2__eyebrow { color: #fff; text-transform: uppercase; font-size: .68rem; font-weight: 850; letter-spacing: .1em; }
 .management-v2__role { padding: 8px 14px; border: 1px solid #075132; background: #074c33; color: #fff; border-radius: 999px; font-size: .75rem; white-space: nowrap; }
 .management-v2__stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 13px; margin-bottom: 31px; }
 .management-v2__stats > div { display: grid; gap: 8px; background: white; border: 1px solid #deebe2; border-radius: 16px; padding: 22px; }
