@@ -950,7 +950,7 @@ async function runAdminDashboardBrowser() {
     true, 'MODERATOR must see the actual ADMIN denial');
   assert.equal(await evaluate('!!document.querySelector(".admin-v2__stats")'),
     false, 'No ADMIN numbers rendered for MODERATOR');
-  assert.equal(await evaluate('!!document.querySelector(".primary-nav__link[href=\"/admin\"]")'),
+  assert.equal(await evaluate('!!document.querySelector(' + JSON.stringify('.primary-nav__link[href="/admin"]') + ')'),
     false, 'No ADMIN link for a MODERATOR');
   await journeyScreenshot('f5-moderator-access-denied');
 
@@ -962,7 +962,7 @@ async function runAdminDashboardBrowser() {
     'F5 true Keycloak ADMIN dashboard');
   await waitUntil('F5 ADMIN values from Catalog', '(() => {' +
     'const values=[...document.querySelectorAll(".admin-v2__metric strong")]' +
-    '.map(el=>Number(el.textContent.replaceAll(/\s/g,"")));' +
+    '.map(el=>Number(el.textContent.replaceAll(/\\s/g,"")));' +
     'const expected=' + JSON.stringify([
       summary.total,
       summary.byStatus.approved,
@@ -973,7 +973,7 @@ async function runAdminDashboardBrowser() {
     '})()', 120);
   assert.equal(await evaluate('document.querySelector(".admin-v2__role")?.textContent'),
     'Administrateur');
-  assert.equal(await evaluate('!!document.querySelector(".primary-nav__link[href=\"/admin\"]")'),
+  assert.equal(await evaluate('!!document.querySelector(' + JSON.stringify('.primary-nav__link[href="/admin"]') + ')'),
     true, 'ADMIN navigation must exist for authorized sessions');
   assert.equal(await evaluate('document.body.innerText.includes("Suspendre un utilisateur")'),
     false, 'Do not expose fake account suspension UI');
