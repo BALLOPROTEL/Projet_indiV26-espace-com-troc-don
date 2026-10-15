@@ -453,7 +453,12 @@ async function journeySwitchUser(username) {
     'pass.dispatchEvent(new Event("input",{bubbles:true}));' +
     'form.requestSubmit();return true;})()';
   assert.equal(await evaluate(signIn), true, 'Unable to submit Keycloak login for ' + username);
-  const display = username === 'demo-user' ? 'Demo User' : 'Demo Moderator';
+  const display = {
+    'demo-user': 'Demo User',
+    'demo-moderator': 'Demo Moderator',
+    'demo-admin': 'Demo Admin',
+  }[username];
+  assert.ok(display, 'Unsupported synthetic Keycloak identity: ' + username);
   await waitUntil('authenticated dashboard for ' + username,
     'location.origin===' + JSON.stringify(new URL(base).origin) +
     '&&document.body.innerText.includes(' + JSON.stringify(display) + ')' +
@@ -750,6 +755,74 @@ async function enrichedModerate(listing, moderatorToken) {
   console.log('[LOT9B-F Chrome] Moderator UI reviewed 5 private images and approved ' + listing.id + ': PASS');
 }
 
+
+// F2 regression gate: images must really load from Catalog/MinIO in Chrome.
+// A screenshot-only check would not prove thumbnail and keyboard navigation.
+async function runF2GalleryJourneys(listing) {
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false,
+  });
+  await journeyOpen('/annonces/' + encodeURIComponent(listing.id),
+    '.product-gallery__main img', 'F2 real gallery desktop', listing.title);
+  const predicate = '(() => {' +
+    'const buttons=[...document.querySelectorAll(".product-gallery__thumbnails button")];' +
+    'const imgs=[...document.querySelectorAll(".product-gallery__thumbnails img")];' +
+    'const lead=document.querySelector(".product-gallery__main img");' +
+    'return buttons.length===5 && imgs.length===5 && ' +
+    'imgs.every(img=>img.complete && img.naturalWidth>0) && ' +
+    'lead?.complete && lead.naturalWidth>0 && lead.alt.includes("photo 1 sur 5");' +
+    '})()';
+  await waitUntil('F2 real five-image gallery loaded from MinIO', predicate, 120);
+  const firstSrc = await evaluate('document.querySelector(".product-gallery__main img").src');
+  assert.equal(await evaluate('(() => {' +
+    'const button=document.querySelectorAll(".product-gallery__thumbnails button")[3];' +
+    'if(!button)return false;button.click();return true;})()'), true);
+  await waitUntil('F2 thumbnail 4 changes lead image',
+    '(() => {const img=document.querySelector(".product-gallery__main img");' +
+    'return img?.alt.includes("photo 4 sur 5") && img.src!==' +
+    JSON.stringify(firstSrc) + ' && img.complete && img.naturalWidth>0;' +
+    '})()', 120);
+  assert.equal(await evaluate('document.querySelectorAll(".product-gallery__thumbnails button[aria-pressed=true]").length'),1,
+    'Exactly one thumbnail must be selected');
+  await journeyScreenshot('f2-gallery-five-photos-desktop');
+
+  assert.equal(await evaluate('(() => {' +
+    'const next=document.querySelector(".product-gallery__navigation button[aria-label=\\"Photo suivante\\"]");' +
+    'if(!next)return false;next.click();return true;})()'), true);
+  await waitUntil('F2 next button opens fifth photo',
+    'document.querySelector(".product-gallery__main img")?.alt.includes("photo 5 sur 5")',120);
+  assert.equal(await evaluate('(() => {' +
+    'const prev=document.querySelector(".product-gallery__navigation button[aria-label=\\"Photo précédente\\"]");' +
+    'if(!prev)return false;prev.click();return true;})()'), true);
+  await waitUntil('F2 previous button opens fourth photo',
+    'document.querySelector(".product-gallery__main img")?.alt.includes("photo 4 sur 5")',120);
+  assert.equal(await evaluate('(() => {' +
+    'const gallery=document.querySelector(".product-gallery");' +
+    'if(!gallery)return false;' +
+    'gallery.dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowLeft",bubbles:true}));return true;})()'),true);
+  await waitUntil('F2 keyboard arrow changes active photo',
+    'document.querySelector(".product-gallery__main img")?.alt.includes("photo 3 sur 5")',120);
+
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
+  });
+  await journeyOpen('/annonces/' + encodeURIComponent(listing.id),
+    '.product-gallery__main img', 'F2 real gallery mobile', listing.title);
+  await waitUntil('F2 mobile images display',predicate,120);
+  const width = await evaluate('({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth})');
+  assert.ok(width.scroll <= width.client + 2,
+    'F2 mobile gallery must not overflow the viewport: ' + JSON.stringify(width));
+  const controls = await evaluate('(() => {' +
+    'return [...document.querySelectorAll(".product-gallery__navigation button, .product-gallery__thumbnails button")]' +
+    '.map(button => ({width:button.getBoundingClientRect().width,' +
+    'height:button.getBoundingClientRect().height}));})()');
+  assert.equal(controls.length, 7, 'F2 five-image gallery must expose seven photo controls');
+  assert.ok(controls.every(({width,height}) => width >= 44 && height >= 44),
+    'F2 mobile gallery touch targets must be at least 44×44px: ' + JSON.stringify(controls));
+  await journeyScreenshot('f2-gallery-five-photos-mobile');
+  console.log('[FRONT-V2/F2] Chrome: 5 MinIO photos loaded, thumbnails, next/previous, keyboard, responsive: PASS');
+}
+
 async function runEnrichedBrowserJourneys() {
   assert.equal(process.env.LOT9BF_RUN_BROWSER, 'true');
   await command('Emulation.setDeviceMetricsOverride', {
@@ -768,6 +841,9 @@ async function runEnrichedBrowserJourneys() {
   // The two accounts' PENDING listings must appear in the moderator inbox.
   for (const listing of [offered, donated, traded])
     await enrichedModerate(listing, ownerToken);
+
+  if (process.env.FRONT_V2_RUN_GALLERY === 'true')
+    await runF2GalleryJourneys(traded);
 
   await journeySwitchUser('demo-user');
   await journeyOffer(donated.id, null, '9bf-don',
@@ -936,6 +1012,91 @@ async function runFrontV2HomeJourney() {
   console.log('[FRONT-V2/F1] Chrome: true Catalog ≥7; six per page; page 2 distinct; DON filter; live search; mobile: PASS');
 }
 
+async function runAdminDashboardBrowser() {
+  assert.equal(process.env.FRONT_V2_RUN_ADMIN, 'true');
+  const adminToken = await browserToken('demo-admin');
+  const summary = await browserApi(adminToken, '/api/admin/catalog/summary');
+  assert.ok(Number.isInteger(summary.total) && summary.total >= 1);
+
+  await journeySwitchUser('demo-moderator');
+  await journeyOpen('/admin', '.gate-card--denied',
+    'F5 moderator forbidden from ADMIN dashboard');
+  assert.equal(await evaluate('document.body.innerText.includes("Accès réservé aux administrateurs")'),
+    true, 'MODERATOR must see the actual ADMIN denial');
+  assert.equal(await evaluate('!!document.querySelector(".admin-v2__stats")'),
+    false, 'No ADMIN numbers rendered for MODERATOR');
+  assert.equal(await evaluate('!!document.querySelector(' + JSON.stringify('.primary-nav__link[href="/admin"]') + ')'),
+    false, 'No ADMIN link for a MODERATOR');
+  await journeyScreenshot('f5-moderator-access-denied');
+
+  await journeySwitchUser('demo-admin');
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false,
+  });
+  await journeyOpen('/admin', '.admin-v2__stats',
+    'F5 true Keycloak ADMIN dashboard');
+  await waitUntil('F5 ADMIN values from Catalog', '(() => {' +
+    'const values=[...document.querySelectorAll(".admin-v2__metric strong")]' +
+    '.map(el=>Number(el.textContent.replaceAll(/\\s/g,"")));' +
+    'const expected=' + JSON.stringify([
+      summary.total,
+      summary.byStatus.approved,
+      summary.byStatus.pending,
+      summary.byStatus.rejected,
+    ]) + ';' +
+    'return values.length===4 && values.every((value,index)=>value===expected[index]);' +
+    '})()', 120);
+  assert.equal(await evaluate('document.querySelector(".admin-v2__role")?.textContent'),
+    'Administrateur');
+  assert.equal(await evaluate('!!document.querySelector(' + JSON.stringify('.primary-nav__link[href="/admin"]') + ')'),
+    true, 'ADMIN navigation must exist for authorized sessions');
+  assert.equal(await evaluate('document.body.innerText.includes("Suspendre un utilisateur")'),
+    false, 'Do not expose fake account suspension UI');
+  await journeyScreenshot('f5-admin-summary-catalog-desktop');
+
+  // Tablet and zoom-sensitive viewports: ADMIN adds a fourth header link.
+  for (const width of [1120, 1024, 900, 768]) {
+    await command('Emulation.setDeviceMetricsOverride', {
+      width, height: 900, deviceScaleFactor: 1, mobile: false,
+    });
+    await journeyOpen('/admin', '.admin-v2__stats',
+      'F5 ADMIN tablet header at ' + width + 'px');
+    await waitUntil('F5 tablet Catalog data at ' + width + 'px',
+      'document.querySelectorAll(".admin-v2__metric strong").length===4', 120);
+    const closed = await evaluate('(() => {' +
+      'const nav=document.querySelector(".primary-nav");' +
+      'const menu=document.querySelector(".site-header__menu-toggle");' +
+      'return getComputedStyle(menu).display!=="none" &&' +
+      'getComputedStyle(nav).display==="none" &&' +
+      'document.documentElement.scrollWidth<=document.documentElement.clientWidth+2;' +
+      '})()');
+    assert.equal(closed, true, 'F5 ADMIN navigation must collapse and fit at ' + width + 'px');
+    await evaluate('document.querySelector(".site-header__menu-toggle").click()');
+    assert.equal(await evaluate('document.querySelector(".site-header__menu-toggle").getAttribute("aria-expanded")'),
+      'true', 'F5 ADMIN menu must open at ' + width + 'px');
+    assert.equal(await evaluate('getComputedStyle(document.querySelector(".primary-nav")).display'),
+      'flex', 'F5 ADMIN menu must expose links at ' + width + 'px');
+    const fit = await evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth+2');
+    assert.equal(fit, true, 'F5 expanded ADMIN menu must not overflow at ' + width + 'px');
+    if (width === 1024 || width === 768) {
+      await journeyScreenshot('f5-admin-tablet-' + width);
+    }
+  }
+
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
+  });
+  await journeyOpen('/admin', '.admin-v2__stats',
+    'F5 real ADMIN dashboard on mobile');
+  await waitUntil('F5 mobile Catalog metrics ready',
+    'document.querySelectorAll(".admin-v2__metric strong").length === 4', 120);
+  const dimensions = await evaluate('({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth})');
+  assert.ok(dimensions.scroll <= dimensions.client + 2,
+    'F5 mobile dashboard must not overflow horizontally: ' + JSON.stringify(dimensions));
+  await journeyScreenshot('f5-admin-summary-catalog-mobile');
+  console.log('[FRONT-V2/F5] Chrome: MODERATOR denied, ADMIN Catalog totals verified, desktop/mobile PASS');
+}
+
 try {
   await startCdp(await waitForPort());
   await capture('/annonces/' + encodeURIComponent(id), 1440, 1000,
@@ -954,6 +1115,7 @@ try {
   await runRealBrowserJourneys();
   if (process.env.LOT9BF_RUN_BROWSER === 'true') await runEnrichedBrowserJourneys();
   if (process.env.FRONT_V2_RUN_HOME === 'true') await runFrontV2HomeJourney();
+  if (process.env.FRONT_V2_RUN_ADMIN === 'true') await runAdminDashboardBrowser();
 } finally {
   if (socket && socket.readyState === WebSocket.OPEN) socket.close();
   for (const task of pending.values()) clearTimeout(task.timeout);

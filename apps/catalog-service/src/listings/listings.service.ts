@@ -91,6 +91,42 @@ export class ListingsService {
     return this.toView(listing);
   }
 
+  /** ADMIN-only grouped aggregate. No identities, content or private URLs. */
+  async adminCatalogSummary() {
+    const rows = await this.prisma.listing.groupBy({
+      by: ['status', 'operationType', 'availabilityStatus'],
+      _count: { _all: true },
+    });
+    const result = {
+      total: 0,
+      byStatus: { pending: 0, approved: 0, rejected: 0 },
+      byOperation: { donations: 0, trades: 0 },
+      approvedAvailability: { available: 0, reserved: 0, completed: 0 },
+    };
+
+    for (const row of rows) {
+      const count = row._count._all;
+      result.total += count;
+      if (row.status === ListingStatus.PENDING) result.byStatus.pending += count;
+      if (row.status === ListingStatus.APPROVED) result.byStatus.approved += count;
+      if (row.status === ListingStatus.REJECTED) result.byStatus.rejected += count;
+
+      if (row.operationType === ListingOperationType.DONATION) {
+        result.byOperation.donations += count;
+      } else {
+        result.byOperation.trades += count;
+      }
+
+      if (row.status === ListingStatus.APPROVED) {
+        if (row.availabilityStatus === 'AVAILABLE') result.approvedAvailability.available += count;
+        if (row.availabilityStatus === 'RESERVED') result.approvedAvailability.reserved += count;
+        if (row.availabilityStatus === 'COMPLETED') result.approvedAvailability.completed += count;
+      }
+    }
+
+    return result;
+  }
+
   async findPublic(): Promise<ListingView[]> {
     const listings = await this.prisma.listing.findMany({
       where: {

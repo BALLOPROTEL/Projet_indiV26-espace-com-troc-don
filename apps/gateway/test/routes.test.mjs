@@ -48,3 +48,16 @@ test('keeps Gateway-owned health and metrics local', () => {
   });
   assert.equal(resolveGatewayRoute('/api/unknown'), null);
 });
+
+test('routes the exact ADMIN catalog summary without exposing unrelated admin paths', () => {
+  assert.deepEqual(resolveGatewayRoute('/api/admin/catalog/summary'), {
+    target: 'catalog',
+    upstreamPath: '/admin/catalog/summary',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/admin/catalog/summary?audit=1'), {
+    target: 'catalog',
+    upstreamPath: '/admin/catalog/summary?audit=1',
+  });
+  assert.equal(resolveGatewayRoute('/api/admin/users'), null);
+  assert.equal(resolveGatewayRoute('/api/admin/catalog/internal'), null);
+});

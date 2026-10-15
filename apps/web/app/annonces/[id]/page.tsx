@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import './product-v2.css';
 import { ListingDetail } from '../../../components/listing-detail';
 
 export const metadata: Metadata = {
