@@ -453,7 +453,12 @@ async function journeySwitchUser(username) {
     'pass.dispatchEvent(new Event("input",{bubbles:true}));' +
     'form.requestSubmit();return true;})()';
   assert.equal(await evaluate(signIn), true, 'Unable to submit Keycloak login for ' + username);
-  const display = username === 'demo-user' ? 'Demo User' : 'Demo Moderator';
+  const display = {
+    'demo-user': 'Demo User',
+    'demo-moderator': 'Demo Moderator',
+    'demo-admin': 'Demo Admin',
+  }[username];
+  assert.ok(display, 'Unsupported synthetic Keycloak identity: ' + username);
   await waitUntil('authenticated dashboard for ' + username,
     'location.origin===' + JSON.stringify(new URL(base).origin) +
     '&&document.body.innerText.includes(' + JSON.stringify(display) + ')' +
