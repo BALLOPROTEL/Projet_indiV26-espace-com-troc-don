@@ -31,6 +31,14 @@ export function resolveGatewayRoute(
     };
   }
 
+  // Explicit ADMIN-only route. Do not forward /api/admin/* broadly.
+  if (path === '/api/admin/catalog/summary') {
+    return {
+      target: 'catalog',
+      upstreamPath: `/admin/catalog/summary${url.search}`,
+    };
+  }
+
   if (
     path === '/api/listings' ||
     path.startsWith('/api/listings/') ||

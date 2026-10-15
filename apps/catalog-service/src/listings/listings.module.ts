@@ -6,6 +6,7 @@ import { ListingImagesController } from './listing-images.controller';
 import { ListingImagesService } from './listing-images.service';
 import { ListingsController } from './listings.controller';
 import { ListingsService } from './listings.service';
+import { AdminCatalogController } from './admin-catalog.controller';
 import { ModerationController } from './moderation.controller';
 
 @Module({
@@ -14,6 +15,7 @@ import { ModerationController } from './moderation.controller';
     ListingsController,
     ListingImagesController,
     ModerationController,
+    AdminCatalogController,
   ],
   providers: [ListingsService, ListingImagesService],
   exports: [ListingsService, ListingImagesService],

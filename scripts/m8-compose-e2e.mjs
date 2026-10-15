@@ -147,6 +147,37 @@ async function run() {
   assert.equal(new Set([owner.sub, requester.sub, other.sub]).size, 3);
   seed(owner, requester);
 
+  // FRONT-V2/F4: exercise actual Gateway -> Catalog ADMIN-only route
+  // with three distinct Keycloak realm roles, not a mocked JWT.
+  await call(gateway, '/api/admin/catalog/summary', { expected: 401 });
+  await call(gateway, '/api/admin/catalog/summary', {
+    headers: jwtHeader(requester), expected: 403,
+  });
+  await call(gateway, '/api/admin/catalog/summary', {
+    headers: jwtHeader(owner), expected: 403,
+  });
+  const adminSummary = await call(gateway, '/api/admin/catalog/summary', {
+    headers: jwtHeader(other), expected: 200,
+  });
+  assert.ok(Number.isInteger(adminSummary.total) && adminSummary.total >= 3);
+  assert.equal(
+    adminSummary.byStatus.pending + adminSummary.byStatus.approved
+      + adminSummary.byStatus.rejected,
+    adminSummary.total,
+    'ADMIN status totals must match persisted Catalog rows',
+  );
+  assert.equal(
+    adminSummary.byOperation.donations + adminSummary.byOperation.trades,
+    adminSummary.total,
+    'ADMIN DON/TROC totals must match persisted Catalog rows',
+  );
+  assert.ok(adminSummary.approvedAvailability.available >= 0);
+  assert.equal('ownerId' in adminSummary, false);
+  await call(gateway, '/api/admin/users', {
+    headers: jwtHeader(other), expected: 404,
+  });
+  say('F4 ADMIN summary: anonymous 401, USER/MODERATOR 403, ADMIN 200, real grouped totals: PASS');
+
   // Authentication + ownership, including a real 3rd-party JWT (not mocks).
   await call(gateway, '/api/proposals', {
     method: 'POST',

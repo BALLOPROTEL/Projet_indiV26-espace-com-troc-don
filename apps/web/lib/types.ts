@@ -71,3 +71,22 @@ export type MarketplaceTransaction = {
   completedAt: string | null;
   createdAt: string;
 };
+
+/** No account identities or raw listing content are returned by Catalog. */
+export type AdminCatalogSummary = {
+  total: number;
+  byStatus: {
+    pending: number;
+    approved: number;
+    rejected: number;
+  };
+  byOperation: {
+    donations: number;
+    trades: number;
+  };
+  approvedAvailability: {
+    available: number;
+    reserved: number;
+    completed: number;
+  };
+};
