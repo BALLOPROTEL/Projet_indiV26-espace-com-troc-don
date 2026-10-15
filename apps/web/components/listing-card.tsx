@@ -12,6 +12,7 @@ import type { Listing } from '../lib/types';
 type Props = {
   listing: Listing;
   showStatus?: boolean;
+  showAvailability?: boolean;
   footer?: ReactNode;
   href?: string;
 };
@@ -19,6 +20,7 @@ type Props = {
 export function ListingCard({
   listing,
   showStatus = false,
+  showAvailability = false,
   footer,
   href,
 }: Props) {
@@ -46,7 +48,16 @@ export function ListingCard({
         >
           {operationLabel(listing.operationType)}
         </span>
-        <span>{formatListingDate(listing.createdAt)}</span>
+        {showAvailability ? (
+          <span className={`listing-card__availability availability--${listing.availabilityStatus.toLowerCase()}`}>
+            {listing.availabilityStatus === 'AVAILABLE'
+              ? 'Disponible'
+              : listing.availabilityStatus === 'RESERVED'
+                ? 'Réservé' : 'Terminé'}
+          </span>
+        ) : (
+          <span>{formatListingDate(listing.createdAt)}</span>
+        )}
       </div>
 
       <h3>{listing.title}</h3>
