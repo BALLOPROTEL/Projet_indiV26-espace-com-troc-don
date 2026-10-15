@@ -118,6 +118,11 @@
 }
 @media (hover: none) {
   .home-v2__grid .listing-card--interactive:hover { transform: none; }
+  /* F0 legacy selectors can still trigger synthesized sticky hover on touch. */
+  .home-v2__grid .listing-card--interactive:hover .listing-card__cover img,
+  .home-v2__grid .listing-card__link:hover .listing-card__cta span {
+    transform: none;
+  }
 }
 .home-v2__grid .listing-card__link { min-height: 380px; padding: 0 19px 61px; }
 .home-v2__grid .listing-card__cover {
@@ -210,7 +215,7 @@
 
 /* FRONT-V2/F7 — mobile-native: prevent focus zoom without disabling user zoom.
    Phone viewport and touch-capable tablets both need at least 16px controls. */
-@media (pointer: coarse), (max-width: 620px) {
+@media (any-pointer: coarse), (max-width: 620px) {
   .home-v2__search-box input,
   .home-v2__filter-type select { font-size: 16px; }
 }
