@@ -26,3 +26,35 @@ export function adminCatalogBars(summary: AdminCatalogSummary) {
     },
   ];
 }
+
+/** Fail closed on malformed or impossible API counters instead of rendering NaN. */
+export function parseAdminCatalogSummary(input: unknown): AdminCatalogSummary {
+  if (!input || typeof input !== 'object') {
+    throw new Error('Réponse des statistiques administrateur invalide.');
+  }
+
+  const summary = input as Partial<AdminCatalogSummary>;
+  const values: unknown[] = [
+    summary.total,
+    summary.byStatus?.pending,
+    summary.byStatus?.approved,
+    summary.byStatus?.rejected,
+    summary.byOperation?.donations,
+    summary.byOperation?.trades,
+    summary.approvedAvailability?.available,
+    summary.approvedAvailability?.reserved,
+    summary.approvedAvailability?.completed,
+  ];
+
+  if (values.some((value) =>
+    typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0
+  )) {
+    throw new Error('Réponse des statistiques administrateur invalide.');
+  }
+
+  return summary as AdminCatalogSummary;
+}
+
+export function formatAdminCount(value: number): string {
+  return value.toLocaleString('fr-FR');
+}

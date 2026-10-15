@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { adminApi } from '../lib/api';
-import { adminCatalogBars, canAccessAdmin } from '../lib/admin-dashboard';
+import { adminCatalogBars, canAccessAdmin, formatAdminCount } from '../lib/admin-dashboard';
 import type { AdminCatalogSummary } from '../lib/types';
 import { useAuth } from './auth-provider';
 
@@ -18,7 +18,7 @@ function Metric({
   return (
     <div className="admin-v2__metric">
       <span>{title}</span>
-      <strong>{value.toLocaleString('fr-FR')}</strong>
+      <strong>{formatAdminCount(value)}</strong>
       <small>{description}</small>
     </div>
   );
@@ -174,7 +174,7 @@ export function AdminDashboard() {
                     <div className="admin-v2__bar-item" key={item.key}>
                       <div className="admin-v2__bar-label">
                         <span>{item.label}</span>
-                        <strong>{item.count.toLocaleString('fr-FR')}</strong>
+                        <strong>{formatAdminCount(item.count)}</strong>
                       </div>
                       <div
                         className="admin-v2__bar-track"
@@ -193,9 +193,9 @@ export function AdminDashboard() {
                   <h3 id="admin-v2-available">Disponibilité des articles publiés</h3>
                   <p>Uniquement les annonces approuvées.</p>
                   <dl className="admin-v2__availability">
-                    <div><dt>Disponibles</dt><dd>{summary.approvedAvailability.available}</dd></div>
-                    <div><dt>Réservés</dt><dd>{summary.approvedAvailability.reserved}</dd></div>
-                    <div><dt>Terminés</dt><dd>{summary.approvedAvailability.completed}</dd></div>
+                    <div><dt>Disponibles</dt><dd>{formatAdminCount(summary.approvedAvailability.available)}</dd></div>
+                    <div><dt>Réservés</dt><dd>{formatAdminCount(summary.approvedAvailability.reserved)}</dd></div>
+                    <div><dt>Terminés</dt><dd>{formatAdminCount(summary.approvedAvailability.completed)}</dd></div>
                   </dl>
                 </section>
               </div>

@@ -1,5 +1,5 @@
+import { parseAdminCatalogSummary } from './admin-dashboard';
 import type {
-  AdminCatalogSummary,
   Listing,
   ListingImage,
   ListingInput,
@@ -213,7 +213,7 @@ export const listingsApi = {
 /** This API is protected by JWT + ADMIN in Catalog; UI role gates are not security. */
 export const adminApi = {
   catalogSummary: (token: string) =>
-    request<AdminCatalogSummary>('/admin/catalog/summary', {}, token),
+    request<unknown>('/admin/catalog/summary', {}, token).then(parseAdminCatalogSummary),
 };
 
 export const marketplaceApi = {

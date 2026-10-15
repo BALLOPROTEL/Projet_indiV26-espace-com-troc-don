@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adminCatalogBars, canAccessAdmin } from './admin-dashboard';
+import { adminCatalogBars, canAccessAdmin, formatAdminCount, parseAdminCatalogSummary } from './admin-dashboard';
 import type { AdminCatalogSummary } from './types';
 
 describe('ADMIN dashboard access', () => {
@@ -33,5 +33,44 @@ describe('ADMIN dashboard uses real Catalog counts', () => {
       ...summary, total: 0,
       byOperation: { donations: 0, trades: 0 },
     }).map((bar) => bar.percentage)).toEqual([0, 0]);
+  });
+});
+
+describe('ADMIN summary API runtime contract and worst-case counts', () => {
+  const summary: AdminCatalogSummary = {
+    total: 1000,
+    byStatus: { pending: 1, approved: 999, rejected: 0 },
+    byOperation: { donations: 650, trades: 350 },
+    approvedAvailability: { available: 900, reserved: 80, completed: 19 },
+  };
+
+  it('accepts real non-negative aggregate counters', () => {
+    expect(parseAdminCatalogSummary(summary)).toEqual(summary);
+    expect(parseAdminCatalogSummary({
+      total: 0,
+      byStatus: { pending: 0, approved: 0, rejected: 0 },
+      byOperation: { donations: 0, trades: 0 },
+      approvedAvailability: { available: 0, reserved: 0, completed: 0 },
+    })).toHaveProperty('total', 0);
+  });
+
+  it.each([
+    null,
+    {},
+    { ...summary, total: -1 },
+    { ...summary, total: 1.5 },
+    { ...summary, total: Number.NaN },
+    { ...summary, byStatus: { ...summary.byStatus, pending: '1' } },
+    { ...summary, byOperation: null },
+    { ...summary, approvedAvailability: { ...summary.approvedAvailability, available: null } },
+  ])('rejects malformed API payloads rather than fake or broken metrics', (payload) => {
+    expect(() => parseAdminCatalogSummary(payload)).toThrow(
+      'Réponse des statistiques administrateur invalide.',
+    );
+  });
+
+  it('uses French separators when counts reach thousands', () => {
+    expect(formatAdminCount(1000)).toMatch(/^1[\u00a0\u202f ]000$/);
+    expect(formatAdminCount(0)).toBe('0');
   });
 });
