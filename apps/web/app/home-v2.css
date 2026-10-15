@@ -238,3 +238,14 @@
 .home-v2__welcome h1,
 .home-v2__grid .listing-card h3 { overflow-wrap: anywhere; }
 .home-v2__facts strong { font-variant-numeric: tabular-nums; }
+
+/* F7 keyboard navigation: clear focus when tabbing through discovery and actions. */
+.home-v2__filter-type select:focus-visible,
+.home-v2__pagination button:focus-visible,
+.home-v2__error button:focus-visible,
+.home-v2__hero-action:focus-visible,
+.home-v2__secondary-link:focus-visible,
+.home-v2__grid .listing-card__link:focus-visible {
+  outline: 3px solid #0b6842;
+  outline-offset: 3px;
+}
