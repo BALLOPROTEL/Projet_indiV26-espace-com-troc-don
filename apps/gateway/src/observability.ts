@@ -57,6 +57,10 @@ function metricRouteLabel(requestUrl: string): string {
     return path;
   }
 
+  if (path === '/api/admin/catalog/summary') {
+    return path;
+  }
+
   if (path === '/api/listings') {
     return path;
   }
