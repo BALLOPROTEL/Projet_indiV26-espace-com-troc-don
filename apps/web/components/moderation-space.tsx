@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { listingsApi } from '../lib/api';
 import type { Listing } from '../lib/types';
+import { filterPendingListings, moderationMetrics, type ModerationFilter } from '../lib/moderation-dashboard';
 import { useAuth } from './auth-provider';
 import { EmptyState } from './empty-state';
 import { ListingCard } from './listing-card';
@@ -15,11 +16,14 @@ export function ModerationSpace() {
     hasAnyRole,
     login,
     getToken,
+    username,
   } = useAuth();
 
   const canModerate = hasAnyRole('MODERATOR', 'ADMIN');
   const [queue, setQueue] = useState<Listing[]>([]);
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [filter, setFilter] = useState<ModerationFilter>('ALL');
+  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -117,6 +121,10 @@ export function ModerationSpace() {
     }
   }
 
+  const metrics = moderationMetrics(queue);
+  const visibleQueue = filterPendingListings(queue, filter, query);
+  const role = hasAnyRole('ADMIN') ? 'Administrateur' : 'Modérateur';
+
   if (!ready) {
     return (
       <div className="page-loading">
@@ -160,23 +168,54 @@ export function ModerationSpace() {
   }
 
   return (
-    <section className="moderation-page">
-      <div className="moderation-hero">
-        <div>
-          <span className="eyebrow">La réserve</span>
-          <h1>Relire avant d’exposer.</h1>
-        </div>
-        <div className="queue-count">
-          <strong>{queue.length.toString().padStart(2, '0')}</strong>
-          <span>fiche{queue.length > 1 ? 's' : ''} en attente</span>
-        </div>
-      </div>
-
-      <p className="moderation-intro">
-        Ici, on ne juge pas le goût. On vérifie la fiche, ses photos
-        et, pour un troc, les contreparties recherchées avant
-        publication.
-      </p>
+    <section className="moderation-page management-v2" aria-labelledby="moderation-title">
+      <div className="management-v2__layout">
+        <aside className="management-v2__sidebar" aria-label="Navigation de gestion">
+          <div className="management-v2__brand"><strong>Petite Maison</strong><small>Espace de gestion</small></div>
+          <nav aria-label="Menu de modération">
+            <a href="/moderation" aria-current="page">File de modération</a>
+            <a href="/espace">Mes articles et échanges</a>
+            <a href="/">Voir les annonces</a>
+          </nav>
+          <p className="management-v2__sidebar-help">
+            Les droits sont vérifiés par Keycloak et Catalog pour chaque opération.
+          </p>
+        </aside>
+        <div className="management-v2__content">
+          <div className="moderation-hero management-v2__hero">
+            <div>
+              <span className="management-v2__eyebrow">Tableau de bord · {role}</span>
+              <h1 id="moderation-title">Gérer les annonces</h1>
+              <p>Bonjour{username ? ' ' + username : ''}, examinez les fiches avant publication.</p>
+            </div>
+            <span className="management-v2__role">{role}</span>
+          </div>
+          <div className="management-v2__stats" aria-label="Indicateurs réels de la file d’attente">
+            <div><span>À examiner</span><strong>{loading ? '—' : metrics.total}</strong><small>Annonces en attente</small></div>
+            <div><span>Dons</span><strong>{loading ? '—' : metrics.donations}</strong><small>Dons en attente</small></div>
+            <div><span>Trocs</span><strong>{loading ? '—' : metrics.trades}</strong><small>Trocs en attente</small></div>
+          </div>
+          <div className="management-v2__section-head">
+            <div><span>Validation des annonces</span><h2>File de modération</h2></div>
+            <strong>{loading ? 'Chargement…' : metrics.total + ' à traiter'}</strong>
+          </div>
+          <form className="management-v2__filters" role="search" onSubmit={(event) => event.preventDefault()}>
+            <label>Rechercher une fiche
+              <input type="search" value={query} onChange={(event) => setQuery(event.target.value)}
+                placeholder="Titre, description ou souhait" />
+            </label>
+            <label>Type de proposition
+              <select value={filter} onChange={(event) => setFilter(event.target.value as ModerationFilter)}>
+                <option value="ALL">Toutes</option>
+                <option value="DONATION">Dons</option>
+                <option value="TRADE">Trocs</option>
+              </select>
+            </label>
+          </form>
+          <p className="moderation-intro">
+            Vérifiez les informations et chargez les photos privées à la demande.
+            Leur consultation est recommandée, mais n’est pas une condition imposée par l’API.
+          </p>
 
       {error ? (
         <div className="notice notice--error" role="alert">
@@ -191,7 +230,7 @@ export function ModerationSpace() {
         </div>
       ) : null}
 
-      {!loading && queue.length === 0 ? (
+      {!loading && !error && queue.length === 0 ? (
         <EmptyState
           eyebrow="Réserve à jour"
           title="Aucune fiche ne vous attend."
@@ -199,9 +238,13 @@ export function ModerationSpace() {
         />
       ) : null}
 
-      <div className="moderation-list">
-        {queue.map((listing, index) => (
-          <div className="moderation-item" key={listing.id}>
+      {!loading && !error && queue.length > 0 && visibleQueue.length === 0 ? (
+        <EmptyState eyebrow="Recherche" title="Aucune fiche ne correspond aux filtres."
+          text="Essayez un autre titre ou sélectionnez « Toutes »." />
+      ) : null}
+      <div className="moderation-list management-v2__queue">
+        {!loading && visibleQueue.map((listing, index) => (
+          <div className="moderation-item management-v2__item" key={listing.id}>
             <span className="moderation-item__number">
               {(index + 1).toString().padStart(2, '0')}
             </span>
@@ -247,6 +290,8 @@ export function ModerationSpace() {
             </div>
           </div>
         ))}
+      </div>
+        </div>
       </div>
     </section>
   );
