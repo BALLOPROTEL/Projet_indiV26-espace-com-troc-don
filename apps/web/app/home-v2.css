@@ -255,3 +255,7 @@
   outline-offset: 2px;
   box-shadow: 0 0 0 8px #063a29;
 }
+/* The card clips overflow: draw keyboard focus inside its link boundary. */
+.home-v2__grid .listing-card__link:focus-visible {
+  outline-offset: -4px;
+}

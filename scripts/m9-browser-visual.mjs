@@ -1036,24 +1036,32 @@ async function runFrontV2HomeJourney() {
       'F7 mobile fields must use >=16px to prevent iOS zoom: ' + JSON.stringify(checks));
     assert.ok(checks.buttons.length > 0 && checks.buttons.every(b=>b.w>=44 && b.h>=44),
       'F7 pagination touch targets >=44px: ' + JSON.stringify(checks));
-    // Force a synthetic hover over a real card while touch media is active.
-    // Touch devices must retain base border and shadow, not sticky elevated hover.
-    const card = await evaluate('(() => {' +
-      'const el=document.querySelector(".home-v2__grid .listing-card");' +
-      'el.scrollIntoView({block:"center"});const r=el.getBoundingClientRect();' +
-      'return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
-    await command('Input.dispatchMouseEvent', {
-      type: 'mouseMoved', x: card.x, y: card.y,
+    // Force :hover at the CSS engine level. Merely moving a mouse under touch
+    // emulation can be ignored and would produce a false-positive regression.
+    await command('DOM.enable');
+    await command('CSS.enable');
+    const documentNode = await command('DOM.getDocument', { depth: 1 });
+    const hoverNode = await command('DOM.querySelector', {
+      nodeId: documentNode.root.nodeId,
+      selector: '.home-v2__grid .listing-card',
+    });
+    assert.ok(hoverNode.nodeId, 'F7 must find a real Catalog listing card');
+    await command('CSS.forcePseudoState', {
+      nodeId: hoverNode.nodeId, forcedPseudoClasses: ['hover'],
     });
     const touchCard = await evaluate('(() => {' +
       'const el=document.querySelector(".home-v2__grid .listing-card");' +
-      'const css=getComputedStyle(el);return {transform:css.transform,' +
-      'shadow:css.boxShadow,border:css.borderTopColor};})()');
+      'const css=getComputedStyle(el);return {hover:el.matches(":hover"),' +
+      'transform:css.transform,shadow:css.boxShadow,border:css.borderTopColor};})()');
+    assert.equal(touchCard.hover, true, 'F7 must actually apply :hover to the test card');
     assert.equal(touchCard.transform, 'none', 'F7 touch card must not lift on hover');
     assert.equal(touchCard.border, 'rgb(226, 236, 231)',
       'F7 touch card must retain its base border color');
     assert.ok(touchCard.shadow.includes('5px 20px'),
       'F7 touch card must retain its base shadow: ' + JSON.stringify(touchCard));
+    await command('CSS.forcePseudoState', {
+      nodeId: hoverNode.nodeId, forcedPseudoClasses: [],
+    });
     await journeyScreenshot('f7-catalog-mobile-' + width);
   }
   await command('Emulation.setTouchEmulationEnabled', { enabled: false });
