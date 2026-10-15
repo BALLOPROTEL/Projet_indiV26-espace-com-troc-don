@@ -750,6 +750,74 @@ async function enrichedModerate(listing, moderatorToken) {
   console.log('[LOT9B-F Chrome] Moderator UI reviewed 5 private images and approved ' + listing.id + ': PASS');
 }
 
+
+// F2 regression gate: images must really load from Catalog/MinIO in Chrome.
+// A screenshot-only check would not prove thumbnail and keyboard navigation.
+async function runF2GalleryJourneys(listing) {
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false,
+  });
+  await journeyOpen('/annonces/' + encodeURIComponent(listing.id),
+    '.product-gallery__main img', 'F2 real gallery desktop', listing.title);
+  const predicate = '(() => {' +
+    'const buttons=[...document.querySelectorAll(".product-gallery__thumbnails button")];' +
+    'const imgs=[...document.querySelectorAll(".product-gallery__thumbnails img")];' +
+    'const lead=document.querySelector(".product-gallery__main img");' +
+    'return buttons.length===5 && imgs.length===5 && ' +
+    'imgs.every(img=>img.complete && img.naturalWidth>0) && ' +
+    'lead?.complete && lead.naturalWidth>0 && lead.alt.includes("photo 1 sur 5");' +
+    '})()';
+  await waitUntil('F2 real five-image gallery loaded from MinIO', predicate, 120);
+  const firstSrc = await evaluate('document.querySelector(".product-gallery__main img").src');
+  assert.equal(await evaluate('(() => {' +
+    'const button=document.querySelectorAll(".product-gallery__thumbnails button")[3];' +
+    'if(!button)return false;button.click();return true;})()'), true);
+  await waitUntil('F2 thumbnail 4 changes lead image',
+    '(() => {const img=document.querySelector(".product-gallery__main img");' +
+    'return img?.alt.includes("photo 4 sur 5") && img.src!==' +
+    JSON.stringify(firstSrc) + ' && img.complete && img.naturalWidth>0;' +
+    '})()', 120);
+  assert.equal(await evaluate('document.querySelectorAll(".product-gallery__thumbnails button[aria-pressed=true]").length'),1,
+    'Exactly one thumbnail must be selected');
+  await journeyScreenshot('f2-gallery-five-photos-desktop');
+
+  assert.equal(await evaluate('(() => {' +
+    'const next=document.querySelector(".product-gallery__navigation button[aria-label=\\"Photo suivante\\"]");' +
+    'if(!next)return false;next.click();return true;})()'), true);
+  await waitUntil('F2 next button opens fifth photo',
+    'document.querySelector(".product-gallery__main img")?.alt.includes("photo 5 sur 5")',120);
+  assert.equal(await evaluate('(() => {' +
+    'const prev=document.querySelector(".product-gallery__navigation button[aria-label=\\"Photo précédente\\"]");' +
+    'if(!prev)return false;prev.click();return true;})()'), true);
+  await waitUntil('F2 previous button opens fourth photo',
+    'document.querySelector(".product-gallery__main img")?.alt.includes("photo 4 sur 5")',120);
+  assert.equal(await evaluate('(() => {' +
+    'const gallery=document.querySelector(".product-gallery");' +
+    'if(!gallery)return false;' +
+    'gallery.dispatchEvent(new KeyboardEvent("keydown",{key:"ArrowLeft",bubbles:true}));return true;})()'),true);
+  await waitUntil('F2 keyboard arrow changes active photo',
+    'document.querySelector(".product-gallery__main img")?.alt.includes("photo 3 sur 5")',120);
+
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
+  });
+  await journeyOpen('/annonces/' + encodeURIComponent(listing.id),
+    '.product-gallery__main img', 'F2 real gallery mobile', listing.title);
+  await waitUntil('F2 mobile images display',predicate,120);
+  const width = await evaluate('({scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth})');
+  assert.ok(width.scroll <= width.client + 2,
+    'F2 mobile gallery must not overflow the viewport: ' + JSON.stringify(width));
+  const controls = await evaluate('(() => {' +
+    'return [...document.querySelectorAll(".product-gallery__navigation button, .product-gallery__thumbnails button")]' +
+    '.map(button => ({width:button.getBoundingClientRect().width,' +
+    'height:button.getBoundingClientRect().height}));})()');
+  assert.equal(controls.length, 7, 'F2 five-image gallery must expose seven photo controls');
+  assert.ok(controls.every(({width,height}) => width >= 44 && height >= 44),
+    'F2 mobile gallery touch targets must be at least 44×44px: ' + JSON.stringify(controls));
+  await journeyScreenshot('f2-gallery-five-photos-mobile');
+  console.log('[FRONT-V2/F2] Chrome: 5 MinIO photos loaded, thumbnails, next/previous, keyboard, responsive: PASS');
+}
+
 async function runEnrichedBrowserJourneys() {
   assert.equal(process.env.LOT9BF_RUN_BROWSER, 'true');
   await command('Emulation.setDeviceMetricsOverride', {
@@ -768,6 +836,9 @@ async function runEnrichedBrowserJourneys() {
   // The two accounts' PENDING listings must appear in the moderator inbox.
   for (const listing of [offered, donated, traded])
     await enrichedModerate(listing, ownerToken);
+
+  if (process.env.FRONT_V2_RUN_GALLERY === 'true')
+    await runF2GalleryJourneys(traded);
 
   await journeySwitchUser('demo-user');
   await journeyOffer(donated.id, null, '9bf-don',
