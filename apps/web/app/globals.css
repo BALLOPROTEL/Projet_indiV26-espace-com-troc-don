@@ -2074,17 +2074,14 @@ summary:focus-visible {
   .session__identity small { display: none; }
 }
 
-@media (max-width: 760px) {
+/* ADMIN adds a fourth navigation link. Collapse before medium tablet widths
+   to prevent overlapping the brand and account, including at browser zoom. */
+@media (max-width: 1120px) {
   .site-header__inner {
     position: relative;
-    width: min(100% - 28px, 700px);
-    min-height: 68px;
     grid-template-columns: minmax(0, 1fr) auto auto;
     gap: 10px;
   }
-  .brand__mark { width: 38px; height: 38px; flex-basis: 38px; padding: 5px; }
-  .brand__copy strong { font-size: .98rem; }
-  .brand__copy small { font-size: .56rem; }
   .site-header__menu-toggle {
     display: inline-flex;
     justify-content: center;
@@ -2102,6 +2099,11 @@ summary:focus-visible {
   .site-header__menu-toggle svg { width: 20px; height: 20px; }
   .primary-nav {
     display: none;
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: stretch;
+    width: auto;
+    overflow-x: visible;
     position: absolute;
     left: 0;
     right: 0;
@@ -2117,6 +2119,15 @@ summary:focus-visible {
   }
   .primary-nav.is-open { display: flex; }
   .primary-nav__link { justify-content: flex-start; }
+}
+@media (max-width: 760px) {
+  .site-header__inner {
+    width: min(100% - 28px, 700px);
+    min-height: 68px;
+  }
+  .brand__mark { width: 38px; height: 38px; flex-basis: 38px; padding: 5px; }
+  .brand__copy strong { font-size: .98rem; }
+  .brand__copy small { font-size: .56rem; }
   .session__identity, .session__menu summary > svg { display: none; }
   .session__menu summary { padding: 3px; }
   .session__avatar { width: 35px; height: 35px; }

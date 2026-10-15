@@ -52,6 +52,20 @@ export function parseAdminCatalogSummary(input: unknown): AdminCatalogSummary {
     throw new Error('Réponse des statistiques administrateur invalide.');
   }
 
+  const [
+    total, pending, approved, rejected,
+    donations, trades, available, reserved, completed,
+  ] = values as [number, number, number, number, number, number, number, number, number];
+
+  // The Catalog contract must agree across all three independent groupings.
+  if (
+    pending + approved + rejected !== total ||
+    donations + trades !== total ||
+    available + reserved + completed !== approved
+  ) {
+    throw new Error('Réponse des statistiques administrateur incohérente.');
+  }
+
   return summary as AdminCatalogSummary;
 }
 

@@ -69,6 +69,23 @@ describe('ADMIN summary API runtime contract and worst-case counts', () => {
     );
   });
 
+  it.each([
+    { ...summary, total: 1 },
+    { ...summary, byStatus: { ...summary.byStatus, approved: 998 } },
+    { ...summary, byOperation: { donations: 651, trades: 350 } },
+    { ...summary, approvedAvailability: { ...summary.approvedAvailability, available: 901 } },
+    {
+      total: 0,
+      byStatus: { pending: 0, approved: 0, rejected: 0 },
+      byOperation: { donations: 0, trades: 0 },
+      approvedAvailability: { available: 1, reserved: 0, completed: 0 },
+    },
+  ])('rejects mathematically inconsistent API totals', (payload) => {
+    expect(() => parseAdminCatalogSummary(payload)).toThrow(
+      'Réponse des statistiques administrateur incohérente.',
+    );
+  });
+
   it('uses French separators when counts reach thousands', () => {
     expect(formatAdminCount(1000)).toMatch(/^1[\u00a0\u202f ]000$/);
     expect(formatAdminCount(0)).toBe('0');

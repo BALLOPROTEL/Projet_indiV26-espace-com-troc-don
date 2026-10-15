@@ -979,6 +979,35 @@ async function runAdminDashboardBrowser() {
     false, 'Do not expose fake account suspension UI');
   await journeyScreenshot('f5-admin-summary-catalog-desktop');
 
+  // Tablet and zoom-sensitive viewports: ADMIN adds a fourth header link.
+  for (const width of [1120, 1024, 900, 768]) {
+    await command('Emulation.setDeviceMetricsOverride', {
+      width, height: 900, deviceScaleFactor: 1, mobile: false,
+    });
+    await journeyOpen('/admin', '.admin-v2__stats',
+      'F5 ADMIN tablet header at ' + width + 'px');
+    await waitUntil('F5 tablet Catalog data at ' + width + 'px',
+      'document.querySelectorAll(".admin-v2__metric strong").length===4', 120);
+    const closed = await evaluate('(() => {' +
+      'const nav=document.querySelector(".primary-nav");' +
+      'const menu=document.querySelector(".site-header__menu-toggle");' +
+      'return getComputedStyle(menu).display!=="none" &&' +
+      'getComputedStyle(nav).display==="none" &&' +
+      'document.documentElement.scrollWidth<=document.documentElement.clientWidth+2;' +
+      '})()');
+    assert.equal(closed, true, 'F5 ADMIN navigation must collapse and fit at ' + width + 'px');
+    await evaluate('document.querySelector(".site-header__menu-toggle").click()');
+    assert.equal(await evaluate('document.querySelector(".site-header__menu-toggle").getAttribute("aria-expanded")'),
+      'true', 'F5 ADMIN menu must open at ' + width + 'px');
+    assert.equal(await evaluate('getComputedStyle(document.querySelector(".primary-nav")).display'),
+      'flex', 'F5 ADMIN menu must expose links at ' + width + 'px');
+    const fit = await evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth+2');
+    assert.equal(fit, true, 'F5 expanded ADMIN menu must not overflow at ' + width + 'px');
+    if (width === 1024 || width === 768) {
+      await journeyScreenshot('f5-admin-tablet-' + width);
+    }
+  }
+
   await command('Emulation.setDeviceMetricsOverride', {
     width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
   });
