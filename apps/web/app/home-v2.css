@@ -4,7 +4,7 @@
   position: relative;
   background: linear-gradient(113deg, #0c5f42 2%, #13835c 68%, #24a36e 100%);
   color: #fff;
-  margin: 0 calc((min(1250px, 100vw - 40px) - 100vw)/2);
+  margin-inline: calc(50% - 50vw);
   overflow: hidden;
 }
 .home-v2__welcome::after {
