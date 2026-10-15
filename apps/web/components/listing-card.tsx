@@ -29,6 +29,12 @@ export function ListingCard({
       ? listing.images[0]
       : undefined;
 
+  const availabilityLabel = listing.availabilityStatus === 'AVAILABLE'
+    ? 'Disponible'
+    : listing.availabilityStatus === 'RESERVED'
+      ? 'Réservé'
+      : 'Terminé';
+
   const content = (
     <>
       {cover ? (
@@ -50,10 +56,7 @@ export function ListingCard({
         </span>
         {showAvailability ? (
           <span className={`listing-card__availability availability--${listing.availabilityStatus.toLowerCase()}`}>
-            {listing.availabilityStatus === 'AVAILABLE'
-              ? 'Disponible'
-              : listing.availabilityStatus === 'RESERVED'
-                ? 'Réservé' : 'Terminé'}
+            {availabilityLabel}
           </span>
         ) : (
           <span>{formatListingDate(listing.createdAt)}</span>
@@ -129,7 +132,7 @@ export function ListingCard({
         <Link
           className="listing-card__link"
           href={href}
-          aria-label={`Voir la fiche : ${listing.title}`}
+          aria-label={`Voir la fiche : ${listing.title}${showAvailability ? ` — ${availabilityLabel}` : ''}`}
         >
           {content}
         </Link>

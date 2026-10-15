@@ -893,9 +893,20 @@ async function runFrontV2HomeJourney() {
     'if(!select)return false;select.value="DONATION";' +
     'select.dispatchEvent(new Event("change",{bubbles:true}));return true;})()');
   assert.equal(filterSet, true, 'Missing real DON filter');
-  await waitUntil('F1 filter returns to page 1',
-    'document.querySelector(".home-v2__filter-type select")?.value==="DONATION" && ' +
-    '!document.querySelector(".home-v2__pagination button[aria-current=page]")?.textContent?.includes("2")', 120);
+  const donationIds = publicListings.filter(item => item.operationType === 'DONATION')
+    .map(item => '/annonces/' + item.id);
+  const expectedDonLinks = donationIds.slice(0, 6);
+  await waitUntil('F1 DON filter shows only donation listings and resets page', '(() => {' +
+    'const links=[...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
+    '.map(a=>a.getAttribute("href"));' +
+    'const expected=' + JSON.stringify(expectedDonLinks) + ';' +
+    'return document.querySelector(".home-v2__filter-type select")?.value==="DONATION"' +
+    ' && links.length===expected.length && links.every((href,i)=>href===expected[i])' +
+    ' && !document.querySelector(".home-v2__pagination button[aria-current=page]")?.textContent?.includes("2");' +
+    '})()', 120);
+  assert.deepEqual(await evaluate('[...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
+    '.map(a=>a.getAttribute("href"))'), expectedDonLinks,
+    'Every filtered page-one card must have type DONATION');
 
   // Search for a real title, never for a mocked or hardcoded catalogue item.
   const title = publicListings.find(item => item.title.startsWith('9BF Chrome'))?.title;

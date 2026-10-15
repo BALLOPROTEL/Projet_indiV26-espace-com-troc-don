@@ -4,7 +4,8 @@
   position: relative;
   background: linear-gradient(113deg, #0c5f42 2%, #13835c 68%, #24a36e 100%);
   color: #fff;
-  margin-inline: calc(50% - 50vw);
+  margin-inline: 0;
+  border-radius: 0 0 20px 20px;
   overflow: hidden;
 }
 .home-v2__welcome::after {
@@ -176,7 +177,7 @@
 }
 @media (max-width: 620px) {
   .home-v2__welcome-inner { width: calc(100% - 28px); min-height: auto; padding: 35px 0; }
-  .home-v2__welcome { margin-inline: calc((100% - 100vw)/2); }
+  .home-v2__welcome { margin-inline: 0; border-radius: 0 0 16px 16px; }
   .home-v2__welcome h1 { font-size: clamp(1.8rem, 8vw, 2.35rem); }
   .home-v2__section-intro { flex-direction: column; align-items: flex-start; }
   .home-v2__search-row { grid-template-columns: 1fr; }
