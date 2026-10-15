@@ -1041,24 +1041,45 @@ async function runFrontV2HomeJourney() {
     await command('DOM.enable');
     await command('CSS.enable');
     const documentNode = await command('DOM.getDocument', { depth: 1 });
+    const cardSelector = '.home-v2__grid .listing-card--interactive:has(.listing-card__cover img)';
     const hoverNode = await command('DOM.querySelector', {
-      nodeId: documentNode.root.nodeId,
-      selector: '.home-v2__grid .listing-card',
+      nodeId: documentNode.root.nodeId, selector: cardSelector,
     });
-    assert.ok(hoverNode.nodeId, 'F7 must find a real Catalog listing card');
+    const hoverLink = await command('DOM.querySelector', {
+      nodeId: documentNode.root.nodeId, selector: cardSelector + ' .listing-card__link',
+    });
+    assert.ok(hoverNode.nodeId && hoverLink.nodeId,
+      'F7 must find a real Catalog card with photo and detail link');
     await command('CSS.forcePseudoState', {
       nodeId: hoverNode.nodeId, forcedPseudoClasses: ['hover'],
     });
+    await command('CSS.forcePseudoState', {
+      nodeId: hoverLink.nodeId, forcedPseudoClasses: ['hover'],
+    });
     const touchCard = await evaluate('(() => {' +
-      'const el=document.querySelector(".home-v2__grid .listing-card");' +
+      'const el=document.querySelector(' + JSON.stringify(cardSelector) + ');' +
+      'const link=el.querySelector(".listing-card__link");' +
+      'const image=el.querySelector(".listing-card__cover img");' +
+      'const arrow=el.querySelector(".listing-card__cta span");' +
       'const css=getComputedStyle(el);return {hover:el.matches(":hover"),' +
-      'transform:css.transform,shadow:css.boxShadow,border:css.borderTopColor};})()');
+      'linkHover:link.matches(":hover"),' +
+      'transform:css.transform,shadow:css.boxShadow,border:css.borderTopColor,' +
+      'imageTransform:getComputedStyle(image).transform,' +
+      'arrowTransform:getComputedStyle(arrow).transform};})()');
     assert.equal(touchCard.hover, true, 'F7 must actually apply :hover to the test card');
+    assert.equal(touchCard.linkHover, true, 'F7 must apply :hover to the detail link');
     assert.equal(touchCard.transform, 'none', 'F7 touch card must not lift on hover');
     assert.equal(touchCard.border, 'rgb(226, 236, 231)',
       'F7 touch card must retain its base border color');
     assert.ok(touchCard.shadow.includes('5px 20px'),
       'F7 touch card must retain its base shadow: ' + JSON.stringify(touchCard));
+    assert.equal(touchCard.imageTransform, 'none',
+      'F7 touch must not leave the image scaled');
+    assert.equal(touchCard.arrowTransform, 'none',
+      'F7 touch must not leave the detail CTA arrow displaced');
+    await command('CSS.forcePseudoState', {
+      nodeId: hoverLink.nodeId, forcedPseudoClasses: [],
+    });
     await command('CSS.forcePseudoState', {
       nodeId: hoverNode.nodeId, forcedPseudoClasses: [],
     });
