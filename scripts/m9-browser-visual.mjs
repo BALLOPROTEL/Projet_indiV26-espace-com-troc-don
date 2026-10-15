@@ -924,15 +924,36 @@ async function runFrontV2HomeJourney() {
     'return cards.length===1&&cards[0].textContent.includes(' + JSON.stringify(title) + ');})()', 120);
   await journeyScreenshot('f1-catalog-search-live-title');
 
-  await command('Emulation.setDeviceMetricsOverride', {
-    width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
-  });
-  await journeyOpen('/', '.home-v2__welcome h1', 'F1 mobile homepage');
-  await waitUntil('F1 mobile six cards',
-    'document.querySelectorAll(".home-v2__grid .listing-card").length===6', 120);
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".home-v2__grid")).gridTemplateColumns.split(" ").length'),
-    1, 'Mobile F1 catalogue must have one card per row');
-  await journeyScreenshot('f1-catalog-six-articles-mobile');
+  // F7/mobile-native regression: short phone widths and actual CSS hit areas.
+  for (const width of [320, 390]) {
+    await command('Emulation.setDeviceMetricsOverride', {
+      width, height: 844, deviceScaleFactor: 1, mobile: true,
+    });
+    await journeyOpen('/', '.home-v2__welcome h1',
+      'F7 mobile homepage at ' + width + 'px');
+    await waitUntil('F7 six cards at ' + width + 'px',
+      'document.querySelectorAll(".home-v2__grid .listing-card").length===6', 120);
+    const checks = await evaluate('(() => {' +
+      'const root=document.documentElement;' +
+      'const search=document.querySelector("#home-v2-search");' +
+      'const type=document.querySelector(".home-v2__filter-type select");' +
+      'const c=document.querySelector(".home-v2__grid");' +
+      'const buttons=[...document.querySelectorAll(".home-v2__pagination button:not(:disabled)")];' +
+      'return {scroll:root.scrollWidth,client:root.clientWidth,' +
+      'searchFont:parseFloat(getComputedStyle(search).fontSize),' +
+      'typeFont:parseFloat(getComputedStyle(type).fontSize),' +
+      'columns:getComputedStyle(c).gridTemplateColumns.split(" ").length,' +
+      'buttons:buttons.map(b=>({w:b.getBoundingClientRect().width,h:b.getBoundingClientRect().height}))};' +
+      '})()');
+    assert.ok(checks.scroll <= checks.client + 2,
+      'F7 mobile homepage must not overflow at ' + width + 'px: ' + JSON.stringify(checks));
+    assert.equal(checks.columns, 1, 'F7 expects one card column on phone');
+    assert.ok(checks.searchFont >= 16 && checks.typeFont >= 16,
+      'F7 mobile fields must use >=16px to prevent iOS zoom: ' + JSON.stringify(checks));
+    assert.ok(checks.buttons.length > 0 && checks.buttons.every(b=>b.w>=44 && b.h>=44),
+      'F7 pagination touch targets >=44px: ' + JSON.stringify(checks));
+    await journeyScreenshot('f7-catalog-mobile-' + width);
+  }
   console.log('[FRONT-V2/F1] Chrome: true Catalog ≥7; six per page; page 2 distinct; DON filter; live search; mobile: PASS');
 }
 
