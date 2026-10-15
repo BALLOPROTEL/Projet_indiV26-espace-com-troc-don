@@ -116,7 +116,7 @@
     transform: translateY(-3px); border-color: #b6d9c5;
   }
 }
-@media (hover: none) {
+@media (hover: none), (any-pointer: coarse) {
   .home-v2__grid .listing-card--interactive:hover { transform: none; }
   /* F0 legacy selectors can still trigger synthesized sticky hover on touch. */
   .home-v2__grid .listing-card--interactive:hover .listing-card__cover img,
