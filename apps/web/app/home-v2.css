@@ -243,9 +243,15 @@
 .home-v2__filter-type select:focus-visible,
 .home-v2__pagination button:focus-visible,
 .home-v2__error button:focus-visible,
-.home-v2__hero-action:focus-visible,
 .home-v2__secondary-link:focus-visible,
 .home-v2__grid .listing-card__link:focus-visible {
   outline: 3px solid #0b6842;
   outline-offset: 3px;
+}
+
+/* The hero is green: a white inner focus ring + dark outer ring stay visible. */
+.home-v2__hero-action:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 8px #063a29;
 }

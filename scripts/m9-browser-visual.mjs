@@ -1000,7 +1000,11 @@ async function runFrontV2HomeJourney() {
     'return cards.length===1&&cards[0].textContent.includes(' + JSON.stringify(title) + ');})()', 120);
   await journeyScreenshot('f1-catalog-search-live-title');
 
-  // F7/mobile-native regression: short phone widths and actual CSS hit areas.
+  // F7/mobile-native: mobile metrics alone do NOT emulate a touch pointer.
+  // Real CDP touch emulation is necessary to exercise (any-pointer: coarse).
+  await command('Emulation.setTouchEmulationEnabled', {
+    enabled: true, maxTouchPoints: 1,
+  });
   for (const width of [320, 390]) {
     await command('Emulation.setDeviceMetricsOverride', {
       width, height: 844, deviceScaleFactor: 1, mobile: true,
@@ -1016,6 +1020,8 @@ async function runFrontV2HomeJourney() {
       'const c=document.querySelector(".home-v2__grid");' +
       'const buttons=[...document.querySelectorAll(".home-v2__pagination button:not(:disabled)")];' +
       'return {scroll:root.scrollWidth,client:root.clientWidth,' +
+      'touch:matchMedia("(any-pointer: coarse)").matches,' +
+      'touchPoints:navigator.maxTouchPoints,' +
       'searchFont:parseFloat(getComputedStyle(search).fontSize),' +
       'typeFont:parseFloat(getComputedStyle(type).fontSize),' +
       'columns:getComputedStyle(c).gridTemplateColumns.split(" ").length,' +
@@ -1024,12 +1030,33 @@ async function runFrontV2HomeJourney() {
     assert.ok(checks.scroll <= checks.client + 2,
       'F7 mobile homepage must not overflow at ' + width + 'px: ' + JSON.stringify(checks));
     assert.equal(checks.columns, 1, 'F7 expects one card column on phone');
+    assert.equal(checks.touch, true, 'F7 must emulate coarse touch media at ' + width + 'px');
+    assert.ok(checks.touchPoints >= 1, 'F7 Chrome must expose at least one touch point');
     assert.ok(checks.searchFont >= 16 && checks.typeFont >= 16,
       'F7 mobile fields must use >=16px to prevent iOS zoom: ' + JSON.stringify(checks));
     assert.ok(checks.buttons.length > 0 && checks.buttons.every(b=>b.w>=44 && b.h>=44),
       'F7 pagination touch targets >=44px: ' + JSON.stringify(checks));
+    // Force a synthetic hover over a real card while touch media is active.
+    // Touch devices must retain base border and shadow, not sticky elevated hover.
+    const card = await evaluate('(() => {' +
+      'const el=document.querySelector(".home-v2__grid .listing-card");' +
+      'el.scrollIntoView({block:"center"});const r=el.getBoundingClientRect();' +
+      'return {x:r.x+r.width/2,y:r.y+r.height/2};})()');
+    await command('Input.dispatchMouseEvent', {
+      type: 'mouseMoved', x: card.x, y: card.y,
+    });
+    const touchCard = await evaluate('(() => {' +
+      'const el=document.querySelector(".home-v2__grid .listing-card");' +
+      'const css=getComputedStyle(el);return {transform:css.transform,' +
+      'shadow:css.boxShadow,border:css.borderTopColor};})()');
+    assert.equal(touchCard.transform, 'none', 'F7 touch card must not lift on hover');
+    assert.equal(touchCard.border, 'rgb(226, 236, 231)',
+      'F7 touch card must retain its base border color');
+    assert.ok(touchCard.shadow.includes('5px 20px'),
+      'F7 touch card must retain its base shadow: ' + JSON.stringify(touchCard));
     await journeyScreenshot('f7-catalog-mobile-' + width);
   }
+  await command('Emulation.setTouchEmulationEnabled', { enabled: false });
   console.log('[FRONT-V2/F1] Chrome: true Catalog ≥7; six per page; page 2 distinct; DON filter; live search; mobile: PASS');
 }
 
