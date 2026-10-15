@@ -2,7 +2,7 @@
 // Backend guards, not this menu, are the authorization boundary.
 export type HeaderRole = 'USER' | 'MODERATOR' | 'ADMIN';
 export type HeaderLink = {
-  href: '/' | '/espace' | '/moderation';
+  href: '/' | '/espace' | '/moderation' | '/admin';
   label: string;
   icon: 'home' | 'box' | 'shield';
 };
@@ -21,6 +21,13 @@ export function headerLinks(
       links.push({
         href: '/moderation',
         label: 'Modération',
+        icon: 'shield',
+      });
+    }
+    if (roles.includes('ADMIN')) {
+      links.push({
+        href: '/admin',
+        label: 'Administration',
         icon: 'shield',
       });
     }

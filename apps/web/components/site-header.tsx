@@ -127,6 +127,7 @@ export function SiteHeader() {
                   <p>Connecté avec Keycloak</p>
                   <Link href="/espace" onClick={closeAccountMenu}>Mes articles et échanges</Link>
                   {elevatedRole ? <Link href="/moderation" onClick={closeAccountMenu}>Espace de modération</Link> : null}
+                  {roles.includes('ADMIN') ? <Link href="/admin" onClick={closeAccountMenu}>Administration</Link> : null}
                   <button type="button" onClick={() => void logout()}>
                     <HeaderIcon name="sign-out" />
                     Sortir
