@@ -1000,6 +1000,36 @@ async function runFrontV2HomeJourney() {
     'return cards.length===1&&cards[0].textContent.includes(' + JSON.stringify(title) + ');})()', 120);
   await journeyScreenshot('f1-catalog-search-live-title');
 
+  // F7/#81 break-ui: a real approved legacy fixture without images must
+  // display a neutral, accessible placeholder rather than a blank 185px void.
+  const noPhoto = publicListings.find(item =>
+    item.status === 'APPROVED' && item.images.length === 0);
+  assert.ok(noPhoto, 'F7 #81 requires an approved no-photo Catalog fixture');
+  assert.equal(await evaluate('(() => {' +
+    'const input=document.querySelector("#home-v2-search");' +
+    'if(!input)return false;' +
+    'Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,' +
+    JSON.stringify(noPhoto.title) + ');' +
+    'input.dispatchEvent(new Event("input",{bubbles:true}));return true;})()'),
+    true, 'F7 #81 no-photo search input must work');
+  await waitUntil('F7 #81 no-photo card visible', '(() => {' +
+    'const cards=[...document.querySelectorAll(".home-v2__grid .listing-card")];' +
+    'return cards.length===1 &&' +
+    'cards[0].querySelector("h3")?.textContent===' + JSON.stringify(noPhoto.title) + ' &&' +
+    '!!cards[0].querySelector(".listing-card__cover--empty");})()', 120);
+  const missingImage = await evaluate('(() => {' +
+    'const card=document.querySelector(".home-v2__grid .listing-card");' +
+    'const cover=card.querySelector(".listing-card__cover--empty");' +
+    'return {label:cover.innerText.trim(),images:cover.querySelectorAll("img").length,' +
+    'height:cover.getBoundingClientRect().height,' +
+    'link:card.querySelector(".listing-card__link")?.getAttribute("href")};})()');
+  assert.equal(missingImage.label, 'Aucune photo disponible');
+  assert.equal(missingImage.images, 0, 'F7 #81 must never invent a product photo');
+  assert.ok(missingImage.height >= 175, 'F7 #81 placeholder occupies the existing cover area');
+  assert.equal(missingImage.link, '/annonces/' + noPhoto.id,
+    'F7 #81 placeholder must preserve the real product detail link');
+  await journeyScreenshot('f7-catalog-no-photo-desktop');
+
   // F7/mobile-native: mobile metrics alone do NOT emulate a touch pointer.
   // Real CDP touch emulation is necessary to exercise (any-pointer: coarse).
   await command('Emulation.setTouchEmulationEnabled', {
