@@ -80,7 +80,10 @@
     "m7:k8s:validate": "bash scripts/m7-k8s-validate.sh",
     "m7:k8s:smoke": "bash scripts/m7-kind-smoke.sh",
     "m8:contracts:validate": "pnpm --filter gateway build && node --test tests/contracts/m8-contracts.test.mjs",
-    "m8:integration:unit": "pnpm --filter marketplace-service exec jest --runInBand src/catalog/catalog-client.service.spec.ts"
+    "m8:integration:unit": "pnpm --filter marketplace-service exec jest --runInBand src/catalog/catalog-client.service.spec.ts",
+    "jury:plan:check": "node scripts/jury-demo-validate.mjs --metadata",
+    "jury:assets:check": "node scripts/jury-demo-validate.mjs --assets",
+    "jury:plan:test": "node --test scripts/jury-demo-validate.test.mjs"
   },
   "pnpm": {
     "overrides": {

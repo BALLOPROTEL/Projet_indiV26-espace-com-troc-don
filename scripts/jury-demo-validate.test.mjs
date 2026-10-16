@@ -1,0 +1,84 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { inspectPlan } from './jury-demo-validate.mjs';
+
+const plan = JSON.parse(readFileSync(new URL('../demo/jury/manifest.json', import.meta.url)));
+const modify = fn => { const value = structuredClone(plan); fn(value); return value; };
+const invalid = (value, needle) =>
+  assert.ok(inspectPlan(value).errors.some(e => e.includes(needle)),
+    'Expected error containing "' + needle + '"');
+
+test('draft structure passes but warns about missing second USER and rights', () => {
+  const v = inspectPlan(plan);
+  assert.deepEqual(v.errors, []);
+  assert.equal(v.images, 20);
+  assert.ok(v.warnings.some(x => x.includes('Two distinct')));
+  assert.ok(v.warnings.some(x => x.includes('rights')));
+});
+test('strict gate fails on missing media, provenance and readiness', () => {
+  const v = inspectPlan(plan, { assets: true, directory: '/nonexistent-jury-kit' });
+  assert.ok(v.errors.some(x => x.includes('Two distinct')));
+  assert.ok(v.errors.some(x => x.includes('image')));
+  assert.ok(v.errors.some(x => x.includes('provenance')));
+  assert.ok(v.errors.some(x => x.includes('READY_FOR_REVIEW')));
+});
+test('reject duplicate image names and wrong listing photo folders', () => {
+  invalid(modify(p => { p.listings[1].images[0].file = p.listings[0].images[0].file; }), 'image path');
+  invalid(modify(p => { p.listings[2].images[0].file = 'assets/don-lampe/01.jpg'; }), 'wrong listing');
+});
+test('reject TRADE wish limits and invalid Catalog title/description', () => {
+  invalid(modify(p => { p.listings[2].tradeWishes = ['One wish']; }), '5–10');
+  invalid(modify(p => { p.listings[2].tradeWishes = Array.from({length: 11}, (_,i) => 'Wish '+i); }), '5–10');
+  invalid(modify(p => { p.listings[2].tradeWishes[0] = ' '; }), '5–10');
+  invalid(modify(p => { p.listings[0].title = 'x'.repeat(121); }), 'Title');
+  invalid(modify(p => { delete p.listings[0].description; }), 'Description');
+});
+test('reject blank identities in every mode and same USER actor', () => {
+  invalid(modify(p => { p.actors.moderator = ' '; }), 'Blank or invalid actor');
+  const b = modify(p => { p.actors.memberRequester = ' '; });
+  invalid(b, 'Blank or invalid actor');
+  assert.ok(inspectPlan(b, {assets:true}).errors.some(e=>e.includes('Two distinct')));
+  const c = modify(p=>{p.actors.memberRequester=' demo-user ';});
+  assert.ok(inspectPlan(c, {assets:true}).errors.some(e=>e.includes('Two distinct')));
+});
+test('reject wrong DON/TROC operations, outcomes and owners', () => {
+  invalid(modify(p=>{p.journeys[0].target='troc-sac';}), 'Invalid journey');
+  invalid(modify(p=>{p.journeys[1].outcome='REJECTED';}), 'Invalid journey');
+  invalid(modify(p=>{p.journeys[2].offered='don-lampe';}), 'Invalid journey');
+  invalid(modify(p=>{p.listings[3].owner='memberOwner';}), 'Invalid journey');
+});
+test('reject extra listings or journeys changing the deterministic kit', () => {
+  invalid(modify(p => { p.listings.push({...p.listings[0],key:'extra-don'}); }), 'Exactly two DON');
+  invalid(modify(p => { p.journeys.push({...p.journeys[0],key:'surprise'}); }), 'Exactly three');
+});
+test('strict gate rejects zero-byte, directories, and forged registry credits', () => {
+  const temp = mkdtempSync(join(tmpdir(), 'jury-validate-'));
+  try {
+    const v = modify(p=>{p.actors.memberRequester='demo-user-2';p.readiness='READY_FOR_REVIEW';});
+    const first = v.listings[0].images[0];
+    first.creditId = 'FABRICATED';
+    mkdirSync(join(temp,'assets','don-lampe'), { recursive: true });
+    writeFileSync(join(temp,first.file), '');
+    const registry={version:1,credits:[{
+      id:'FABRICATED',file:first.file,author:'A',source:'B',licenseOrPermission:'C',
+      verifiedAt:'2026-10-16',conditions:'D',authorizedForDemo:true,
+    }]};
+    writeFileSync(join(temp,'assets','provenance.json'), JSON.stringify(registry));
+    const result=inspectPlan(v,{assets:true,directory:temp});
+    assert.ok(result.errors.some(x=>x.includes('Missing/invalid real image file')));
+    assert.ok(result.errors.some(x=>x.includes('Unverified or mismatched image provenance')));
+    // Replacing a file by a directory may never satisfy the image validator.
+    rmSync(join(temp,first.file));
+    mkdirSync(join(temp,first.file));
+    const result2=inspectPlan(v,{assets:true,directory:temp});
+    assert.ok(result2.errors.some(x=>x.includes('Missing/invalid real image file')));
+  } finally { rmSync(temp,{recursive:true,force:true}); }
+});
+test('a valid-looking credit ID is not enough without a matching complete registry', () => {
+  const v=modify(p=>{p.actors.memberRequester='demo-user-2';p.readiness='READY_FOR_REVIEW';p.listings[0].images[0].creditId='MADE_UP';});
+  const errors=inspectPlan(v,{assets:true}).errors;
+  assert.ok(errors.some(e=>e.includes('provenance')));
+});
