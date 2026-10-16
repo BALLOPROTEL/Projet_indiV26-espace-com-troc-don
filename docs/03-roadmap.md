@@ -43,7 +43,7 @@ Règle de pilotage :
 - une PR ouverte fait passer l'item en **Review** ;
 - **Done** exige la Definition of Done et les preuves attendues.
 
-## État réel — actualisé au 13 octobre 2026
+## État réel — actualisé au 16 octobre 2026
 
 | Lot ou jalon | Statut | Preuve |
 | --- | --- | --- |
@@ -56,9 +56,12 @@ Règle de pilotage :
 | M8 | **Done** | PR #53 fusionnée |
 | M9 / LOT 9B-D/E | **Done** | PR #54 fusionnée (commit d29d499), Chrome 2 comptes |
 | LOT 9B-F | **Certification technique fusionnée** | PR #61, 2 CI vertes et 35 captures ; kit de démo jury #56 ouvert |
-| M10 | **Review** | #57 — six diagrammes Mermaid et runbook en revue, pas encore fusionnés |
-| Frontend (nouvelle étape) | **Bloquée : attente GO utilisateur** | Aucun développement frontend commencé |
-| LOT 10-A/B | **Backlog** | #58/#59, après frontend |
+| M10 | **Done** | #57 fermée — six diagrammes Mermaid et runbook intégrés |
+| Frontend V2 F0–F5 | **Done** | PR #72–#77 fusionnées : UX, 6 annonces/page, MinIO, modération, ADMIN |
+| Frontend V2 F7 | **Code fusionné, recette physique restante** | PR #78 skills, #79 tactile et #82 cartes sans photo fusionnées ; #71 ouverte pour contrôle iOS/Android réel |
+| Frontend V2 F6 | **Backlog facultatif** | #70 — fonctionnalités supplémentaires hors périmètre minimal |
+| LOT 9B-F kit jury | **In Progress** | #56 — jeux de données et scénario de démonstration reproductible |
+| LOT 10-A/B | **Backlog** | #58/#59, après recette physique et kit jury |
 
 ### Plan d'exécution approuvé
 
@@ -66,8 +69,8 @@ Règle de pilotage :
 | --- | --- | --- | --- |
 | 1 | [#55](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55) | Documentation / synchronisation des issues et Kanban | **In Progress** |
 | 2 | [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56) | LOT 9B-F : certification technique livrée ; kit de démo à achever | **In Progress** |
-| 3 | [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57) | M10 : six diagrammes et runbook, revue technique | **Review** |
-| 3B | **Frontend — attente du GO** | Nouvelle phase de développement/qualité visuelle, **non commencée** | **Blocked** |
+| 3 | [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57) | M10 : six diagrammes et runbook intégrés | **Done** |
+| 3B | [#63](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/63) / [#71](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/71) | Frontend V2 intégré ; recette sur appareils physiques restante | **Review (recette)** |
 | 4 | [#58](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58) | LOT 10-A : dossier de preuves | **Backlog** |
 | 5 | [#59](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59) | LOT 10-B : support, répétition, vidéo | **Backlog** |
 
@@ -84,8 +87,10 @@ Les statuts ci-dessus sont le **plan documentaire** ; leur application aux colon
 
 Une seule grosse tâche de développement est en cours à la fois. Ne pas bloquer la conversation pour les CI longues : la PR et le lien des runs sont transmis dès le lancement ; les résultats sont vérifiés sur demande.
 
-### Ordre de développement explicitement confirmé le 13 octobre 2026
+### Priorités confirmées le 16 octobre 2026
 
-**M10 (#57) → frontend (attente GO explicite) → consolidation des preuves (#58) → préparation de la présentation (#59).** Les travaux sur le frontend ne commencent pas par la publication de M10, et aucun lot de preuves ou slides n'est ouvert prématurément.
+**M10 et Frontend V2 intégrés → contrôle physique mobile #71 et kit de démo #56 → dossier de preuves #58 → soutenance #59.**
+
+Le code frontend F0–F5 et F7 est dans `main`. La recette Chrome CI est validée, mais elle ne remplace pas les vérifications sur de vrais smartphones. Les nouvelles fonctionnalités F6 ne bloquent pas le MVP. Aucune production prématurée des slides ou du dossier LOT10 avant la recette et la démo reproductible.
 
 Architecture M10 : [six diagrammes](24-m10-architecture-finale.md) et [runbook d'exploitation](25-m10-operations-limits.md). Les statuts de ce fichier **ne constituent pas une mise à jour des colonnes GitHub Projects V2**.
