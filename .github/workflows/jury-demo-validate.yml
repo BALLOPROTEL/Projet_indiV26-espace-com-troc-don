@@ -1,0 +1,30 @@
+name: Jury demo offline validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'demo/jury/**'
+      - 'scripts/jury-demo-validate.mjs'
+      - 'scripts/jury-demo-validate.test.mjs'
+      - 'package.json'
+      - '.github/workflows/jury-demo-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Safe manifest and Node tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288ca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Validate jury demo draft structure without mutations
+        run: node scripts/jury-demo-validate.mjs --metadata
+      - name: Test defensive validation of missing assets and unsafe scenarios
+        run: node --test scripts/jury-demo-validate.test.mjs
