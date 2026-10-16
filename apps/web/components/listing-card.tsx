@@ -46,7 +46,25 @@ export function ListingCard({
           />
           <span>{listing.images.length} photos</span>
         </div>
-      ) : null}
+      ) : (
+        <div className="listing-card__cover listing-card__cover--empty">
+          <svg
+            className="listing-card__empty-icon"
+            viewBox="0 0 48 48"
+            fill="none"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <rect x="5" y="9" width="38" height="30" rx="5" stroke="currentColor" strokeWidth="2" />
+            <circle cx="17" cy="19" r="3.5" stroke="currentColor" strokeWidth="2" />
+            <path d="M8 34l11-10 8 7 6-5 7 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M8 41L40 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity=".6" />
+          </svg>
+          <span className="listing-card__empty-label">
+            {listing.images.length > 0 ? 'Aperçu non disponible' : 'Aucune photo disponible'}
+          </span>
+        </div>
+      )}
 
       <div className="listing-card__meta">
         <span

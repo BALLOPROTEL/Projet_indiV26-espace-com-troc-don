@@ -134,6 +134,19 @@
   border: 0; border-radius: 16px 16px 0 0;
 }
 .home-v2__grid .listing-card__cover img { display: block; }
+.home-v2__grid .listing-card__cover--empty {
+  margin-bottom: 17px;
+  border-bottom: 1px solid #d4e6d9;
+  border-radius: 16px 16px 0 0;
+}
+.home-v2__grid .listing-card__cover--empty .listing-card__empty-label {
+  position: static;
+  background: transparent;
+  color: #365c48;
+  border-radius: 0;
+  font-size: .79rem;
+  line-height: 1.4;
+}
 .home-v2__grid .listing-card__cover span {
   border-radius: 6px; background: rgba(15,48,34,.77); color: #fff;
 }
