@@ -25,14 +25,14 @@ pnpm jury:plan:test    # Tests natifs Node, sans dépendance serveur
 pnpm jury:assets:check # Gate bloquante tant que membre, médias ou crédits manquent
 ```
 
-Fournir uniquement des images pour lesquelles la réutilisation et la présentation sont autorisées ; compléter le `creditId` de chaque photo et le registre de provenance sous `demo/jury/assets/CREDITS.md`. Ne jamais intégrer mots de passe, tokens ni données personnelles dans Git.
+Fournir uniquement des images réutilisables légalement. Compléter le `creditId` de chaque photo et une entrée **correspondante** dans le registre structuré `demo/jury/assets/provenance.json` (source, auteur, licence/autorisation, date, conditions, droit de démonstration), en suivant `demo/jury/assets/CREDITS.md`. Ce contrôle informatique ne remplace pas la vérification humaine des licences. En outre, la gate refuse les répertoires, les fichiers vides, les signatures média invalides, les textes hors limites API et les scénarios DON/TROC incohérents. Avant le contrôle strict, un responsable doit marquer explicitement le manifeste `READY_FOR_REVIEW`. Ne jamais intégrer mots de passe, tokens ni données personnelles dans Git.
 
 ## Relance et secours
 
 - Avant toute manipulation dans Codespaces : `git status`, `df -h .`, puis `pnpm codespaces:check`. Ces vérifications ne doivent pas détruire les données.
 - Créer et valider les données uniquement dans un **environnement de démonstration explicitement choisi**, jamais via un seed silencieux en production ni une réinitialisation du Codespace courant.
 - Relever les identifiants des annonces et propositions dans des notes de session non versionnées ; ne pas les inventer.
-- Aucun `docker compose down -v`, `docker system prune`, suppression de PVC, purge de base ni reset irréversible sans sauvegarde, plan de rollback et consentement explicite du propriétaire.
+- **Codespaces : interdiction absolue** de `docker compose down -v`, `docker system prune`, supprimer les volumes/PVC, purger la base ou réinitialiser des données utilisateur. Aucune exception, même avec sauvegarde ou accord. Une procédure de reconstruction ne peut être envisagée que dans un **environnement éphémère externe distinct**, avec plan de retour arrière vérifié.
 - Préparer une procédure de démonstration et un mode de secours après validation des vraies données ; les captures Chrome CI ne doivent pas être présentées comme un essai physique ou une preuve de démo live.
 
 ## Critères restants avant clôture
