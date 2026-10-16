@@ -2,7 +2,7 @@
 
 Projet individuel pour le bloc **« Superviser et assurer le développement des applications logicielles »**. Le POC de *La Petite Maison de l'Épouvante* démontre une véritable verticale métier DON/TROC avec modération, transactions et exigences d'industrialisation.
 
-> **État au 13 octobre 2026 : M9 et certification métier LOT 9B-F fusionnés dans `main` (PR #54 et #61). M10 : documentation d'architecture en revue (issue #57).** Les données de démonstration jury restent à préparer ; le frontend n'est pas lancé en l'absence du GO spécifique. Le POC n'est pas un service de production et n'a pas de déploiement public permanent certifié.
+> **État au 16 octobre 2026 :** migration microservices M0–M10 et frontend V2 F0–F5/F7 fusionnés dans `main` (dont PR #79 et #82). La recette automatisée navigateur est validée, mais la validation sur **vrais appareils iOS/Android** reste à réaliser (#71), ainsi que le kit de démonstration jury réinitialisable (#56). Le POC n'est pas un service de production et n'a pas de déploiement public permanent certifié.
 
 ## Fonctionnalités livrées
 
@@ -65,9 +65,9 @@ La CI utilise des environnements Docker/Kind jetables pour éviter de saturer le
 | Frontend V2 — F0–F5 | **Terminé et fusionné** — accueil 6 annonces/page, galerie MinIO, dashboard modérateur, API ADMIN et dashboard ADMIN (PR #72–#77) |
 | Frontend V2 — F7 | **Code et qualité fusionnés** — skills Emil Kowalski et ergonomie mobile, états sans photo (PR #78, #79, #82). Recette sur vrais appareils encore requise (#71) |
 | F6 (facultatif) | **Backlog non bloquant** — nouvelles fonctions sans contrats backend livrés (#70) |
-| LOT 10-A/B | **En attente** — preuves et soutenance uniquement après la phase frontend autorisée |
+| LOT 10-A/B | **En attente** — commencer le dossier de preuves #58 et la soutenance #59 seulement après recette physique #71 et kit de démonstration jury #56 |
 
-Piloter les travaux via les [issues #35](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/35), [#44](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/44), [#18](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/18), et les tâches [#55 à #59](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues?q=is%3Aissue+is%3Aopen).
+Piloter les travaux via les [issues #35](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/35), [#44](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/44), [#18](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/18), et les tâches [#55](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55), [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56), [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57), [#58](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58) et [#59](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59).
 
 ## Preuves récentes vérifiées
 
