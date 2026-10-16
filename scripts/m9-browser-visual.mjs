@@ -1000,15 +1000,92 @@ async function runFrontV2HomeJourney() {
     'return cards.length===1&&cards[0].textContent.includes(' + JSON.stringify(title) + ');})()', 120);
   await journeyScreenshot('f1-catalog-search-live-title');
 
-  await command('Emulation.setDeviceMetricsOverride', {
-    width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
+  // F7/mobile-native: mobile metrics alone do NOT emulate a touch pointer.
+  // Real CDP touch emulation is necessary to exercise (any-pointer: coarse).
+  await command('Emulation.setTouchEmulationEnabled', {
+    enabled: true, maxTouchPoints: 1,
   });
-  await journeyOpen('/', '.home-v2__welcome h1', 'F1 mobile homepage');
-  await waitUntil('F1 mobile six cards',
-    'document.querySelectorAll(".home-v2__grid .listing-card").length===6', 120);
-  assert.equal(await evaluate('getComputedStyle(document.querySelector(".home-v2__grid")).gridTemplateColumns.split(" ").length'),
-    1, 'Mobile F1 catalogue must have one card per row');
-  await journeyScreenshot('f1-catalog-six-articles-mobile');
+  for (const width of [320, 390]) {
+    await command('Emulation.setDeviceMetricsOverride', {
+      width, height: 844, deviceScaleFactor: 1, mobile: true,
+    });
+    await journeyOpen('/', '.home-v2__welcome h1',
+      'F7 mobile homepage at ' + width + 'px');
+    await waitUntil('F7 six cards at ' + width + 'px',
+      'document.querySelectorAll(".home-v2__grid .listing-card").length===6', 120);
+    const checks = await evaluate('(() => {' +
+      'const root=document.documentElement;' +
+      'const search=document.querySelector("#home-v2-search");' +
+      'const type=document.querySelector(".home-v2__filter-type select");' +
+      'const c=document.querySelector(".home-v2__grid");' +
+      'const buttons=[...document.querySelectorAll(".home-v2__pagination button:not(:disabled)")];' +
+      'return {scroll:root.scrollWidth,client:root.clientWidth,' +
+      'touch:matchMedia("(any-pointer: coarse)").matches,' +
+      'touchPoints:navigator.maxTouchPoints,' +
+      'searchFont:parseFloat(getComputedStyle(search).fontSize),' +
+      'typeFont:parseFloat(getComputedStyle(type).fontSize),' +
+      'columns:getComputedStyle(c).gridTemplateColumns.split(" ").length,' +
+      'buttons:buttons.map(b=>({w:b.getBoundingClientRect().width,h:b.getBoundingClientRect().height}))};' +
+      '})()');
+    assert.ok(checks.scroll <= checks.client + 2,
+      'F7 mobile homepage must not overflow at ' + width + 'px: ' + JSON.stringify(checks));
+    assert.equal(checks.columns, 1, 'F7 expects one card column on phone');
+    assert.equal(checks.touch, true, 'F7 must emulate coarse touch media at ' + width + 'px');
+    assert.ok(checks.touchPoints >= 1, 'F7 Chrome must expose at least one touch point');
+    assert.ok(checks.searchFont >= 16 && checks.typeFont >= 16,
+      'F7 mobile fields must use >=16px to prevent iOS zoom: ' + JSON.stringify(checks));
+    assert.ok(checks.buttons.length > 0 && checks.buttons.every(b=>b.w>=44 && b.h>=44),
+      'F7 pagination touch targets >=44px: ' + JSON.stringify(checks));
+    // Force :hover at the CSS engine level. Merely moving a mouse under touch
+    // emulation can be ignored and would produce a false-positive regression.
+    await command('DOM.enable');
+    await command('CSS.enable');
+    const documentNode = await command('DOM.getDocument', { depth: 1 });
+    const cardSelector = '.home-v2__grid .listing-card--interactive:has(.listing-card__cover img)';
+    const hoverNode = await command('DOM.querySelector', {
+      nodeId: documentNode.root.nodeId, selector: cardSelector,
+    });
+    const hoverLink = await command('DOM.querySelector', {
+      nodeId: documentNode.root.nodeId, selector: cardSelector + ' .listing-card__link',
+    });
+    assert.ok(hoverNode.nodeId && hoverLink.nodeId,
+      'F7 must find a real Catalog card with photo and detail link');
+    await command('CSS.forcePseudoState', {
+      nodeId: hoverNode.nodeId, forcedPseudoClasses: ['hover'],
+    });
+    await command('CSS.forcePseudoState', {
+      nodeId: hoverLink.nodeId, forcedPseudoClasses: ['hover'],
+    });
+    const touchCard = await evaluate('(() => {' +
+      'const el=document.querySelector(' + JSON.stringify(cardSelector) + ');' +
+      'const link=el.querySelector(".listing-card__link");' +
+      'const image=el.querySelector(".listing-card__cover img");' +
+      'const arrow=el.querySelector(".listing-card__cta span");' +
+      'const css=getComputedStyle(el);return {hover:el.matches(":hover"),' +
+      'linkHover:link.matches(":hover"),' +
+      'transform:css.transform,shadow:css.boxShadow,border:css.borderTopColor,' +
+      'imageTransform:getComputedStyle(image).transform,' +
+      'arrowTransform:getComputedStyle(arrow).transform};})()');
+    assert.equal(touchCard.hover, true, 'F7 must actually apply :hover to the test card');
+    assert.equal(touchCard.linkHover, true, 'F7 must apply :hover to the detail link');
+    assert.equal(touchCard.transform, 'none', 'F7 touch card must not lift on hover');
+    assert.equal(touchCard.border, 'rgb(226, 236, 231)',
+      'F7 touch card must retain its base border color');
+    assert.ok(touchCard.shadow.includes('5px 20px'),
+      'F7 touch card must retain its base shadow: ' + JSON.stringify(touchCard));
+    assert.equal(touchCard.imageTransform, 'none',
+      'F7 touch must not leave the image scaled');
+    assert.equal(touchCard.arrowTransform, 'none',
+      'F7 touch must not leave the detail CTA arrow displaced');
+    await command('CSS.forcePseudoState', {
+      nodeId: hoverLink.nodeId, forcedPseudoClasses: [],
+    });
+    await command('CSS.forcePseudoState', {
+      nodeId: hoverNode.nodeId, forcedPseudoClasses: [],
+    });
+    await journeyScreenshot('f7-catalog-mobile-' + width);
+  }
+  await command('Emulation.setTouchEmulationEnabled', { enabled: false });
   console.log('[FRONT-V2/F1] Chrome: true Catalog ≥7; six per page; page 2 distinct; DON filter; live search; mobile: PASS');
 }
 
