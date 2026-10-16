@@ -92,4 +92,4 @@ Risques résiduels documentés : absence de NetworkPolicy Kubernetes et de rate 
 
 Le POC n'est pas une plateforme haute disponibilité certifiée. La fiabilité des pulls ECR Public dans Actions reste suivie dans [#80](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/80).
 
-**Règle de travail :** issue → branche → CI → revue Codex → approbation → fusion. Après lancement de CI, transmettre immédiatement les liens et laisser la conversation disponible ; reprendre le suivi à la demande. Ne jamais nettoyer les volumes Codespaces sans autorisation explicite.
+**Règle de travail :** issue → branche → CI → revue Codex → **accord explicite du propriétaire** → fusion manuelle. Ne jamais activer l'auto-merge. Après lancement de CI, transmettre immédiatement les liens et laisser la conversation disponible ; reprendre le suivi à la demande. Ne jamais nettoyer les volumes Codespaces sans autorisation explicite.

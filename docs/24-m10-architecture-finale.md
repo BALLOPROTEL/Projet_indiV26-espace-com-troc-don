@@ -361,7 +361,7 @@ flowchart TB
 | Stockage / identité | PostgreSQL/MinIO/RabbitMQ PVC de labo ; Keycloak en `start-dev` (Compose et manifest Minikube) | Pas de HA multi-zone, sauvegarde automatique ni Keycloak prod durci |
 | Accès et secrets | Secrets hors versionnage pour K8s ; Compose contient des identifiants explicitement **locaux** | Ne jamais réutiliser ces secrets en production |
 | Observabilité | Prometheus scrute **Gateway seulement** ; probes des autres services et expérimentations JMeter | Ni couverture métriques de tous les services ni SLO de production |
-| Frontend | Fonctionnel avec couverture Chrome ; refonte UX à venir **uniquement après GO** | M10 ne lance aucune amélioration frontend |
+| Frontend | Refonte V2 F0–F5/F7 désormais fusionnée sur `main` après GO du propriétaire ; couverture Chrome automatisée et rôles testés ; recette physique iOS/Android #71 à finaliser | Ni validation sur appareils physiques ni certification RGAA complète |
 
 ## 9. Vérification, preuves et séquence des prochains chantiers
 
@@ -371,6 +371,6 @@ flowchart TB
 - [PR #61 — LOT 9B-F](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/61) (merge `53fb2df`) : [Bootstrap #38313602241](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38313602241) et [E2E Chrome #38313602213](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38313602213), revus sur HEAD `7e346cd`.
 - [Guide M7 Kubernetes](20-m7-kubernetes-microservices.md), [M8 intégration](21-m8-microservices-contracts-e2e.md), [M9 DON/TROC](22-m9-donation-trade-workflows.md), [LOT 9B-F navigateur](23-lot9bf-certification.md).
 
-**Ordre acté par le propriétaire :** ① terminer/revoir M10 ; ② **développement frontend après GO explicite** ; ③ seulement ensuite consolider les preuves LOT 10-A (#58) ; ④ préparer présentation/répétition/vidéo LOT 10-B (#59). **Aucune action M10 n'autorise le début du chantier frontend.**
+**État actualisé au 16 octobre 2026 :** ① M10 fusionné et clôturé (#57) ; ② frontend V2 F0–F5/F7 développé **après accord explicite du propriétaire**, fusionné sur `main` ; ③ recette finale sur vrais appareils (#71) et kit de démonstration jury reproductible (#56) encore à valider ; ④ seulement ensuite dossier de preuves LOT 10-A (#58), puis présentation/répétition/vidéo LOT 10-B (#59). Cette mise à jour du statut n'altère pas les diagrammes techniques décrivant le POC.
 
 Le guide opérationnel associé est [`25-m10-operations-limits.md`](25-m10-operations-limits.md). Les schémas précédents sont des fichiers Markdown avec blocs `mermaid` : ils sont affichés par GitHub et éditables dans la PR.
