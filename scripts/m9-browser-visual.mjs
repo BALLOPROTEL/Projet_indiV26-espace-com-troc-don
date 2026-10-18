@@ -667,6 +667,18 @@ async function enrichedCreateListing(username, type, label) {
       true, 'Keyboard focus must follow the wizard into ' + label);
   }
   await advancePublicationStep(2, 'Description');
+  // Keyboard regression: returning from Description must leave focus within
+  // the first step, not stranded on document.body when its button disappears.
+  const back = await evaluate('(() => {' +
+    'const b=[...document.querySelectorAll(".form-panel form.listing-form button")].find(x=>x.textContent.trim()==="Retour");' +
+    'if(!b)return false;b.click();return true;})()');
+  assert.equal(back, true, 'Wizard must offer the previous-step action');
+  await waitUntil('wizard return to first step',
+    'document.querySelector(".publication-progress [aria-current=step]")?.textContent.includes("1") && ' +
+    'document.querySelector(".publication-step-heading")?.textContent.trim()==="Choix"', 80);
+  assert.equal(await evaluate('document.activeElement?.classList.contains("publication-step-heading")'),
+    true, 'Returning to step 1 must restore keyboard focus inside the form');
+  await advancePublicationStep(2, 'Description');
 
   // React controlled inputs are updated one at a time, allowing each onChange
   // commit before the next field. A batch of synthetic input events in a
