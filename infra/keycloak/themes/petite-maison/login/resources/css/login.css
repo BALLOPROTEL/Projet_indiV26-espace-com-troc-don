@@ -3,7 +3,7 @@
   --pm-paper-light: #ffffff;
   --pm-ink: #172b2b;
   --pm-ink-soft: #516b61;
-  --pm-wine: #16875c;
+  --pm-wine: #0c6647;
   --pm-wine-deep: #0b4933;
   --pm-moss: #476d57;
   --pm-line: #cadfd3;
@@ -257,7 +257,7 @@ input[type="text"],
 input[type="email"],
 input[type="password"] {
   min-height: 48px !important;
-  border-color: #b4cfc0 !important;
+  border-color: #778f82 !important;
   border-radius: 10px !important;
   background: #fff !important;
   color: var(--pm-ink) !important;
@@ -304,8 +304,7 @@ button:focus-visible {
 }
 @media (max-width: 640px) {
   .login-pf-page, .pf-v5-c-login {
-    padding: calc(20px + env(safe-area-inset-top, 0px)) 14px
-      calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 24px 14px 28px !important;
   }
   #kc-header-wrapper { font-size: 1.32rem !important; }
   #kc-header-wrapper::before { width: 36px; height: 36px; }
@@ -314,3 +313,21 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .pf-v5-c-button.pf-m-primary, #kc-login { transition: none !important; }
 }
+
+/* Override PatternFly's xl two-column login grid at its actual wrapper.
+   Keep the native Keycloak form, reset and MFA flows unchanged. */
+.pf-v5-c-login__container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  width: min(100%, 465px) !important;
+  max-width: 465px !important;
+  margin-inline: auto !important;
+}
+.pf-v5-c-login__container > * {
+  min-width: 0;
+  width: 100%;
+}
+/* Parent keycloak.v2 does not advertise viewport-fit=cover; keep safe
+   non-edge-to-edge mobile gutters rather than relying on zeroed env() insets. */
