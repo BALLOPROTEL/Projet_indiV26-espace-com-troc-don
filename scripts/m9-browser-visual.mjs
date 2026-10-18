@@ -1159,6 +1159,10 @@ async function runAdminDashboardBrowser() {
     true, 'ADMIN navigation must exist for authorized sessions');
   assert.equal(await evaluate('document.body.innerText.includes("Suspendre un utilisateur")'),
     false, 'Do not expose fake account suspension UI');
+  assert.equal(await evaluate('document.querySelectorAll(".admin-v2__sidebar").length'), 0,
+    'UX V3: admin uses the shared header navigation without duplicate sidebar');
+  assert.equal(await evaluate('document.querySelectorAll(".primary-nav a[aria-current=page]").length'), 1,
+    'UX V3: primary header has one active link on admin');
   await journeyScreenshot('f5-admin-summary-catalog-desktop');
 
   // Tablet and zoom-sensitive viewports: ADMIN adds a fourth header link.

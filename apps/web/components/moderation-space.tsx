@@ -2,7 +2,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { listingsApi } from '../lib/api';
 import type { Listing } from '../lib/types';
 import { filterPendingListings, moderationMetrics, type ModerationFilter } from '../lib/moderation-dashboard';
@@ -173,17 +172,6 @@ export function ModerationSpace() {
   return (
     <section className="moderation-page management-v2" aria-labelledby="moderation-title">
       <div className="management-v2__layout">
-        <aside className="management-v2__sidebar" aria-label="Navigation de gestion">
-          <div className="management-v2__brand"><strong>Petite Maison</strong><small>Espace de gestion</small></div>
-          <nav aria-label="Menu de modération">
-            <Link href="/moderation" aria-current="page">File de modération</Link>
-            <Link href="/espace">Mes articles et échanges</Link>
-            <Link href="/">Voir les annonces</Link>
-          </nav>
-          <p className="management-v2__sidebar-help">
-            Les droits sont vérifiés par Keycloak et Catalog pour chaque opération.
-          </p>
-        </aside>
         <div className="management-v2__content">
           <div className="moderation-hero management-v2__hero">
             <div>

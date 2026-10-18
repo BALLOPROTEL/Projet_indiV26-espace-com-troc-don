@@ -1,35 +1,18 @@
 /* FRONT-V2 / F5 — administration matches the F3 management design.
    UI routes reveal no sensitive data; Catalog enforces JWT+ADMIN on the API. */
 .admin-v2 { max-width: 1320px; padding: 24px 0 72px; }
-.admin-v2__layout { display: grid; grid-template-columns: 215px minmax(0, 1fr); gap: 26px; align-items: start; }
-.admin-v2__sidebar {
-  border: 1px solid #e0ece5; background: #fff; border-radius: 20px;
-  padding: 23px 15px; position: sticky; top: 90px;
-  box-shadow: 0 7px 22px rgba(30,74,44,.06);
-}
-.admin-v2__brand { display: flex; gap: 10px; align-items: center; padding: 6px 5px 24px; }
-.admin-v2__monogram { display: grid; place-items: center; flex-shrink: 0; width: 41px; height: 41px; border-radius: 12px; background: #107a4f; color: #fff; font-weight: 850; font-size: .83rem; }
-.admin-v2__brand > span:last-child { display: grid; gap: 3px; }
-.admin-v2__brand strong { font-size: .86rem; font-weight: 850; color: #18583b; }
-.admin-v2__brand small { font-size: .71rem; color: #405e4b; }
-.admin-v2__nav-label { font-size: .67rem; color: #52705b; letter-spacing: .1em; text-transform: uppercase; font-weight: 850; padding-left: 10px; margin: 4px 0 12px; }
-.admin-v2__sidebar nav { display: grid; gap: 5px; }
-.admin-v2__sidebar nav a { display: block; border-radius: 11px; padding: 12px 10px; color: #2c553c; font-size: .8rem; font-weight: 800; text-decoration: none; }
-.admin-v2__sidebar nav a[aria-current=page] { background: #e4f5eb; color: #075c38; }
-.admin-v2__sidebar-note { margin-top: 26px; border-radius: 12px; background: #edf7f1; padding: 15px 12px; }
-.admin-v2__sidebar-note strong { color: #1b6844; font-size: .77rem; }
-.admin-v2__sidebar-note p { margin: 7px 0 0; color: #47614f; font-size: .71rem; line-height: 1.55; }
+.admin-v2__layout { display: block; max-width: 1320px; margin-inline: auto; }
 .admin-v2__body { min-width: 0; }
 .admin-v2__hero {
   display: flex; justify-content: space-between; align-items: center; gap: 18px;
   padding: clamp(26px, 4vw, 38px); border-radius: 19px; margin: 0 0 31px;
-  color: #fff; background: linear-gradient(120deg,#06472f,#0d6342);
-  box-shadow: 0 12px 30px rgba(9,87,49,.12);
+  color: #142d24; background: #e8f2eb; border: 1px solid #d2e5d9;
+  box-shadow: none;
 }
-.admin-v2__hero h1 { margin: 7px 0; color: #fff; font-family: inherit; font-weight: 850; font-size: clamp(1.8rem, 3vw, 2.55rem); letter-spacing: -.035em; line-height: 1.2; }
-.admin-v2__hero p { color: #fff; margin: 0; font-size: .82rem; line-height: 1.6; }
-.admin-v2__overline { color: #fff; font-size: .69rem; font-weight: 850; text-transform: uppercase; letter-spacing: .12em; }
-.admin-v2__role { flex-shrink: 0; border: 1px solid #06412d; background: #043d2a; color: #fff; border-radius: 999px; font-size: .77rem; font-weight: 850; padding: 9px 14px; }
+.admin-v2__hero h1 { margin: 7px 0; color: #173a2b; font-family: inherit; font-weight: 850; font-size: clamp(1.8rem, 3vw, 2.55rem); letter-spacing: -.035em; line-height: 1.2; }
+.admin-v2__hero p { color: #41624e; margin: 0; font-size: .82rem; line-height: 1.6; }
+.admin-v2__overline { color: #176a47; font-size: .69rem; font-weight: 850; text-transform: uppercase; letter-spacing: .12em; }
+.admin-v2__role { flex-shrink: 0; border: 1px solid #c0dfcc; background: #f8fcf9; color: #196743; border-radius: 999px; font-size: .77rem; font-weight: 850; padding: 9px 14px; }
 .admin-v2__section-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 15px; margin-bottom: 21px; }
 .admin-v2__caption { color: #126845; font-weight: 850; font-size: .7rem; text-transform: uppercase; letter-spacing: .09em; }
 .admin-v2__section-title h2 { margin: 5px 0; font-size: 1.5rem; font-family: inherit; font-weight: 850; letter-spacing: -.025em; }
@@ -66,14 +49,9 @@
 .admin-v2__action-link { border-radius: 10px; white-space: nowrap; padding: 11px 15px; background: #14794f; color: white; text-decoration: none; font-size: .78rem; font-weight: 850; }
 .admin-v2__footnote { color: #506c5a; font-size: .74rem; line-height: 1.65; max-width: 680px; }
 @media (max-width: 1050px) {
-  .admin-v2__layout { grid-template-columns: 180px minmax(0,1fr); gap: 15px; }
   .admin-v2__stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 @media (max-width: 810px) {
-  .admin-v2__layout { grid-template-columns: 1fr; }
-  .admin-v2__sidebar { position: static; }
-  .admin-v2__sidebar-note { display: none; }
-  .admin-v2__sidebar nav { display: flex; flex-wrap: wrap; }
 }
 @media (max-width: 560px) {
   .admin-v2 { padding-top: 16px; }
@@ -94,8 +72,7 @@
 .admin-v2__availability dd { font-variant-numeric: tabular-nums; }
 .admin-v2__refresh,
 .admin-v2__error button,
-.admin-v2__action-link,
-.admin-v2__sidebar nav a {
+.admin-v2__action-link {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
@@ -111,12 +88,8 @@
   transition: transform 120ms cubic-bezier(.23, 1, .32, 1);
 }
 @media (hover: hover) and (pointer: fine) {
-  .admin-v2__sidebar nav a:hover { background: #e4f5eb; color: #075c38; }
   .admin-v2__refresh:hover:not(:disabled) { background: #e7f6ed; }
   .admin-v2__action-link:hover { background: #0b5d3b; }
-}
-@media (pointer: coarse) {
-  .admin-v2__sidebar nav a { min-height: 44px; }
 }
 .admin-v2__refresh:active:not(:disabled),
 .admin-v2__error button:active,
