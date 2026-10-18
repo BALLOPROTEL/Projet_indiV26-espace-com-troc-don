@@ -9,7 +9,7 @@ import {
   type FormEvent,
 } from 'react';
 import Link from 'next/link';
-import { listingsApi } from '../lib/api';
+import { listingsApi, listingAssetUrl } from '../lib/api';
 import { PUBLICATION_STEPS, validateWizardStep } from '../lib/publication-wizard';
 import { canEditListing } from '../lib/presentation';
 import {
@@ -373,7 +373,7 @@ export function PersonalSpace() {
           <div className="personal-list" aria-label="Mes annonces">
             {listings.map((listing) => {
               const published = listing.status === 'APPROVED';
-              const cover = published ? listing.images[0]?.contentUrl : null;
+              const cover = published && listing.images[0] ? listingAssetUrl(listing.images[0].contentUrl) : null;
               const statusText = {
                 PENDING: 'En relecture',
                 APPROVED: 'Publiée',
@@ -391,6 +391,9 @@ export function PersonalSpace() {
                     </div>
                     <h3>{published ? <Link href={'/annonces/' + listing.id}>{listing.title}</Link> : listing.title}</h3>
                     <small>Déposée le {new Date(listing.createdAt).toLocaleDateString('fr-FR')}</small>
+                    {listing.status === 'REJECTED' && listing.moderationReason ? (
+                      <p className="personal-row__reason"><strong>Motif du refus :</strong> {listing.moderationReason}</p>
+                    ) : null}
                   </div>
                   <div className="personal-row__action">
                     {canEditListing(listing.status) ? (
@@ -431,6 +434,11 @@ export function PersonalSpace() {
               relecture. Si vous choisissez de nouvelles photos, le
               lot complet précédent sera remplacé.
             </p>
+            {editing.status === 'REJECTED' && editing.moderationReason ? (
+              <p className="notice notice--error" role="note">
+                <strong>Motif du refus :</strong> {editing.moderationReason}
+              </p>
+            ) : null}
 
             <ListingForm
               value={editForm}
@@ -478,6 +486,10 @@ function ListingForm({
 }) {
   const [step, setStep] = useState(0);
   const [stepError, setStepError] = useState<string | null>(null);
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (wizard && step > 0) stepHeadingRef.current?.focus();
+  }, [step, wizard]);
   function advance() {
     const problem = validateWizardStep(step, value, images);
     setStepError(problem);
@@ -545,6 +557,11 @@ function ListingForm({
             ))}
           </ol>
         </div>
+      ) : null}
+      {wizard && step > 0 ? (
+        <h3 ref={stepHeadingRef} tabIndex={-1} className="publication-step-heading">
+          {PUBLICATION_STEPS[step]}
+        </h3>
       ) : null}
       {(!wizard || step === 0) ? (
       <fieldset className="choice-group">
