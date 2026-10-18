@@ -2,7 +2,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { listingsApi } from '../lib/api';
 import type { Listing } from '../lib/types';
 import { filterPendingListings, moderationMetrics, type ModerationFilter } from '../lib/moderation-dashboard';
