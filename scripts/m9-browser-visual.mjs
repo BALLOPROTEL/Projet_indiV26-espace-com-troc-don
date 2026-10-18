@@ -652,6 +652,22 @@ async function enrichedCreateListing(username, type, label) {
   await waitUntil('Selected ' + type + ' in publication editor',
     '!!document.querySelector(' + JSON.stringify(radioSelector + ':checked') + ')', 60);
 
+  async function advancePublicationStep(next, label) {
+    const clicked = await evaluate('(() => {' +
+      'const button=document.querySelector(".form-panel form.listing-form button[type=submit]");' +
+      'if(!button || button.disabled || button.textContent.trim()!=="Continuer")return false;' +
+      'button.click();return true;})()');
+    assert.equal(clicked, true, 'Cannot proceed to ' + label + ' from the wizard');
+    await waitUntil('publication step ' + next + ': ' + label,
+      'document.querySelector(".publication-progress [aria-current=step]")?.textContent.includes(' +
+      JSON.stringify(String(next)) + ')', 80);
+    assert.equal(await evaluate('document.querySelector(".publication-step-heading")?.textContent.trim()'),
+      label, 'Step heading and keyboard destination must match ' + label);
+    assert.equal(await evaluate('document.activeElement?.classList.contains("publication-step-heading")'),
+      true, 'Keyboard focus must follow the wizard into ' + label);
+  }
+  await advancePublicationStep(2, 'Description');
+
   // React controlled inputs are updated one at a time, allowing each onChange
   // commit before the next field. A batch of synthetic input events in a
   // single CDP evaluation may reuse stale React state between event handlers.
@@ -684,6 +700,7 @@ async function enrichedCreateListing(username, type, label) {
     'return !!f&&f.querySelector("label.field input")?.value===' + JSON.stringify(title) +
     '&&(!f.querySelector(".wish-editor")||[...f.querySelectorAll(".wish-editor input")].every(x=>x.value.trim()));})()', 60);
 
+  await advancePublicationStep(3, 'Photos');
   // Unlike API-level fixture creation, this genuinely selects five files on
   // the browser's file input, firing the React change handler via Chrome CDP.
   const root = await command('DOM.getDocument', { depth: -1, pierce: true });
@@ -698,6 +715,9 @@ async function enrichedCreateListing(username, type, label) {
     '(() => {const f=document.querySelector(".form-panel form.listing-form");' +
     'return !!f&&f.querySelector("input[type=file]")?.files.length===5' +
     '&&f.querySelectorAll(".upload-gallery img").length===5;})()', 120);
+  await advancePublicationStep(4, 'Vérification');
+  assert.equal(await evaluate('document.querySelector(".publication-review")?.textContent.includes(' +
+    JSON.stringify(title) + ')'), true, 'Wizard review must preserve the real title');
   await journeyScreenshot('9bf-form-' + label + '-5-photos');
 
   const submit = await evaluate('(() => {const button=document.querySelector(".form-panel form.listing-form button[type=submit]");' +
