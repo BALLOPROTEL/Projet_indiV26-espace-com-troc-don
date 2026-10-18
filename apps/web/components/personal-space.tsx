@@ -462,6 +462,7 @@ function ListingForm({
   onChange,
   onImagesChange,
   onSubmit,
+  wizard = false,
 }: {
   value: ListingInput;
   images: File[];
@@ -472,7 +473,19 @@ function ListingForm({
   onChange: (value: ListingInput) => void;
   onImagesChange: (images: File[]) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  wizard?: boolean;
 }) {
+  const [step, setStep] = useState(0);
+  const [stepError, setStepError] = useState<string | null>(null);
+  useEffect(() => {
+    setStep(0);
+    setStepError(null);
+  }, [imageInputKey]);
+  function advance() {
+    const problem = validateWizardStep(step, value, images);
+    setStepError(problem);
+    if (!problem) setStep((current) => Math.min(PUBLICATION_STEPS.length - 1, current + 1));
+  }
   function changeOperation(operationType: ListingOperationType) {
     onChange({
       ...value,
@@ -518,7 +531,25 @@ function ListingForm({
   }
 
   return (
-    <form className="listing-form" onSubmit={onSubmit}>
+    <form className="listing-form" onSubmit={(event) => {
+      if (wizard && step < PUBLICATION_STEPS.length - 1) {
+        event.preventDefault();
+        advance();
+      } else onSubmit(event);
+    }}>
+      {wizard ? (
+        <div className="publication-progress" aria-label="Étapes de publication">
+          <p>Étape {step + 1} sur {PUBLICATION_STEPS.length}</p>
+          <ol>
+            {PUBLICATION_STEPS.map((name, index) => (
+              <li key={name} className={index <= step ? 'is-current' : ''} aria-current={index === step ? 'step' : undefined}>
+                <span>{index + 1}</span>{name}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+      {(!wizard || step === 0) ? (
       <fieldset className="choice-group">
         <legend>Je souhaite</legend>
         <label
@@ -556,7 +587,10 @@ function ListingForm({
           <span>sans contrepartie</span>
         </label>
       </fieldset>
+      ) : null}
 
+      {(!wizard || step === 1) ? (
+      <>
       <label className="field">
         <span>Titre de la fiche</span>
         <input
@@ -640,7 +674,10 @@ function ListingForm({
           ) : null}
         </fieldset>
       ) : null}
+      </>
+      ) : null}
 
+      {(!wizard || step === 2) ? (
       <fieldset className="image-editor">
         <legend>Galerie de l’objet</legend>
         <p>
@@ -693,14 +730,35 @@ function ListingForm({
           </>
         ) : null}
       </fieldset>
+      ) : null}
 
-      <button
-        className="button button--full"
-        type="submit"
-        disabled={disabled}
-      >
-        {submitLabel}
-      </button>
+      {wizard && step === 3 ? (
+        <div className="publication-review">
+          <span className="eyebrow">Avant l'envoi</span>
+          <h3>{value.title.trim()}</h3>
+          <p>{value.operationType === 'TRADE' ? 'À troquer' : 'À donner'} · {images.length} photos</p>
+          <p>{value.description.trim()}</p>
+          {value.operationType === 'TRADE' ? (
+            <p>{value.tradeWishes.map(w => w.trim()).filter(Boolean).length} souhaits pour ce troc</p>
+          ) : null}
+          <small>Après l'envoi, l'annonce attendra la validation d'un modérateur.</small>
+        </div>
+      ) : null}
+      {wizard && stepError ? <p className="notice notice--error" role="alert">{stepError}</p> : null}
+      {wizard ? (
+        <div className="publication-actions">
+          {step > 0 ? (
+            <button type="button" className="button button--quiet" disabled={disabled} onClick={() => { setStepError(null); setStep(v => Math.max(0, v - 1)); }}>Retour</button>
+          ) : null}
+          {step < PUBLICATION_STEPS.length - 1 ? (
+            <button type="submit" className="button" disabled={disabled}>Continuer</button>
+          ) : (
+            <button type="submit" className="button" disabled={disabled}>{submitLabel}</button>
+          )}
+        </div>
+      ) : (
+        <button className="button button--full" type="submit" disabled={disabled}>{submitLabel}</button>
+      )}
     </form>
   );
 }
