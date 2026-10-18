@@ -119,7 +119,7 @@
 .workspace-v3 .personal-row__status--rejected { color: #853d30; background: #fff0e8; }
 .workspace-v3 .personal-row__locked { font-size: .72rem; color: #526d5e; }
 .workspace-v3 .personal-row__action .button {
-  min-height: 42px; white-space: nowrap; border-radius: 9px;
+  min-height: 46px; white-space: nowrap; border-radius: 9px;
 }
 @media(max-width: 1050px) {
   .workspace-v3 .workspace-grid { grid-template-columns: 1fr; }
