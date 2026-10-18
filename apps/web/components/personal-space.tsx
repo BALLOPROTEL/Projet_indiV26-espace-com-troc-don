@@ -318,6 +318,7 @@ export function PersonalSpace() {
           </div>
 
           <ListingForm
+            key={createImageInputKey}
             wizard
             value={form}
             images={createImages}
@@ -477,10 +478,6 @@ function ListingForm({
 }) {
   const [step, setStep] = useState(0);
   const [stepError, setStepError] = useState<string | null>(null);
-  useEffect(() => {
-    setStep(0);
-    setStepError(null);
-  }, [imageInputKey]);
   function advance() {
     const problem = validateWizardStep(step, value, images);
     setStepError(problem);
@@ -734,14 +731,14 @@ function ListingForm({
 
       {wizard && step === 3 ? (
         <div className="publication-review">
-          <span className="eyebrow">Avant l'envoi</span>
+          <span className="eyebrow">Avant l’envoi</span>
           <h3>{value.title.trim()}</h3>
           <p>{value.operationType === 'TRADE' ? 'À troquer' : 'À donner'} · {images.length} photos</p>
           <p>{value.description.trim()}</p>
           {value.operationType === 'TRADE' ? (
             <p>{value.tradeWishes.map(w => w.trim()).filter(Boolean).length} souhaits pour ce troc</p>
           ) : null}
-          <small>Après l'envoi, l'annonce attendra la validation d'un modérateur.</small>
+          <small>Après l’envoi, l’annonce attendra la validation d’un modérateur.</small>
         </div>
       ) : null}
       {wizard && stepError ? <p className="notice notice--error" role="alert">{stepError}</p> : null}
