@@ -139,3 +139,19 @@
 @media(prefers-reduced-motion: reduce) {
   .workspace-v3 * { scroll-behavior: auto !important; }
 }
+
+/* Readable moderator feedback before a member retries a rejected listing. */
+.workspace-v3 .personal-row__reason {
+  margin: 8px 0 0; padding: 9px 10px; border-left: 3px solid #a45c41;
+  background: #fff6f0; color: #703e2b; border-radius: 0 7px 7px 0;
+  font-size: .8rem; line-height: 1.5; overflow-wrap: anywhere;
+}
+/* Keyboard focus is deliberately moved to the newly displayed wizard heading. */
+.workspace-v3 .publication-step-heading {
+  margin: 3px 0; color: #194d36; font-size: 1.12rem;
+  line-height: 1.3; font-weight: 750; letter-spacing: -.02em;
+}
+.workspace-v3 .publication-step-heading:focus { outline: none; }
+.workspace-v3 .publication-step-heading:focus-visible {
+  outline: 3px solid #0b6842; outline-offset: 5px; border-radius: 3px;
+}
