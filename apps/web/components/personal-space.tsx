@@ -8,7 +8,9 @@ import {
   useState,
   type FormEvent,
 } from 'react';
+import Link from 'next/link';
 import { listingsApi } from '../lib/api';
+import { PUBLICATION_STEPS, validateWizardStep } from '../lib/publication-wizard';
 import { canEditListing } from '../lib/presentation';
 import {
   createBlankListingInput,
@@ -26,7 +28,6 @@ import type {
 } from '../lib/types';
 import { useAuth } from './auth-provider';
 import { EmptyState } from './empty-state';
-import { ListingCard } from './listing-card';
 import { MarketplaceDashboard } from './marketplace-dashboard';
 
 export function PersonalSpace() {
@@ -296,32 +297,28 @@ export function PersonalSpace() {
   }
 
   return (
-    <div className="workspace">
+    <div className="workspace workspace-v3">
       <section className="workspace-intro">
         <div>
           <span className="eyebrow">Mon étagère</span>
-          <h1>Bonjour {username ?? 'vous'}.</h1>
+          <h1>Votre étagère, {username ?? 'bienvenue'}.</h1>
         </div>
-        <p>
-          Chaque fiche complète comporte 5 à 8 photos. Pour un troc,
-          précisez aussi au moins 5 objets ou familles d’objets qui
-          pourraient vous intéresser.
-        </p>
+        <p>Déposez une annonce en quelques étapes et suivez vos objets et leur statut au même endroit.</p>
       </section>
 
       <div className="workspace-grid">
         <section className="form-panel">
-          <span className="form-panel__index">01</span>
+          <span className="form-panel__index">PUBLIER</span>
           <div className="form-panel__heading">
             <span className="eyebrow">Nouvelle fiche</span>
             <h2>Proposer un objet</h2>
             <p>
-              Décrivez l’objet, ajoutez sa galerie et précisez vos
-              souhaits si vous proposez un troc.
+              Un choix à la fois. Revenez en arrière sans perdre vos réponses.
             </p>
           </div>
 
           <ListingForm
+            wizard
             value={form}
             images={createImages}
             existingImageCount={0}
@@ -372,29 +369,38 @@ export function PersonalSpace() {
             />
           ) : null}
 
-          <div className="personal-list">
-            {listings.map((listing) => (
-              <ListingCard
-                key={listing.id}
-                listing={listing}
-                showStatus
-                footer={
-                  canEditListing(listing.status) ? (
-                    <button
-                      className="text-button text-button--strong"
-                      type="button"
-                      onClick={() => startEditing(listing)}
-                    >
-                      Corriger la fiche
-                    </button>
-                  ) : (
-                    <span className="quiet-note">
-                      Cette fiche publiée est verrouillée.
-                    </span>
-                  )
-                }
-              />
-            ))}
+          <div className="personal-list" aria-label="Mes annonces">
+            {listings.map((listing) => {
+              const published = listing.status === 'APPROVED';
+              const cover = published ? listing.images[0]?.contentUrl : null;
+              const statusText = {
+                PENDING: 'En relecture',
+                APPROVED: 'Publiée',
+                REJECTED: 'À corriger',
+              }[listing.status] ?? listing.status;
+              return (
+                <article className="personal-row" key={listing.id}>
+                  <div className="personal-row__thumb">
+                    {cover ? <img src={cover} alt="" loading="lazy" /> : <span aria-hidden="true">⌂</span>}
+                  </div>
+                  <div className="personal-row__main">
+                    <div className="personal-row__meta">
+                      <span>{listing.operationType === 'TRADE' ? 'Troc' : 'Don'}</span>
+                      <span className={'personal-row__status personal-row__status--' + listing.status.toLowerCase()}>{statusText}</span>
+                    </div>
+                    <h3>{published ? <Link href={'/annonces/' + listing.id}>{listing.title}</Link> : listing.title}</h3>
+                    <small>Déposée le {new Date(listing.createdAt).toLocaleDateString('fr-FR')}</small>
+                  </div>
+                  <div className="personal-row__action">
+                    {canEditListing(listing.status) ? (
+                      <button className="button button--quiet button--small" type="button" onClick={() => startEditing(listing)}>Corriger</button>
+                    ) : (
+                      <span className="personal-row__locked">Consultable</span>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
       </div>
