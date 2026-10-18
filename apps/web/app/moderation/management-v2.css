@@ -1,26 +1,15 @@
 /* FRONT-V2 / F3 — management layout, without fake admin controls. */
 .management-v2 { padding: 24px 0 70px; max-width: 1320px; }
-.management-v2__layout { display: grid; grid-template-columns: 215px minmax(0,1fr); gap: 26px; align-items: start; }
-.management-v2__sidebar {
-  border: 1px solid #e0ece5; background: #fff; border-radius: 20px; padding: 23px 15px;
-  position: sticky; top: 90px; box-shadow: 0 7px 22px rgba(30,74,44,.06);
-}
-.management-v2__brand { display: grid; gap: 3px; padding: 6px 10px 21px; }
-.management-v2__brand strong { font-weight: 850; color: #106740; }
-.management-v2__brand small { color: #425f4f; font-size: .75rem; }
-.management-v2__sidebar nav { display: grid; gap: 5px; }
-.management-v2__sidebar nav a { display: block; padding: 12px 10px; font-size: .8rem; font-weight: 800; border-radius: 11px; text-decoration: none; color: #3b6350; }
-.management-v2__sidebar nav a[aria-current=page], .management-v2__sidebar nav a:hover { background: #e4f5eb; color: #0b6e48; }
-.management-v2__sidebar-help { border-radius: 12px; padding: 15px 12px; background: #f0f8f4; color: #527261; font-size: .72rem; margin: 24px 0 0; }
+.management-v2__layout { display: block; max-width: 1320px; margin-inline: auto; }
 .management-v2__content { min-width: 0; }
 .management-v2__hero {
   margin: 0 0 19px; display: flex; justify-content: space-between; align-items: center; gap: 20px;
-  background: linear-gradient(120deg,#06472f,#0d6342); border-radius: 19px; color: white; padding: 30px 34px;
+  background: #e8f2eb; border: 1px solid #d2e5d9; border-radius: 19px; color: #173a2b; padding: 30px 34px;
 }
-.management-v2__hero h1 { color: white; font-family: inherit; font-size: clamp(1.75rem,3vw,2.55rem); margin: 7px 0; letter-spacing: -.035em; }
-.management-v2__hero p { margin: 0; color: #fff; font-size: .84rem; }
-.management-v2__eyebrow { color: #fff; text-transform: uppercase; font-size: .68rem; font-weight: 850; letter-spacing: .1em; }
-.management-v2__role { padding: 8px 14px; border: 1px solid #075132; background: #074c33; color: #fff; border-radius: 999px; font-size: .75rem; white-space: nowrap; }
+.management-v2__hero h1 { color: #173a2b; font-family: inherit; font-size: clamp(1.75rem,3vw,2.55rem); margin: 7px 0; letter-spacing: -.035em; }
+.management-v2__hero p { margin: 0; color: #41624e; font-size: .84rem; }
+.management-v2__eyebrow { color: #176a47; text-transform: uppercase; font-size: .68rem; font-weight: 850; letter-spacing: .1em; }
+.management-v2__role { padding: 8px 14px; border: 1px solid #c0dfcc; background: #f8fcf9; color: #196743; border-radius: 999px; font-size: .75rem; white-space: nowrap; }
 .management-v2__stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 13px; margin-bottom: 31px; }
 .management-v2__stats > div { display: grid; gap: 8px; background: white; border: 1px solid #deebe2; border-radius: 16px; padding: 22px; }
 .management-v2__stats span { font-size: .79rem; font-weight: 800; color: #4c6d58; }
@@ -49,12 +38,6 @@
 
 .management-v2__item .listing-card { border-radius: 12px; }
 .management-v2__item .moderation-actions { border-top: 1px solid #e6ece7; margin-top: 18px; padding-top: 18px; }
-@media(max-width: 960px) {
-  .management-v2__layout { grid-template-columns: 1fr; }
-  .management-v2__sidebar { position: static; }
-  .management-v2__sidebar nav { display: flex; flex-wrap: wrap; }
-  .management-v2__sidebar-help { display: none; }
-}
 @media(max-width: 560px) {
   .management-v2__hero { flex-direction: column; align-items: flex-start; padding: 25px 20px; }
   .management-v2__stats { gap: 7px; }
