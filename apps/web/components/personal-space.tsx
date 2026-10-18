@@ -487,8 +487,13 @@ function ListingForm({
   const [step, setStep] = useState(0);
   const [stepError, setStepError] = useState<string | null>(null);
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  const previousStepRef = useRef(step);
   useEffect(() => {
-    if (wizard && step > 0) stepHeadingRef.current?.focus();
+    // Do not steal focus on the initial page render. Focus the new heading
+    // after every actual step transition, including a return to "Choix".
+    if (!wizard || previousStepRef.current === step) return;
+    previousStepRef.current = step;
+    stepHeadingRef.current?.focus();
   }, [step, wizard]);
   function advance() {
     const problem = validateWizardStep(step, value, images);
@@ -558,7 +563,7 @@ function ListingForm({
           </ol>
         </div>
       ) : null}
-      {wizard && step > 0 ? (
+      {wizard ? (
         <h3 ref={stepHeadingRef} tabIndex={-1} className="publication-step-heading">
           {PUBLICATION_STEPS[step]}
         </h3>
