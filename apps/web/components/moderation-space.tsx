@@ -7,7 +7,7 @@ import type { Listing } from '../lib/types';
 import { filterPendingListings, moderationMetrics, type ModerationFilter } from '../lib/moderation-dashboard';
 import { useAuth } from './auth-provider';
 import { EmptyState } from './empty-state';
-import { ListingCard } from './listing-card';
+import { ModerationQueueRow } from './moderation-queue-row';
 
 export function ModerationSpace() {
   const {
@@ -239,15 +239,8 @@ export function ModerationSpace() {
       ) : null}
       <div className="moderation-list management-v2__queue">
         {!loading && !loadError && visibleQueue.map((listing, index) => (
-          <div className="moderation-item management-v2__item" key={listing.id}>
-            <span className="moderation-item__number">
-              {(index + 1).toString().padStart(2, '0')}
-            </span>
-            <ListingCard listing={listing} />
-            <ModerationGallery
-              listing={listing}
-              getToken={getToken}
-            />
+          <ModerationQueueRow key={listing.id} listing={listing} index={index}>
+            <ModerationGallery listing={listing} getToken={getToken} />
             <div className="moderation-actions">
               <label className="field field--compact">
                 <span>Motif si refus</span>
@@ -283,7 +276,7 @@ export function ModerationSpace() {
                 </button>
               </div>
             </div>
-          </div>
+          </ModerationQueueRow>
         ))}
       </div>
         </div>
