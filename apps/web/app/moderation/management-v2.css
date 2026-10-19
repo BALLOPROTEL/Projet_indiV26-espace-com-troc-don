@@ -201,3 +201,6 @@
 @media(prefers-reduced-motion: reduce) {
   .moderation-review__chevron, .moderation-review__summary { transition: none; }
 }
+
+/* Author rules must not override the browser's closed details hiding. */
+.moderation-review:not([open]) > .moderation-review__details { display: none; }
