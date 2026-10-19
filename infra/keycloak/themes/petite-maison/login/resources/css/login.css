@@ -135,23 +135,96 @@ input[type="password"] {
   font-size: 16px !important;
   font-family: inherit !important;
 }
-.pf-v5-c-input-group, .pf-v5-c-input-group__item,
-#kc-form .pf-v5-c-input-group {
-  min-width: 0 !important;
-}
-.pf-v5-c-input-group, #kc-form .pf-v5-c-input-group {
+/* Keycloak owns the native password input and visibility toggle. Style the
+   containing PatternFly input group as ONE field, not its nested input as 1%
+   wide: that earlier rule produced the thin cursor box seen in Codespaces. */
+#kc-form-login .pf-v5-c-input-group {
   display: flex !important;
-  width: 100% !important;
   align-items: stretch;
-}
-.pf-v5-c-input-group .pf-v5-c-form-control,
-.pf-v5-c-input-group input {
+  width: 100% !important;
   min-width: 0 !important;
-  flex: 1 1 auto !important;
-  width: 1% !important;
+  min-height: 49px;
+  padding: 0;
+  border: 1px solid #718e7f !important;
+  border-radius: 10px;
+  background: #fff !important;
+  box-sizing: border-box;
 }
-/* Password visibility is still Keycloak's native button. */
-.pf-v5-c-input-group button { flex: 0 0 auto; min-height: 49px; min-width: 48px; }
+#kc-form-login .pf-v5-c-input-group > .pf-v5-c-input-group__item:first-child {
+  display: flex;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+}
+#kc-form-login .pf-v5-c-input-group > .pf-v5-c-input-group__item:last-child {
+  display: flex;
+  flex: 0 0 48px !important;
+  min-width: 48px !important;
+}
+#kc-form-login .pf-v5-c-input-group .pf-v5-c-form-control {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 47px !important;
+  border: 0 !important;
+  border-radius: 9px 0 0 9px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+/* PatternFly paints pseudo borders on the control as well. The group now
+   provides the single shared outline, so suppress these nested borders. */
+#kc-form-login .pf-v5-c-input-group .pf-v5-c-form-control::before,
+#kc-form-login .pf-v5-c-input-group .pf-v5-c-form-control::after {
+  display: none !important;
+}
+#kc-form-login .pf-v5-c-input-group #password {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 47px !important;
+  height: 47px !important;
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-radius: 9px 0 0 9px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  font-size: 16px !important;
+}
+#kc-form-login .pf-v5-c-input-group:focus-within {
+  border-color: var(--pm-forest) !important;
+  outline: 2px solid var(--pm-forest) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(11, 85, 58, .12) !important;
+}
+#kc-form-login .pf-v5-c-input-group #password:focus {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+/* Keep Keycloak's real show/hide button, visually attached to the field. */
+#kc-form-login .pf-v5-c-input-group button {
+  flex: 0 0 48px !important;
+  width: 48px;
+  min-width: 48px;
+  min-height: 47px;
+  height: 47px;
+  margin: 0;
+  border: 0;
+  border-left: 1px solid #c6dacf;
+  border-radius: 0 9px 9px 0;
+  color: var(--pm-forest) !important;
+  background: #f0f7f2 !important;
+  box-shadow: none !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  #kc-form-login .pf-v5-c-input-group button:hover {
+    background: #e2f0e7 !important;
+  }
+}
 .pf-v5-c-form-control:focus-within,
 input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
   border-color: var(--pm-forest) !important;
