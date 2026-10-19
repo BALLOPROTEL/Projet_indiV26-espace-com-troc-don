@@ -83,7 +83,9 @@
     "m8:integration:unit": "pnpm --filter marketplace-service exec jest --runInBand src/catalog/catalog-client.service.spec.ts",
     "jury:plan:check": "node scripts/jury-demo-validate.mjs --metadata",
     "jury:assets:check": "node scripts/jury-demo-validate.mjs --assets",
-    "jury:plan:test": "node --test scripts/jury-demo-validate.test.mjs"
+    "jury:plan:test": "node --test scripts/jury-demo-validate.test.mjs",
+    "jury:keycloak:check": "node scripts/jury-keycloak-preflight.mjs",
+    "jury:keycloak:test": "node --test scripts/jury-keycloak-preflight.test.mjs"
   },
   "pnpm": {
     "overrides": {
