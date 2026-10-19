@@ -459,8 +459,9 @@ async function assertKeycloakPasswordLayout(viewport) {
     'Password field must align with username at ' + viewport + ': ' +
     JSON.stringify(geometry));
   assert.ok(geometry.toggle.width >= 44 && geometry.toggle.width <= 64 &&
-    geometry.password.right <= geometry.toggle.left + 5,
-    'Native show-password button must adjoin a full-width input: ' +
+    geometry.toggle.height >= 44 &&
+    Math.abs(geometry.password.right - geometry.toggle.left) <= 5,
+    'Native show-password button must adjoin the input on both axes, with a 44px target: ' +
     JSON.stringify(geometry));
   assert.ok(geometry.password.height >= 44 && geometry.overflow <= 2,
     'Password control must remain touchable without horizontal scroll: ' +
