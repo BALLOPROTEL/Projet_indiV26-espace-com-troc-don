@@ -33,6 +33,9 @@ let socket;
 const pending = new Map();
 let sequence = 0;
 const apiResponses = [];
+// Preserve each caller's viewport during temporary login geometry checks.
+// All viewport changes flow through command(), including prior Chrome journeys.
+let currentDeviceMetrics = null;
 
 async function waitForPort() {
   const file = join(profileDir, 'DevToolsActivePort');
@@ -45,6 +48,8 @@ async function waitForPort() {
 }
 
 function command(method, params = {}) {
+  if (method === 'Emulation.setDeviceMetricsOverride') currentDeviceMetrics = { ...params };
+  if (method === 'Emulation.clearDeviceMetricsOverride') currentDeviceMetrics = null;
   const id = ++sequence;
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -443,6 +448,46 @@ async function journeySwitchUser(username) {
     true, 'Missing sign-in button');
   await waitUntil('Keycloak sign-in form for ' + username,
     '!!document.querySelector("#username") && !!document.querySelector("#password")', 120);
+  // #93: measure the real Keycloak page in Chrome before entering credentials.
+  // A CSS build alone cannot detect PatternFly compressing the login to 290px.
+  if (username === 'demo-user') {
+    const restoreMetrics = currentDeviceMetrics ? { ...currentDeviceMetrics } : null;
+    await command('Emulation.setDeviceMetricsOverride', {
+      width: 1280, height: 860, deviceScaleFactor: 1, mobile: false,
+    });
+    await waitUntil('desktop Keycloak page laid out', '!!document.querySelector(".pf-v5-c-login__main")', 60);
+    const desktopLogin = await evaluate('(() => {' +
+      'const form=document.querySelector(".pf-v5-c-login__main"),' +
+      'brand=document.querySelector("#kc-header")||document.querySelector(".pf-v5-c-login__header"),' +
+      'container=document.querySelector(".pf-v5-c-login__container");' +
+      'if(!form||!brand||!container)return null;' +
+      'return {form:form.getBoundingClientRect().width,' +
+      'left:form.getBoundingClientRect().left,' +
+      'brandRight:brand.getBoundingClientRect().right,' +
+      'container:container.getBoundingClientRect().width};})()');
+    assert.ok(desktopLogin && desktopLogin.form >= 380 &&
+      desktopLogin.container >= 850 && desktopLogin.left >= desktopLogin.brandRight - 14,
+      'Keycloak desktop must show a generous two-column login: ' + JSON.stringify(desktopLogin));
+    await journeyScreenshot('uxv3-keycloak-desktop-1280');
+    await command('Emulation.setDeviceMetricsOverride', {
+      width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
+    });
+    await waitUntil('Keycloak reflows into a mobile column',
+      'document.querySelector(".pf-v5-c-login__main")?.getBoundingClientRect().width < 390', 80);
+    const mobileLogin = await evaluate('(() => {' +
+      'const form=document.querySelector(".pf-v5-c-login__main");' +
+      'const user=document.querySelector("#username");' +
+      'return {width:form?.getBoundingClientRect().width,' +
+      'user:user?.getBoundingClientRect().width,' +
+      'overflow:document.documentElement.scrollWidth-innerWidth};})()');
+    assert.ok(mobileLogin && mobileLogin.width >= 305 &&
+      mobileLogin.user >= 250 && mobileLogin.overflow <= 1,
+      'Keycloak 390px mobile form must remain spacious without horizontal overflow: ' +
+      JSON.stringify(mobileLogin));
+    await journeyScreenshot('uxv3-keycloak-mobile-390');
+    if (restoreMetrics) await command('Emulation.setDeviceMetricsOverride', restoreMetrics);
+    else await command('Emulation.clearDeviceMetricsOverride');
+  }
   const signIn = '(() => {' +
     'const user=document.querySelector("#username"),pass=document.querySelector("#password");' +
     'const form=user?.closest("form")??document.querySelector("#kc-form-login");' +
@@ -652,6 +697,34 @@ async function enrichedCreateListing(username, type, label) {
   await waitUntil('Selected ' + type + ' in publication editor',
     '!!document.querySelector(' + JSON.stringify(radioSelector + ':checked') + ')', 60);
 
+  async function advancePublicationStep(next, label) {
+    const clicked = await evaluate('(() => {' +
+      'const button=document.querySelector(".form-panel form.listing-form button[type=submit]");' +
+      'if(!button || button.disabled || button.textContent.trim()!=="Continuer")return false;' +
+      'button.click();return true;})()');
+    assert.equal(clicked, true, 'Cannot proceed to ' + label + ' from the wizard');
+    await waitUntil('publication step ' + next + ': ' + label,
+      'document.querySelector(".publication-progress [aria-current=step]")?.textContent.includes(' +
+      JSON.stringify(String(next)) + ')', 80);
+    assert.equal(await evaluate('document.querySelector(".publication-step-heading")?.textContent.trim()'),
+      label, 'Step heading and keyboard destination must match ' + label);
+    assert.equal(await evaluate('document.activeElement?.classList.contains("publication-step-heading")'),
+      true, 'Keyboard focus must follow the wizard into ' + label);
+  }
+  await advancePublicationStep(2, 'Description');
+  // Keyboard regression: returning from Description must leave focus within
+  // the first step, not stranded on document.body when its button disappears.
+  const back = await evaluate('(() => {' +
+    'const b=[...document.querySelectorAll(".form-panel form.listing-form button")].find(x=>x.textContent.trim()==="Retour");' +
+    'if(!b)return false;b.click();return true;})()');
+  assert.equal(back, true, 'Wizard must offer the previous-step action');
+  await waitUntil('wizard return to first step',
+    'document.querySelector(".publication-progress [aria-current=step]")?.textContent.includes("1") && ' +
+    'document.querySelector(".publication-step-heading")?.textContent.trim()==="Choix"', 80);
+  assert.equal(await evaluate('document.activeElement?.classList.contains("publication-step-heading")'),
+    true, 'Returning to step 1 must restore keyboard focus inside the form');
+  await advancePublicationStep(2, 'Description');
+
   // React controlled inputs are updated one at a time, allowing each onChange
   // commit before the next field. A batch of synthetic input events in a
   // single CDP evaluation may reuse stale React state between event handlers.
@@ -684,6 +757,7 @@ async function enrichedCreateListing(username, type, label) {
     'return !!f&&f.querySelector("label.field input")?.value===' + JSON.stringify(title) +
     '&&(!f.querySelector(".wish-editor")||[...f.querySelectorAll(".wish-editor input")].every(x=>x.value.trim()));})()', 60);
 
+  await advancePublicationStep(3, 'Photos');
   // Unlike API-level fixture creation, this genuinely selects five files on
   // the browser's file input, firing the React change handler via Chrome CDP.
   const root = await command('DOM.getDocument', { depth: -1, pierce: true });
@@ -698,6 +772,9 @@ async function enrichedCreateListing(username, type, label) {
     '(() => {const f=document.querySelector(".form-panel form.listing-form");' +
     'return !!f&&f.querySelector("input[type=file]")?.files.length===5' +
     '&&f.querySelectorAll(".upload-gallery img").length===5;})()', 120);
+  await advancePublicationStep(4, 'Vérification');
+  assert.equal(await evaluate('document.querySelector(".publication-review")?.textContent.includes(' +
+    JSON.stringify(title) + ')'), true, 'Wizard review must preserve the real title');
   await journeyScreenshot('9bf-form-' + label + '-5-photos');
 
   const submit = await evaluate('(() => {const button=document.querySelector(".form-panel form.listing-form button[type=submit]");' +
@@ -725,6 +802,20 @@ async function enrichedModerate(listing, moderatorToken) {
     '...document.querySelectorAll(".moderation-list .moderation-item")].some(' +
     'c=>c.textContent.includes(' + JSON.stringify(listing.title) + ')))()';
   await waitUntil('Pending listing in real moderation UI', cardPredicate, 120);
+  // UX V3 #92: the queue is a compact list. Open the native disclosure
+  // deliberately before requesting private photos and approving the item.
+  const opened = await evaluate('(() => {' +
+    'const row=[...document.querySelectorAll(".moderation-list .moderation-item")].find(' +
+    'c=>c.textContent.includes(' + JSON.stringify(listing.title) + '));' +
+    'if(!row||row.open||!row.querySelector("summary"))return false;' +
+    'if(row.querySelector(".moderation-gallery-gate")?.getClientRects().length)return false;' +
+    'row.querySelector("summary").click();return row.open;})()');
+  assert.equal(opened, true, 'Moderator must expand the right pending listing before reviewing');
+  await waitUntil('Moderation actions visible for ' + listing.title,
+    '(() => {const row=[...document.querySelectorAll(".moderation-list .moderation-item")].find(' +
+    'c=>c.textContent.includes(' + JSON.stringify(listing.title) + '));' +
+    'return !!row?.open && !!row.querySelector(".moderation-gallery-gate button") && ' +
+    'row.querySelector(".moderation-gallery-gate").getClientRects().length>0;})()', 80);
   const openGallery = '(() => {' +
     'const card=[...document.querySelectorAll(".moderation-list .moderation-item")]' +
     '.find(c=>c.textContent.includes(' + JSON.stringify(listing.title) + '));' +
@@ -1159,6 +1250,10 @@ async function runAdminDashboardBrowser() {
     true, 'ADMIN navigation must exist for authorized sessions');
   assert.equal(await evaluate('document.body.innerText.includes("Suspendre un utilisateur")'),
     false, 'Do not expose fake account suspension UI');
+  assert.equal(await evaluate('document.querySelectorAll(".admin-v2__sidebar").length'), 0,
+    'UX V3: admin uses the shared header navigation without duplicate sidebar');
+  assert.equal(await evaluate('document.querySelectorAll(".primary-nav a[aria-current=page]").length'), 1,
+    'UX V3: primary header has one active link on admin');
   await journeyScreenshot('f5-admin-summary-catalog-desktop');
 
   // Tablet and zoom-sensitive viewports: ADMIN adds a fourth header link.

@@ -89,24 +89,6 @@ export function AdminDashboard() {
   return (
     <section className="admin-v2" aria-labelledby="admin-v2-title">
       <div className="admin-v2__layout">
-        <aside className="admin-v2__sidebar" aria-label="Navigation administration">
-          <div className="admin-v2__brand">
-            <span className="admin-v2__monogram" aria-hidden="true">PM</span>
-            <span><strong>Petite Maison</strong><small>Espace de gestion</small></span>
-          </div>
-          <p className="admin-v2__nav-label">Navigation</p>
-          <nav aria-label="Menu administrateur">
-            <Link href="/admin" aria-current="page">Vue d’ensemble</Link>
-            <Link href="/moderation">Modération des annonces</Link>
-            <Link href="/espace">Mon espace</Link>
-            <Link href="/">Voir le catalogue</Link>
-          </nav>
-          <div className="admin-v2__sidebar-note">
-            <strong>Accès administrateur</strong>
-            <p>Les statistiques proviennent du Catalog Service. Les permissions sont contrôlées côté API.</p>
-          </div>
-        </aside>
-
         <div className="admin-v2__body">
           <header className="admin-v2__hero">
             <div>

@@ -2,13 +2,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { listingsApi } from '../lib/api';
 import type { Listing } from '../lib/types';
 import { filterPendingListings, moderationMetrics, type ModerationFilter } from '../lib/moderation-dashboard';
 import { useAuth } from './auth-provider';
 import { EmptyState } from './empty-state';
-import { ListingCard } from './listing-card';
+import { ModerationQueueRow } from './moderation-queue-row';
 
 export function ModerationSpace() {
   const {
@@ -173,17 +172,6 @@ export function ModerationSpace() {
   return (
     <section className="moderation-page management-v2" aria-labelledby="moderation-title">
       <div className="management-v2__layout">
-        <aside className="management-v2__sidebar" aria-label="Navigation de gestion">
-          <div className="management-v2__brand"><strong>Petite Maison</strong><small>Espace de gestion</small></div>
-          <nav aria-label="Menu de modération">
-            <Link href="/moderation" aria-current="page">File de modération</Link>
-            <Link href="/espace">Mes articles et échanges</Link>
-            <Link href="/">Voir les annonces</Link>
-          </nav>
-          <p className="management-v2__sidebar-help">
-            Les droits sont vérifiés par Keycloak et Catalog pour chaque opération.
-          </p>
-        </aside>
         <div className="management-v2__content">
           <div className="moderation-hero management-v2__hero">
             <div>
@@ -251,15 +239,8 @@ export function ModerationSpace() {
       ) : null}
       <div className="moderation-list management-v2__queue">
         {!loading && !loadError && visibleQueue.map((listing, index) => (
-          <div className="moderation-item management-v2__item" key={listing.id}>
-            <span className="moderation-item__number">
-              {(index + 1).toString().padStart(2, '0')}
-            </span>
-            <ListingCard listing={listing} />
-            <ModerationGallery
-              listing={listing}
-              getToken={getToken}
-            />
+          <ModerationQueueRow key={listing.id} listing={listing} index={index}>
+            <ModerationGallery listing={listing} getToken={getToken} />
             <div className="moderation-actions">
               <label className="field field--compact">
                 <span>Motif si refus</span>
@@ -295,7 +276,7 @@ export function ModerationSpace() {
                 </button>
               </div>
             </div>
-          </div>
+          </ModerationQueueRow>
         ))}
       </div>
         </div>
