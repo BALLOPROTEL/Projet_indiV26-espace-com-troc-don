@@ -25,6 +25,23 @@ pnpm jury:assets:check
 
 Le premier contrôle vérifie le schéma ; le deuxième les tests de validation hors ligne. **Le troisième doit échouer tant que les images, crédits, deux acteurs réellement distincts et statut `READY_FOR_REVIEW` ne sont pas prêts.** Ne pas désactiver ni contourner cette gate pour obtenir du vert.
 
+### Préparer le deuxième membre — nouveau realm uniquement
+
+Si une **nouvelle stack Keycloak jetable** va être créée, préparer un import avec un second USER sans modifier le realm de base. Le générateur ne contacte aucun serveur et n'effectue **aucun import** ; il crée uniquement un nouveau fichier protégé en dehors du dépôt. Il ne faut **jamais** importer cet export par-dessus un realm déjà en fonctionnement ou dans une instance partagée.
+
+```bash
+# Vérifier d'abord que l'environnement de destination est isolé.
+export JURY_ENVIRONMENT_CONFIRMED=isolated
+read -rsp 'Mot de passe temporaire du deuxième membre (minimum 14 caractères) : ' JURY_REQUESTER_PASSWORD; echo
+export JURY_REQUESTER_PASSWORD
+pnpm jury:realm:prepare
+unset JURY_REQUESTER_PASSWORD
+```
+
+Le script indique l'emplacement du fichier temporaire `keycloak-realm.json` (permissions 0600, dossier 0700). Monter ce fichier **uniquement lors de la création du nouveau realm Keycloak jetable**, avec la méthode de démarrage déjà documentée dans le projet. Le supprimer manuellement **après** import vérifié ; ne jamais le commiter, le partager ni le passer dans les logs. Le fichier contient les identifiants locaux de démonstration du realm d'origine ainsi que le nouveau secret ; garder strictement privé.
+
+**Important :** la génération n'implique pas que le deuxième compte existe dans un serveur. Laisser `actors.memberRequester: null` et `readiness: DRAFT_NOT_READY` dans le manifeste tant que l'import puis la connexion OIDC du demandeur n'ont pas été effectivement vérifiés. Après vérification réelle, l'opérateur peut renseigner `memberRequester: demo-requester`, avec justification dans son journal, puis effectuer les gates de médias séparément.
+
 Avant toute recette avec connexion : relever *sans enregistrer de secrets* l'URL/nom de la stack isolée et le SHA exact. Après provisionnement autorisé des quatre identités dans **le Keycloak de cette stack isolée**, exécuter le contrôle **lecture seule** ci-dessous. Il vérifie les comptes effectivement présents, actifs et leurs rôles de realm effectifs ; il **ne crée aucun utilisateur** et ne dispense pas d'une connexion OIDC réelle par chaque membre suivie d'un appel API RBAC. Un compte éventuellement déclaré dans un export JSON n'est **pas** une preuve qu'il est présent dans un realm déjà déployé.
 
 ```bash
