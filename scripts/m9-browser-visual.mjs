@@ -479,7 +479,13 @@ async function assertKeycloakPasswordLayout(viewport) {
     'const toggleRing=parseFloat(getComputedStyle(toggle).outlineWidth);' +
     'toggle.click();const revealed=password.type;' +
     'toggle.click();const restored=password.type;' +
-    'return {before,revealed,restored,groupRing,toggleRing};})()');
+    'return {before,revealed,restored,groupRing,toggleRing,' +
+    'toggleIsCurrent:document.contains(toggle),' +
+    'isFocusVisible:toggle.matches(":focus-visible"),' +
+    'inLoginForm:!!toggle.closest("#kc-form-login"),' +
+    'cssOverrideMatched:toggle.matches("#kc-form-login .pf-v5-c-input-group button:focus-visible"),' +
+    'toggleId:toggle.id,groupTag:group.tagName,' +
+    'groupInLoginForm:!!group.closest("#kc-form-login")};})()');
   assert.ok(visibility && visibility.before === 'password' &&
     visibility.revealed === 'text' && visibility.restored === 'password',
     'Native password visibility must toggle and re-mask at ' +
