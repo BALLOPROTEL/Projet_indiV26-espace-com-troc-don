@@ -22,7 +22,8 @@ function strictCalendarDate(value) {
   if (month < 1 || month > 12 || day < 1 || day > 31) return false;
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+    date.getUTCMonth() === month - 1 && date.getUTCDate() === day &&
+    date.getTime() <= Date.now();
 }
 
 function checkPhotoFile(file, expectedExt) {
@@ -82,7 +83,12 @@ export function inspectPlan(plan, { assets = false, directory: root = directory 
   for (const [key, value] of Object.entries(actors)) {
     if (value !== null && !actor(value)) errors.push('Blank or invalid actor: ' + key);
   }
-  if (!actor(actors.moderator) || !actor(actors.admin)) errors.push('Moderator and admin required');
+  const moderator = actor(actors.moderator), admin = actor(actors.admin);
+  if (!moderator || !admin) errors.push('Moderator and admin required');
+  if ((moderator && [owner, requester, admin].includes(moderator)) ||
+      (admin && [owner, requester].includes(admin))) {
+    errors.push('Moderator and admin must be distinct from USER identities and from each other');
+  }
   if (assets && plan.readiness !== 'READY_FOR_REVIEW') {
     errors.push('Manifest is not marked READY_FOR_REVIEW by the kit curator');
   }
