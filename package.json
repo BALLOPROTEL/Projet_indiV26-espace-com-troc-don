@@ -85,7 +85,9 @@
     "jury:assets:check": "node scripts/jury-demo-validate.mjs --assets",
     "jury:plan:test": "node --test scripts/jury-demo-validate.test.mjs",
     "jury:keycloak:check": "node scripts/jury-keycloak-preflight.mjs",
-    "jury:keycloak:test": "node --test scripts/jury-keycloak-preflight.test.mjs"
+    "jury:keycloak:test": "node --test scripts/jury-keycloak-preflight.test.mjs",
+    "jury:realm:prepare": "node scripts/jury-realm-prepare.mjs",
+    "jury:realm:test": "node --test scripts/jury-realm-prepare.test.mjs"
   },
   "pnpm": {
     "overrides": {
