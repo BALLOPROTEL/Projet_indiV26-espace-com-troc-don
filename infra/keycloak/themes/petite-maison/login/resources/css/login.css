@@ -192,9 +192,9 @@ a:focus-visible, button:focus-visible, #kc-login:focus-visible {
   color: #70352b !important;
   border-radius: 8px !important;
 }
-/* Intermediate laptop widths get a full-sized but single-column login,
-   not two narrow columns. */
-@media (max-width: 900px) {
+/* Keep Keycloak.v2's native one-column layout until PatternFly actually
+   exposes the branding header at >=1200px, not at 900px. */
+@media (max-width: 1199px) {
   .pf-v5-c-login__container {
     display: flex !important;
     flex-direction: column !important;
