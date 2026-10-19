@@ -48,7 +48,7 @@ describe('compact moderation queue', () => {
       }} index={8}>Révision</ModerationQueueRow>,
     );
     expect(html).toContain(title.trim());
-    expect(html).toContain('1 souhaits');
+    expect(html).toContain('1 souhait');
     expect(html).toContain('Livre de cuisine');
     expect(html).toContain('09');
   });
