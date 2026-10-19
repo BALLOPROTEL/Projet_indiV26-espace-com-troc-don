@@ -30,14 +30,16 @@ Avant toute recette avec connexion : relever *sans enregistrer de secrets* l'URL
 ```bash
 # Uniquement après vérification de la stack éphémère et du Keycloak cible.
 export JURY_ENVIRONMENT_CONFIRMED=isolated
-export JURY_KEYCLOAK_BASE_URL=http://127.0.0.1:8081 # adapter à la cible isolée (HTTPS hors localhost)
+# Exécuter ce script DANS la stack jetable, ou après une redirection de
+# port 8081 vérifiée vers CETTE stack. Ne pas rediriger vers la production.
+export JURY_KEYCLOAK_BASE_URL=http://127.0.0.1:8081
 read -rsp 'Jeton Admin Keycloak temporaire (non affiché) : ' JURY_KEYCLOAK_ADMIN_TOKEN; echo
 export JURY_KEYCLOAK_ADMIN_TOKEN
 pnpm jury:keycloak:check
 unset JURY_KEYCLOAK_ADMIN_TOKEN
 ```
 
-La commande doit retourner **4/4** pour ouvrir la recette ; si `memberRequester` est toujours `null`, le contrôle doit échouer avant toute requête réseau. Le jeton Admin **ne doit jamais être communiqué dans un ticket, une capture, un fichier du dépôt ou une sortie CI**. Le script refuse HTTP sur une adresse non locale, n'effectue que des GET et interdit les redirections du jeton.
+La commande doit retourner **4/4** pour ouvrir la recette ; si `memberRequester` est toujours `null`, le contrôle doit échouer avant toute requête réseau. Le jeton Admin **ne doit jamais être communiqué dans un ticket, une capture, un fichier du dépôt ou une sortie CI**. Le script refuse **toutes les URL externes**, y compris HTTPS : il n'accepte que `http://localhost:8081` ou `http://127.0.0.1:8081` (et loopback IPv6). Il vérifie d'abord **sans jeton** l'issuer OIDC du realm, puis effectue les GET Admin, sans redirection. La borne localhost **n'atteste pas à elle seule** que le serveur est une stack isolée : vérifier le processus/service réellement écouté ou la destination du tunnel avant de fournir un jeton temporaire. Si le Keycloak de test n'est accessible qu'à distance, créer d'abord un port forward local contrôlé ; ne jamais coller une URL de production ou un HTTPS arbitraire. Le rôle `MODERATOR` ne doit pas inclure `ADMIN`.
 
 ### Feuille de prévol à compléter par l'opérateur
 
