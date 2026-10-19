@@ -82,3 +82,62 @@ test('a valid-looking credit ID is not enough without a matching complete regist
   const errors=inspectPlan(v,{assets:true}).errors;
   assert.ok(errors.some(e=>e.includes('provenance')));
 });
+
+test('strict asset gate rejects image files larger than the application 5 MiB limit', () => {
+  const temp = mkdtempSync(join(tmpdir(), 'jury-size-'));
+  try {
+    const p = modify(value => {
+      value.actors.memberRequester = 'demo-user-2';
+      value.readiness = 'READY_FOR_REVIEW';
+      value.listings[0].images[0].creditId = 'test-credit';
+    });
+    const fileName = p.listings[0].images[0].file;
+    mkdirSync(join(temp, 'assets', 'don-lampe'), { recursive: true });
+    const bytes = Buffer.alloc(5 * 1024 * 1024 + 1, 0);
+    bytes[0] = 0xff; bytes[1] = 0xd8; bytes[2] = 0xff;
+    bytes[bytes.length - 2] = 0xff; bytes[bytes.length - 1] = 0xd9;
+    writeFileSync(join(temp, fileName), bytes);
+    writeFileSync(join(temp, 'assets', 'provenance.json'), JSON.stringify({
+      version: 1, credits: [{
+        id: 'test-credit', file: fileName, author: 'Test author', source: 'Fixture',
+        licenseOrPermission: 'Local test fixture', conditions: 'Test only',
+        authorizedForDemo: true, verifiedAt: '2026-10-16',
+      }],
+    }));
+    const result = inspectPlan(p, { assets: true, directory: temp });
+    assert.ok(result.errors.includes('Missing/invalid real image file: ' + fileName),
+      'Oversize image must fail despite valid JPG signature and credit');
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test('strict provenance checks reject impossible dates but allow valid leap dates', () => {
+  const temp = mkdtempSync(join(tmpdir(), 'jury-date-'));
+  try {
+    const p = modify(value => {
+      value.actors.memberRequester = 'demo-user-2';
+      value.readiness = 'READY_FOR_REVIEW';
+      value.listings[0].images[0].creditId = 'credit-date';
+    });
+    const fileName = p.listings[0].images[0].file;
+    mkdirSync(join(temp, 'assets', 'don-lampe'), { recursive: true });
+    const bytes = Buffer.alloc(64, 0);
+    bytes[0] = 0xff; bytes[1] = 0xd8; bytes[2] = 0xff;
+    bytes[62] = 0xff; bytes[63] = 0xd9;
+    writeFileSync(join(temp, fileName), bytes);
+    const record = {
+      id: 'credit-date', file: fileName, author: 'Test author', source: 'Fixture',
+      licenseOrPermission: 'Test authorization', conditions: 'Test only',
+      authorizedForDemo: true, verifiedAt: '2026-02-30',
+    };
+    const registry = { version: 1, credits: [record] };
+    const registerPath = join(temp, 'assets', 'provenance.json');
+    writeFileSync(registerPath, JSON.stringify(registry));
+    const invalidDate = inspectPlan(p, { assets: true, directory: temp });
+    assert.ok(invalidDate.errors.includes('Unverified or mismatched image provenance: ' + fileName));
+    record.verifiedAt = '2024-02-29';
+    writeFileSync(registerPath, JSON.stringify(registry));
+    const validLeapDate = inspectPlan(p, { assets: true, directory: temp });
+    assert.ok(!validLeapDate.errors.includes('Unverified or mismatched image provenance: ' + fileName),
+      'Valid leap day must pass the first photo credit even while other photos are absent');
+  } finally { rmSync(temp, { recursive: true, force: true }); }
+});
