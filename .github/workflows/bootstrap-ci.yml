@@ -15,32 +15,6 @@ jobs:
     name: Validate repository structure
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: public.ecr.aws/docker/library/postgres:16-alpine
-        env:
-          POSTGRES_DB: projet_indiv26
-          POSTGRES_USER: app
-          POSTGRES_PASSWORD: app_ci_password
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U app -d projet_indiv26"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
-
-      rabbitmq:
-        image: public.ecr.aws/docker/library/rabbitmq:4.1-management-alpine
-        ports:
-          - 5672:5672
-          - 15672:15672
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
-
     env:
       DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=public
       CATALOG_DATABASE_URL: postgresql://app:app_ci_password@localhost:5432/projet_indiv26?schema=catalog
@@ -62,30 +36,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      # Docker Hub anonymous pulls are intermittently rate-limited or time out
-      # on GitHub-hosted runners. Reuse the same public upstream mirror that
-      # makes the isolated M8-B/C Compose stack deterministic.
-      - name: Preload Docker build bases via ECR Public
+      # Start the same database and broker as GitHub service containers, but
+      # only AFTER checkout so official Docker Hub can back up throttled ECR.
+      # No volume mounts; cleanup is scoped to these two disposable CI names.
+      - name: Preload official images and start disposable CI services
         shell: bash
-        run: |
-          set -euo pipefail
-          for spec in alpine:3.24.1 node:24.20.0-alpine3.24; do
-            mirror="public.ecr.aws/docker/library/${spec}"
-            loaded=false
-            for attempt in 1 2 3; do
-              if docker pull "${mirror}"; then
-                docker tag "${mirror}" "${spec}"
-                loaded=true
-                break
-              fi
-              echo "[WARN] Mirror pull failed (${attempt}/3): ${spec}"
-              sleep "$(( attempt * 5 ))"
-            done
-            if [ "${loaded}" != true ]; then
-              echo "[FAIL] Cannot preload ${spec}"
-              exit 1
-            fi
-          done
+        run: bash scripts/ci-bootstrap-services.sh
 
       - name: Validate repository baseline
         shell: bash
@@ -752,3 +708,7 @@ jobs:
           docker push "${IMAGE_NAME}:latest"
           echo "Published ${IMAGE_REF}"
           echo "Published ${IMAGE_NAME}:latest"
+      - name: Stop disposable CI services
+        if: always()
+        shell: bash
+        run: docker rm -f bootstrap-ci-postgres bootstrap-ci-rabbitmq >/dev/null 2>&1 || true
