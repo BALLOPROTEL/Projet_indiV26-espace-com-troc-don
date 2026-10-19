@@ -28,3 +28,10 @@ jobs:
         run: node scripts/jury-demo-validate.mjs --metadata
       - name: Test defensive validation of missing assets and unsafe scenarios
         run: node --test scripts/jury-demo-validate.test.mjs
+      - name: Detect curated bundle readiness
+        id: readiness
+        run: |
+          echo "ready=$(node -p 'require("./demo/jury/manifest.json").readiness === "READY_FOR_REVIEW"')" >> "$GITHUB_OUTPUT"
+      - name: Require strict media and provenance validation for ready kits
+        if: steps.readiness.outputs.ready == 'true'
+        run: node scripts/jury-demo-validate.mjs --assets
