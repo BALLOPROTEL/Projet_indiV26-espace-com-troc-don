@@ -1,11 +1,43 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { inspectPlan } from './jury-demo-validate.mjs';
 
-const plan = JSON.parse(readFileSync(new URL('../demo/jury/manifest.json', import.meta.url)));
+// Purposefully independent of demo/jury/manifest.json: the real kit may become
+// READY_FOR_REVIEW without changing the expectations of draft/error tests.
+const makeListing = (key, operationType, owner, wishes = []) => ({
+  key,
+  title: 'Article de test ' + key,
+  description: 'Objet réutilisable pour scénario automatisé, sans utilisateur réel.',
+  operationType, owner, tradeWishes: wishes,
+  images: Array.from({ length: 5 }, (_, i) => ({
+    file: 'assets/' + key + '/' + String(i + 1).padStart(2, '0') + '.jpg',
+    creditId: 'PENDING',
+  })),
+});
+const plan = {
+  version: 1,
+  readiness: 'DRAFT_NOT_READY',
+  actors: {
+    memberOwner: 'demo-user',
+    memberRequester: null,
+    moderator: 'demo-moderator',
+    admin: 'demo-admin',
+  },
+  listings: [
+    makeListing('don-lampe', 'DONATION', 'memberOwner'),
+    makeListing('don-etagere', 'DONATION', 'memberOwner'),
+    makeListing('troc-sac', 'TRADE', 'memberOwner', ['Livre', 'Lampe', 'Jeu', 'Pochette', 'Chaise']),
+    makeListing('troc-livres', 'TRADE', 'memberRequester', ['Sac', 'Tapis', 'Boîte', 'Casque', 'Étagère']),
+  ],
+  journeys: [
+    { key: 'don-reject', target: 'don-lampe', outcome: 'REJECTED' },
+    { key: 'don-accept', target: 'don-etagere', outcome: 'COMPLETED' },
+    { key: 'trade-complete', target: 'troc-sac', offered: 'troc-livres', outcome: 'COMPLETED' },
+  ],
+};
 const modify = fn => { const value = structuredClone(plan); fn(value); return value; };
 const invalid = (value, needle) =>
   assert.ok(inspectPlan(value).errors.some(e => e.includes(needle)),
@@ -25,6 +57,34 @@ test('strict gate fails on missing media, provenance and readiness', () => {
   assert.ok(v.errors.some(x => x.includes('provenance')));
   assert.ok(v.errors.some(x => x.includes('READY_FOR_REVIEW')));
 });
+
+test('a completed manifest does not invalidate the draft test fixture', () => {
+  const completed = modify(p => {
+    p.readiness = 'READY_FOR_REVIEW';
+    p.actors.memberRequester = 'demo-member-2';
+    p.listings.forEach((item, index) => item.images.forEach((photo, photoIndex) => {
+      photo.creditId = 'verified-' + index + '-' + photoIndex;
+    }));
+  });
+  const metadata = inspectPlan(completed);
+  assert.deepEqual(metadata.errors, []);
+  assert.deepEqual(metadata.warnings, []);
+  const strict = inspectPlan(completed, { assets: true, directory: '/nonexistent-jury-kit' });
+  assert.ok(!strict.errors.some(e => e.includes('Two distinct')));
+  assert.ok(!strict.errors.some(e => e.includes('READY_FOR_REVIEW')));
+  assert.ok(strict.errors.some(e => e.includes('Missing')));
+});
+
+test('moderator and admin must remain distinct from both members and one another', () => {
+  invalid(modify(p => { p.actors.moderator = ' demo-user '; }), 'distinct from USER');
+  invalid(modify(p => { p.actors.admin = 'demo-user'; }), 'distinct from USER');
+  invalid(modify(p => {
+    p.actors.memberRequester = 'demo-member-2';
+    p.actors.moderator = 'demo-member-2';
+  }), 'distinct from USER');
+  invalid(modify(p => { p.actors.admin = 'demo-moderator'; }), 'distinct from USER');
+});
+
 test('reject duplicate image names and wrong listing photo folders', () => {
   invalid(modify(p => { p.listings[1].images[0].file = p.listings[0].images[0].file; }), 'image path');
   invalid(modify(p => { p.listings[2].images[0].file = 'assets/don-lampe/01.jpg'; }), 'wrong listing');
@@ -134,6 +194,11 @@ test('strict provenance checks reject impossible dates but allow valid leap date
     writeFileSync(registerPath, JSON.stringify(registry));
     const invalidDate = inspectPlan(p, { assets: true, directory: temp });
     assert.ok(invalidDate.errors.includes('Unverified or mismatched image provenance: ' + fileName));
+    record.verifiedAt = '2099-01-01';
+    writeFileSync(registerPath, JSON.stringify(registry));
+    const futureDate = inspectPlan(p, { assets: true, directory: temp });
+    assert.ok(futureDate.errors.includes('Unverified or mismatched image provenance: ' + fileName),
+      'Rights provenance verification cannot be dated in the future');
     record.verifiedAt = '2024-02-29';
     writeFileSync(registerPath, JSON.stringify(registry));
     const validLeapDate = inspectPlan(p, { assets: true, directory: temp });
