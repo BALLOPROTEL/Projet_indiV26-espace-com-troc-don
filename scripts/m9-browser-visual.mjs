@@ -435,6 +435,38 @@ async function journeyOffer(targetId, offeredId, label,
   console.log('[M9 Journey] Real browser submission ' + label + ': PASS');
 }
 
+// #98: inspect the actual password INPUT, not only the visually wide
+// PatternFly wrapper. A 1%-wide input escaped previous login CSS assertions.
+async function assertKeycloakPasswordLayout(viewport) {
+  const geometry = await evaluate('(() => {' +
+    'const username=document.querySelector("#username"),' +
+    'password=document.querySelector("#password"),' +
+    'group=password?.closest(".pf-v5-c-input-group"),' +
+    'toggle=group?.querySelector("button");' +
+    'const r=(el)=>{if(!el)return null;const x=el.getBoundingClientRect();' +
+    'return {left:x.left,right:x.right,width:x.width,height:x.height};};' +
+    'return {username:r(username),password:r(password),group:r(group),' +
+    'toggle:r(toggle),overflow:document.documentElement.scrollWidth-' +
+    'document.documentElement.clientWidth};})()');
+  assert.ok(geometry?.username && geometry?.password &&
+    geometry?.group && geometry?.toggle,
+    'Native Keycloak password input and visibility toggle missing at ' + viewport);
+  assert.ok(geometry.password.width >= Math.max(160, geometry.username.width * .67),
+    'Password TEXT INPUT compressed compared with username at ' + viewport +
+    ': ' + JSON.stringify(geometry));
+  assert.ok(Math.abs(geometry.group.width - geometry.username.width) <= 12 &&
+    Math.abs(geometry.group.left - geometry.username.left) <= 8,
+    'Password field must align with username at ' + viewport + ': ' +
+    JSON.stringify(geometry));
+  assert.ok(geometry.toggle.width >= 44 && geometry.toggle.width <= 64 &&
+    geometry.password.right <= geometry.toggle.left + 5,
+    'Native show-password button must adjoin a full-width input: ' +
+    JSON.stringify(geometry));
+  assert.ok(geometry.password.height >= 44 && geometry.overflow <= 2,
+    'Password control must remain touchable without horizontal scroll: ' +
+    JSON.stringify(geometry));
+}
+
 async function journeySwitchUser(username) {
   const logout = '(() => {const button=[...document.querySelectorAll("header button")]' +
     '.find(el=>el.textContent?.trim()==="Sortir");if(!button)return false;' +
@@ -468,6 +500,7 @@ async function journeySwitchUser(username) {
     assert.ok(desktopLogin && desktopLogin.form >= 380 &&
       desktopLogin.container >= 850 && desktopLogin.left >= desktopLogin.brandRight - 14,
       'Keycloak desktop must show a generous two-column login: ' + JSON.stringify(desktopLogin));
+    await assertKeycloakPasswordLayout('desktop-1280');
     await journeyScreenshot('uxv3-keycloak-desktop-1280');
     await command('Emulation.setDeviceMetricsOverride', {
       width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
@@ -484,6 +517,7 @@ async function journeySwitchUser(username) {
       mobileLogin.user >= 250 && mobileLogin.overflow <= 1,
       'Keycloak 390px mobile form must remain spacious without horizontal overflow: ' +
       JSON.stringify(mobileLogin));
+    await assertKeycloakPasswordLayout('mobile-390');
     await journeyScreenshot('uxv3-keycloak-mobile-390');
     if (restoreMetrics) await command('Emulation.setDeviceMetricsOverride', restoreMetrics);
     else await command('Emulation.clearDeviceMetricsOverride');
