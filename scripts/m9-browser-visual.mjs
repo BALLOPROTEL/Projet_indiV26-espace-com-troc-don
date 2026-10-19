@@ -435,6 +435,109 @@ async function journeyOffer(targetId, offeredId, label,
   console.log('[M9 Journey] Real browser submission ' + label + ': PASS');
 }
 
+// #98: inspect the actual password INPUT, not only the visually wide
+// PatternFly wrapper. A 1%-wide input escaped previous login CSS assertions.
+async function assertKeycloakPasswordLayout(viewport) {
+  const geometry = await evaluate('(() => {' +
+    'const username=document.querySelector("#username"),' +
+    'password=document.querySelector("#password"),' +
+    'group=password?.closest(".pf-v5-c-input-group"),' +
+    'toggle=group?.querySelector("button");' +
+    'const r=(el)=>{if(!el)return null;const x=el.getBoundingClientRect();' +
+    'return {left:x.left,right:x.right,width:x.width,height:x.height};};' +
+    'return {username:r(username),password:r(password),group:r(group),' +
+    'toggle:r(toggle),overflow:document.documentElement.scrollWidth-' +
+    'document.documentElement.clientWidth};})()');
+  assert.ok(geometry?.username && geometry?.password &&
+    geometry?.group && geometry?.toggle,
+    'Native Keycloak password input and visibility toggle missing at ' + viewport);
+  assert.ok(geometry.password.width >= Math.max(160, geometry.username.width * .67),
+    'Password TEXT INPUT compressed compared with username at ' + viewport +
+    ': ' + JSON.stringify(geometry));
+  assert.ok(Math.abs(geometry.group.width - geometry.username.width) <= 12 &&
+    Math.abs(geometry.group.left - geometry.username.left) <= 8,
+    'Password field must align with username at ' + viewport + ': ' +
+    JSON.stringify(geometry));
+  assert.ok(geometry.toggle.width >= 44 && geometry.toggle.width <= 64 &&
+    geometry.toggle.height >= 44 &&
+    Math.abs(geometry.password.right - geometry.toggle.left) <= 5,
+    'Native show-password button must adjoin the input on both axes, with a 44px target: ' +
+    JSON.stringify(geometry));
+  assert.ok(geometry.password.height >= 44 && geometry.overflow <= 2,
+    'Password control must remain touchable without horizontal scroll: ' +
+    JSON.stringify(geometry));
+  assert.ok(Math.abs(geometry.group.height - geometry.username.height) <= 3,
+    'Password group height must match username field: ' + JSON.stringify(geometry));
+  // Exercise actual keyboard Tab navigation before clicking the native toggle.
+  // Visibility changes can restore focus to the input, so measure button
+  // focus BEFORE the clicks rather than mixing two different focus states.
+  assert.equal(await evaluate('(() => {' +
+    'const input=document.querySelector("#password");input?.focus();' +
+    'return document.activeElement===input;})()'), true,
+  'Keycloak password input must be keyboard-focusable at ' + viewport);
+  await command('Input.dispatchKeyEvent', {
+    type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9,
+  });
+  await command('Input.dispatchKeyEvent', {
+    type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9,
+  });
+  const focus = await evaluate('(() => {' +
+    'const password=document.querySelector("#password"),' +
+    'group=password?.closest(".pf-v5-c-input-group"),' +
+    'toggle=group?.querySelector("button");' +
+    'if(!group||!toggle)return null;' +
+    'const buttonCss=getComputedStyle(toggle);' +
+    'return {eyeFocused:document.activeElement===toggle,' +
+    'eyeFocusVisible:toggle.matches(":focus-visible"),' +
+    'groupRing:parseFloat(getComputedStyle(group).outlineWidth),' +
+    'toggleRing:parseFloat(buttonCss.outlineWidth),' +
+    'toggleShadow:buttonCss.boxShadow,' +
+    'toggleId:toggle.id};})()');
+  assert.ok(focus && focus.eyeFocused && focus.eyeFocusVisible &&
+    focus.groupRing >= 2 && focus.toggleRing === 0 &&
+    focus.toggleShadow.includes('inset'),
+    'Keyboard Tab must identify eye with an inset cue and ONE outer group ring at ' +
+    viewport + ': ' + JSON.stringify(focus));
+  // Real forced-colors emulation: unlike box-shadow/background, a system-color
+  // inset outline survives Windows High Contrast and signals focus transfer.
+  await command('Emulation.setEmulatedMedia', {
+    features: [{ name: 'forced-colors', value: 'active' }],
+  });
+  try {
+    const highContrast = await evaluate('(() => {' +
+      'const eye=document.querySelector("#password")' +
+      '?.closest(".pf-v5-c-input-group")?.querySelector("button");' +
+      'if(!eye)return null;const css=getComputedStyle(eye);' +
+      'return {forced:matchMedia("(forced-colors: active)").matches,' +
+      'eyeFocused:document.activeElement===eye,' +
+      'eyeFocusVisible:eye.matches(":focus-visible"),' +
+      'outlineWidth:parseFloat(css.outlineWidth),' +
+      'outlineOffset:parseFloat(css.outlineOffset),' +
+      'outlineStyle:css.outlineStyle};})()');
+    assert.ok(highContrast && highContrast.forced &&
+      highContrast.eyeFocused && highContrast.eyeFocusVisible &&
+      highContrast.outlineWidth >= 2 &&
+      highContrast.outlineOffset <= -2 &&
+      highContrast.outlineStyle !== 'none',
+      'High Contrast must retain an inset native eye focus outline at ' +
+      viewport + ': ' + JSON.stringify(highContrast));
+  } finally {
+    await command('Emulation.setEmulatedMedia', { features: [] });
+  }
+  // Click Keycloak's own show/hide button; never log password content.
+  const visibility = await evaluate('(() => {' +
+    'const password=document.querySelector("#password"),' +
+    'toggle=password?.closest(".pf-v5-c-input-group")?.querySelector("button");' +
+    'if(!password||!toggle)return null;' +
+    'const before=password.type;toggle.click();const revealed=password.type;' +
+    'toggle.click();const restored=password.type;' +
+    'return {before,revealed,restored};})()');
+  assert.ok(visibility && visibility.before === 'password' &&
+    visibility.revealed === 'text' && visibility.restored === 'password',
+    'Native password visibility must toggle and re-mask at ' +
+    viewport + ': ' + JSON.stringify(visibility));
+}
+
 async function journeySwitchUser(username) {
   const logout = '(() => {const button=[...document.querySelectorAll("header button")]' +
     '.find(el=>el.textContent?.trim()==="Sortir");if(!button)return false;' +
@@ -468,6 +571,7 @@ async function journeySwitchUser(username) {
     assert.ok(desktopLogin && desktopLogin.form >= 380 &&
       desktopLogin.container >= 850 && desktopLogin.left >= desktopLogin.brandRight - 14,
       'Keycloak desktop must show a generous two-column login: ' + JSON.stringify(desktopLogin));
+    await assertKeycloakPasswordLayout('desktop-1280');
     await journeyScreenshot('uxv3-keycloak-desktop-1280');
     await command('Emulation.setDeviceMetricsOverride', {
       width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
@@ -484,7 +588,12 @@ async function journeySwitchUser(username) {
       mobileLogin.user >= 250 && mobileLogin.overflow <= 1,
       'Keycloak 390px mobile form must remain spacious without horizontal overflow: ' +
       JSON.stringify(mobileLogin));
+    await assertKeycloakPasswordLayout('mobile-390');
     await journeyScreenshot('uxv3-keycloak-mobile-390');
+    await command('Emulation.setDeviceMetricsOverride', {
+      width: 320, height: 760, deviceScaleFactor: 1, mobile: true,
+    });
+    await assertKeycloakPasswordLayout('mobile-320');
     if (restoreMetrics) await command('Emulation.setDeviceMetricsOverride', restoreMetrics);
     else await command('Emulation.clearDeviceMetricsOverride');
   }
