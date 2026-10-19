@@ -757,6 +757,20 @@ async function enrichedModerate(listing, moderatorToken) {
     '...document.querySelectorAll(".moderation-list .moderation-item")].some(' +
     'c=>c.textContent.includes(' + JSON.stringify(listing.title) + ')))()';
   await waitUntil('Pending listing in real moderation UI', cardPredicate, 120);
+  // UX V3 #92: the queue is a compact list. Open the native disclosure
+  // deliberately before requesting private photos and approving the item.
+  const opened = await evaluate('(() => {' +
+    'const row=[...document.querySelectorAll(".moderation-list .moderation-item")].find(' +
+    'c=>c.textContent.includes(' + JSON.stringify(listing.title) + '));' +
+    'if(!row||row.open||!row.querySelector("summary"))return false;' +
+    'if(row.querySelector(".moderation-gallery-gate")?.getClientRects().length)return false;' +
+    'row.querySelector("summary").click();return row.open;})()');
+  assert.equal(opened, true, 'Moderator must expand the right pending listing before reviewing');
+  await waitUntil('Moderation actions visible for ' + listing.title,
+    '(() => {const row=[...document.querySelectorAll(".moderation-list .moderation-item")].find(' +
+    'c=>c.textContent.includes(' + JSON.stringify(listing.title) + '));' +
+    'return !!row?.open && !!row.querySelector(".moderation-gallery-gate button") && ' +
+    'row.querySelector(".moderation-gallery-gate").getClientRects().length>0;})()', 80);
   const openGallery = '(() => {' +
     'const card=[...document.querySelectorAll(".moderation-list .moderation-item")]' +
     '.find(c=>c.textContent.includes(' + JSON.stringify(listing.title) + '));' +
