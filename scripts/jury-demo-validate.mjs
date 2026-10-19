@@ -2,7 +2,7 @@
 // OFFLINE only: never calls APIs, accesses Docker or changes user data.
 // --metadata verifies the planned structure; --assets must fail until the actual
 // second member, complete and attributable photos, and explicit readiness exist.
-import { readFileSync, lstatSync, realpathSync, existsSync } from 'node:fs';
+import { readFileSync, lstatSync, realpathSync, existsSync, statSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,9 +13,22 @@ const actor = value => meaningful(value) ? value.trim() : '';
 const label = (value, min, max) =>
   meaningful(value) && value.trim().length >= min && value.trim().length <= max;
 
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+function strictCalendarDate(value) {
+  const match = typeof value === 'string' && /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
 function checkPhotoFile(file, expectedExt) {
+  const size = statSync(file).size;
+  if (size < 64 || size > MAX_IMAGE_BYTES) return false;
   const bytes = readFileSync(file);
-  if (bytes.length < 64) return false;
   if (expectedExt === 'png') {
     return bytes.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex')) &&
       bytes.subarray(12, 16).toString('ascii') === 'IHDR';
@@ -134,8 +147,7 @@ export function inspectPlan(plan, { assets = false, directory: root = directory 
           !meaningful(record.source) || !meaningful(record.author) ||
           !meaningful(record.licenseOrPermission) || !meaningful(record.conditions) ||
           record.authorizedForDemo !== true ||
-          !/^\d{4}-\d{2}-\d{2}$/.test(record.verifiedAt || '') ||
-          Number.isNaN(Date.parse(record.verifiedAt))) {
+          !strictCalendarDate(record.verifiedAt)) {
         errors.push('Unverified or mismatched image provenance: ' + name);
       }
       if (meaningful(creditId)) seenCredits.add(creditId);
