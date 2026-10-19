@@ -21,6 +21,7 @@ Le manifeste réserve **quatre annonces** : deux dons (lampe, étagère) et deux
 
 ## Contrôles de sécurité du manifeste
 
+- L'opérateur peut exécuter `pnpm jury:keycloak:check` **uniquement en environnement isolé** avec un jeton Admin temporaire en mémoire ; ce contrôle est strictement **en lecture seule** et vérifie la présence et les rôles réellement exposés par Keycloak (voir [runbook](28-jury-parcours-operateur.md)). Il n'est pas automatisé en CI car il ne doit jamais accéder à un realm réel ni demander un secret.
 - Les comptes `memberOwner` et `memberRequester` doivent être **deux utilisateurs distincts**. Les identités du modérateur et de l'administrateur doivent aussi être différentes de celles des membres et l'une de l'autre. Ce contrôle vérifie uniquement les identifiants déclarés ; les **rôles réels Keycloak/RBAC** doivent encore être vérifiés lors de la recette.
 - Chaque photo doit être une image régulière identifiable (signature JPEG, PNG ou WebP) d'au plus **5 Mio**, et posséder une entrée de provenance propre au fichier : source, auteur, autorisation, conditions et date réelle **non future**. L'approbation juridique reste manuelle.
 - Les tests unitaires Node s'appuient sur des **fixtures de brouillon autonomes**, et non sur les avertissements du manifeste réel : la conversion du jeu de données en `READY_FOR_REVIEW` ne peut donc pas casser les tests de brouillon.
