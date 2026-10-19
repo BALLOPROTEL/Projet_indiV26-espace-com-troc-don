@@ -468,31 +468,47 @@ async function assertKeycloakPasswordLayout(viewport) {
     JSON.stringify(geometry));
   assert.ok(Math.abs(geometry.group.height - geometry.username.height) <= 3,
     'Password group height must match username field: ' + JSON.stringify(geometry));
-  // Exercise Keycloak's own toggle, including restoration to masked mode.
-  // Do not log credential contents or replace Keycloak event handlers.
-  const visibility = await evaluate('(() => {' +
+  // Exercise actual keyboard Tab navigation before clicking the native toggle.
+  // Visibility changes can restore focus to the input, so measure button
+  // focus BEFORE the clicks rather than mixing two different focus states.
+  assert.equal(await evaluate('(() => {' +
+    'const input=document.querySelector("#password");input?.focus();' +
+    'return document.activeElement===input;})()'), true,
+  'Keycloak password input must be keyboard-focusable at ' + viewport);
+  await command('Input.dispatchKeyEvent', {
+    type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9,
+  });
+  await command('Input.dispatchKeyEvent', {
+    type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9,
+  });
+  const focus = await evaluate('(() => {' +
     'const password=document.querySelector("#password"),' +
     'group=password?.closest(".pf-v5-c-input-group"),' +
     'toggle=group?.querySelector("button");' +
-    'if(!password||!group||!toggle)return null;' +
-    'const before=password.type;toggle.focus();' +
-    'const groupRing=parseFloat(getComputedStyle(group).outlineWidth);' +
-    'const toggleRing=parseFloat(getComputedStyle(toggle).outlineWidth);' +
-    'toggle.click();const revealed=password.type;' +
+    'if(!group||!toggle)return null;' +
+    'const buttonCss=getComputedStyle(toggle);' +
+    'return {eyeFocused:document.activeElement===toggle,' +
+    'eyeFocusVisible:toggle.matches(":focus-visible"),' +
+    'groupRing:parseFloat(getComputedStyle(group).outlineWidth),' +
+    'toggleRing:parseFloat(buttonCss.outlineWidth),' +
+    'toggleShadow:buttonCss.boxShadow,' +
+    'toggleId:toggle.id};})()');
+  assert.ok(focus && focus.eyeFocused && focus.eyeFocusVisible &&
+    focus.groupRing >= 2 && focus.toggleRing === 0 &&
+    focus.toggleShadow.includes('inset'),
+    'Keyboard Tab must identify eye with an inset cue and ONE outer group ring at ' +
+    viewport + ': ' + JSON.stringify(focus));
+  // Click Keycloak's own show/hide button; never log password content.
+  const visibility = await evaluate('(() => {' +
+    'const password=document.querySelector("#password"),' +
+    'toggle=password?.closest(".pf-v5-c-input-group")?.querySelector("button");' +
+    'if(!password||!toggle)return null;' +
+    'const before=password.type;toggle.click();const revealed=password.type;' +
     'toggle.click();const restored=password.type;' +
-    'return {before,revealed,restored,groupRing,toggleRing,' +
-    'toggleIsCurrent:document.contains(toggle),' +
-    'isFocusVisible:toggle.matches(":focus-visible"),' +
-    'inLoginForm:!!toggle.closest("#kc-form-login"),' +
-    'cssOverrideMatched:toggle.matches("#kc-form-login .pf-v5-c-input-group button:focus-visible"),' +
-    'toggleId:toggle.id,groupTag:group.tagName,' +
-    'groupInLoginForm:!!group.closest("#kc-form-login")};})()');
+    'return {before,revealed,restored};})()');
   assert.ok(visibility && visibility.before === 'password' &&
     visibility.revealed === 'text' && visibility.restored === 'password',
     'Native password visibility must toggle and re-mask at ' +
-    viewport + ': ' + JSON.stringify(visibility));
-  assert.ok(visibility.groupRing >= 2 && visibility.toggleRing === 0,
-    'Password group needs one visible focus outline (not two) at ' +
     viewport + ': ' + JSON.stringify(visibility));
 }
 
