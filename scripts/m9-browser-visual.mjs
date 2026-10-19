@@ -33,6 +33,9 @@ let socket;
 const pending = new Map();
 let sequence = 0;
 const apiResponses = [];
+// Preserve each caller's viewport during temporary login geometry checks.
+// All viewport changes flow through command(), including prior Chrome journeys.
+let currentDeviceMetrics = null;
 
 async function waitForPort() {
   const file = join(profileDir, 'DevToolsActivePort');
@@ -45,6 +48,8 @@ async function waitForPort() {
 }
 
 function command(method, params = {}) {
+  if (method === 'Emulation.setDeviceMetricsOverride') currentDeviceMetrics = { ...params };
+  if (method === 'Emulation.clearDeviceMetricsOverride') currentDeviceMetrics = null;
   const id = ++sequence;
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -446,6 +451,7 @@ async function journeySwitchUser(username) {
   // #93: measure the real Keycloak page in Chrome before entering credentials.
   // A CSS build alone cannot detect PatternFly compressing the login to 290px.
   if (username === 'demo-user') {
+    const restoreMetrics = currentDeviceMetrics ? { ...currentDeviceMetrics } : null;
     await command('Emulation.setDeviceMetricsOverride', {
       width: 1280, height: 860, deviceScaleFactor: 1, mobile: false,
     });
@@ -479,7 +485,8 @@ async function journeySwitchUser(username) {
       'Keycloak 390px mobile form must remain spacious without horizontal overflow: ' +
       JSON.stringify(mobileLogin));
     await journeyScreenshot('uxv3-keycloak-mobile-390');
-    await command('Emulation.clearDeviceMetricsOverride');
+    if (restoreMetrics) await command('Emulation.setDeviceMetricsOverride', restoreMetrics);
+    else await command('Emulation.clearDeviceMetricsOverride');
   }
   const signIn = '(() => {' +
     'const user=document.querySelector("#username"),pass=document.querySelector("#password");' +
