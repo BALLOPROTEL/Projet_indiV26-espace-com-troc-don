@@ -1,5 +1,7 @@
 # LOT 9B-F — Kit de démonstration jury (étape 1 : plan)
 
+**Runbook opérateur et journal de recette :** [docs/28-jury-parcours-operateur.md](28-jury-parcours-operateur.md). Aucun scénario du runbook n'est réputé exécuté tant que ses preuves ne sont pas renseignées.
+
 **État : DRAFT. Pas de seed, pas de reset, pas de médias livrés.** Ceci est un scénario préparatoire pour l'issue [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56), distinct des fixtures jetables certifiées en CI par la PR #61.
 
 ## Vérifications faites sur le dépôt
