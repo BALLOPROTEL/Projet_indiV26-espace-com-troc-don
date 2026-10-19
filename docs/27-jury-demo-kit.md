@@ -17,6 +17,13 @@ Le manifeste réserve **quatre annonces** : deux dons (lampe, étagère) et deux
 5. Les deux membres confirment chaque transaction acceptée jusqu'à `COMPLETED` ; consulter l'historique et les notifications persistées.
 6. L'administrateur affiche ses indicateurs de catalogue réels ; vérifier l'accès refusé aux rôles non ADMIN.
 
+## Contrôles de sécurité du manifeste
+
+- Les comptes `memberOwner` et `memberRequester` doivent être **deux utilisateurs distincts**. Les identités du modérateur et de l'administrateur doivent aussi être différentes de celles des membres et l'une de l'autre. Ce contrôle vérifie uniquement les identifiants déclarés ; les **rôles réels Keycloak/RBAC** doivent encore être vérifiés lors de la recette.
+- Chaque photo doit être une image régulière identifiable (signature JPEG, PNG ou WebP) d'au plus **5 Mio**, et posséder une entrée de provenance propre au fichier : source, auteur, autorisation, conditions et date réelle **non future**. L'approbation juridique reste manuelle.
+- Les tests unitaires Node s'appuient sur des **fixtures de brouillon autonomes**, et non sur les avertissements du manifeste réel : la conversion du jeu de données en `READY_FOR_REVIEW` ne peut donc pas casser les tests de brouillon.
+- La CI exécute le contrôle des médias `--assets` **automatiquement** dès que le manifeste du dépôt porte le statut `READY_FOR_REVIEW`. Ne changer ce statut qu'après constitution du second compte et des vingt photos autorisées, dans un environnement isolé.
+
 ## Contrôles sûrs (aucune connexion à la base)
 
 ```bash
