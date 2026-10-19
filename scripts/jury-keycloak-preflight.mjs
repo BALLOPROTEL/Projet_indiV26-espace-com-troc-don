@@ -14,15 +14,18 @@ const EXPECTED = {
 };
 const asActor = value => typeof value === 'string' ? value.trim() : '';
 
+// Never accept arbitrary remote HTTPS destinations with an Admin bearer token.
+// Access a VERIFIED disposable Keycloak by running in that sandbox, or establish
+// a separately reviewed local port forward to its port 8081 first.
 export function validateAdminEndpoint(input) {
   const address = new URL(input);
-  const local = ['localhost', '127.0.0.1', '[::1]'].includes(address.hostname);
-  if (!(address.protocol === 'https:' ||
-        (address.protocol === 'http:' && local)) ||
-      address.username || address.password || address.search || address.hash) {
-    throw new Error('Keycloak Admin API must be HTTPS (or local HTTP) without URL credentials');
+  const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(address.hostname);
+  if (!loopback || address.protocol !== 'http:' || address.port !== '8081' ||
+      address.pathname !== '/' || address.username || address.password ||
+      address.search || address.hash) {
+    throw new Error('Keycloak Admin API must be the verified loopback port 8081');
   }
-  return address.origin + address.pathname.replace(/\/+$/, '');
+  return address.origin;
 }
 
 export async function checkJuryKeycloakActors(plan, {
@@ -50,6 +53,22 @@ export async function checkJuryKeycloakActors(plan, {
       !/^[a-zA-Z0-9_-]+$/.test(realm)) {
     return { errors: ['Admin access token and valid realm are required'], checked: 0 };
   }
+  // Unauthenticated OIDC discovery FIRST. Never send any Admin bearer token
+  // until a local Keycloak realm reports its exact expected issuer.
+  const issuer = root + '/realms/' + encodeURIComponent(realm);
+  try {
+    const discovery = await fetchImpl(issuer + '/.well-known/openid-configuration', {
+      method: 'GET', redirect: 'error',
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!discovery.ok || (await discovery.json())?.issuer !== issuer) {
+      return { errors: ['Local Keycloak issuer mismatch or discovery unavailable'], checked: 0 };
+    }
+  } catch {
+    return { errors: ['Local Keycloak issuer mismatch or discovery unavailable'], checked: 0 };
+  }
+
   let checked = 0;
   async function getJson(resource, actorKey) {
     // Redirects must not forward bearer tokens to another origin.
@@ -87,6 +106,10 @@ export async function checkJuryKeycloakActors(plan, {
       if (expectedRole === 'USER' &&
           (names.has('MODERATOR') || names.has('ADMIN'))) {
         errors.push('Jury USER must not hold privileged roles: ' + key);
+        continue;
+      }
+      if (expectedRole === 'MODERATOR' && names.has('ADMIN')) {
+        errors.push('Jury MODERATOR must not hold ADMIN privileges: ' + key);
         continue;
       }
       checked++;
