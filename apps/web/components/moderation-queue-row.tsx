@@ -26,7 +26,7 @@ export function ModerationQueueRow({ listing, index, children }: {
         </span>
         <span className="moderation-review__media">
           {listing.images.length} photo{listing.images.length === 1 ? '' : 's'}
-          {listing.operationType === 'TRADE' ? ` · ${listing.tradeWishes.length} souhaits` : ''}
+          {listing.operationType === 'TRADE' ? ` · ${listing.tradeWishes.length} souhait${listing.tradeWishes.length === 1 ? '' : 's'}` : ''}
         </span>
         <span className="moderation-review__toggle">
           <span className="moderation-review__toggle-label">Examiner</span>
