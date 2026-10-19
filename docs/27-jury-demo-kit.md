@@ -6,7 +6,7 @@
 
 ## Vérifications faites sur le dépôt
 
-Le realm de labo dispose de `demo-user` (USER), `demo-moderator` (MODERATOR) et `demo-admin` (ADMIN). **Il manque encore un deuxième USER distinct** : `actors.memberRequester` vaut `null` dans le manifeste. Aucun compte fictif n'est présenté comme existant.
+Le realm de labo dispose de `demo-user` (USER), `demo-moderator` (MODERATOR) et `demo-admin` (ADMIN). **Il manque encore un deuxième USER distinct** : `actors.memberRequester` vaut `null` dans le manifeste. Un générateur d'import **hors-ligne et non destructif**, `pnpm jury:realm:prepare`, permet de préparer un nouveau realm de démonstration contenant `demo-requester` avec le rôle USER, mais **ne crée pas le compte dans un Keycloak déjà déployé** (procédure dans le [runbook](28-jury-parcours-operateur.md)). Aucun compte fictif n'est présenté comme existant.
 
 Le manifeste réserve **quatre annonces** : deux dons (lampe, étagère) et deux annonces de troc (sac et livres), chacune avec **cinq photos à fournir**. Ces vingt chemins d'images ne pointent pas vers des photos réellement présentes. **Il est interdit de présenter le kit comme prêt tant que les droits de réutilisation et les fichiers n'ont pas été validés.**
 
