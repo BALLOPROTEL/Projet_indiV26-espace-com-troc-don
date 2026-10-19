@@ -205,8 +205,10 @@ input[type="password"] {
   box-shadow: none !important;
   outline: 0 !important;
 }
-/* Keyboard focus is already exposed by the shared :focus-within ring.
-   Do not draw a second outline around Keycloak's native eye toggle. */
+/* The input group already draws the focus ring. PatternFly can outline
+   the native visibility button on :focus without :focus-visible (as proven
+   by real Chrome). Suppress only that nested outline for either focus mode. */
+#kc-form-login .pf-v5-c-input-group button:focus,
 #kc-form-login .pf-v5-c-input-group button:focus-visible {
   outline: 0 !important;
   box-shadow: none !important;
