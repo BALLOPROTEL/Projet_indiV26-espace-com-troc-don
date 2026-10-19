@@ -465,6 +465,28 @@ async function assertKeycloakPasswordLayout(viewport) {
   assert.ok(geometry.password.height >= 44 && geometry.overflow <= 2,
     'Password control must remain touchable without horizontal scroll: ' +
     JSON.stringify(geometry));
+  assert.ok(Math.abs(geometry.group.height - geometry.username.height) <= 3,
+    'Password group height must match username field: ' + JSON.stringify(geometry));
+  // Exercise Keycloak's own toggle, including restoration to masked mode.
+  // Do not log credential contents or replace Keycloak event handlers.
+  const visibility = await evaluate('(() => {' +
+    'const password=document.querySelector("#password"),' +
+    'group=password?.closest(".pf-v5-c-input-group"),' +
+    'toggle=group?.querySelector("button");' +
+    'if(!password||!group||!toggle)return null;' +
+    'const before=password.type;toggle.focus();' +
+    'const groupRing=parseFloat(getComputedStyle(group).outlineWidth);' +
+    'const toggleRing=parseFloat(getComputedStyle(toggle).outlineWidth);' +
+    'toggle.click();const revealed=password.type;' +
+    'toggle.click();const restored=password.type;' +
+    'return {before,revealed,restored,groupRing,toggleRing};})()');
+  assert.ok(visibility && visibility.before === 'password' &&
+    visibility.revealed === 'text' && visibility.restored === 'password',
+    'Native password visibility must toggle and re-mask at ' +
+    viewport + ': ' + JSON.stringify(visibility));
+  assert.ok(visibility.groupRing >= 2 && visibility.toggleRing === 0,
+    'Password group needs one visible focus outline (not two) at ' +
+    viewport + ': ' + JSON.stringify(visibility));
 }
 
 async function journeySwitchUser(username) {
@@ -519,6 +541,10 @@ async function journeySwitchUser(username) {
       JSON.stringify(mobileLogin));
     await assertKeycloakPasswordLayout('mobile-390');
     await journeyScreenshot('uxv3-keycloak-mobile-390');
+    await command('Emulation.setDeviceMetricsOverride', {
+      width: 320, height: 760, deviceScaleFactor: 1, mobile: true,
+    });
+    await assertKeycloakPasswordLayout('mobile-320');
     if (restoreMetrics) await command('Emulation.setDeviceMetricsOverride', restoreMetrics);
     else await command('Emulation.clearDeviceMetricsOverride');
   }
