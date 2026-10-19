@@ -435,6 +435,35 @@ async function journeyOffer(targetId, offeredId, label,
   console.log('[M9 Journey] Real browser submission ' + label + ': PASS');
 }
 
+// #96 — verify the native Keycloak password control, not just the card width.
+// Cover the screenshot regression: a 1%-wide password input and detached dark eye.
+async function assertKeycloakPasswordControl(viewport) {
+  const box = await evaluate('(() => {' +
+    'const user=document.querySelector("#username"),pass=document.querySelector("#password");' +
+    'const group=pass?.closest(".pf-v5-c-input-group");' +
+    'const toggle=group?.querySelector("button");' +
+    'if(!user||!pass||!group||!toggle)return null;' +
+    'const u=user.getBoundingClientRect(),p=pass.getBoundingClientRect(),' +
+    'g=group.getBoundingClientRect(),b=toggle.getBoundingClientRect();' +
+    'pass.focus();const focusVisible=group.matches(":focus-within")&&' +
+    'parseFloat(getComputedStyle(group).outlineWidth)>=2;' +
+    'const eyeBackground=getComputedStyle(toggle).backgroundColor;' +
+    'const before=pass.type;toggle.click();const changed=pass.type!==before;' +
+    'toggle.click();const restored=pass.type===before;' +
+    'return {usernameWidth:u.width,passwordWidth:p.width,groupWidth:g.width,' +
+    'groupLeft:g.left,usernameLeft:u.left,groupHeight:g.height,eyeWidth:b.width,' +
+    'eyeBackground,focusVisible,changed,restored,' +
+    'overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth};})()');
+  assert.ok(box && Math.abs(box.usernameWidth - box.groupWidth) <= 8 &&
+    Math.abs(box.usernameLeft - box.groupLeft) <= 8 &&
+    box.passwordWidth >= box.usernameWidth - 85 &&
+    box.groupHeight >= 46 && box.eyeWidth >= 44 && box.eyeWidth <= 64 &&
+    box.eyeBackground === 'rgb(244, 250, 246)' &&
+    box.focusVisible && box.changed && box.restored && box.overflow <= 2,
+    'Keycloak password must match username and retain native eye at ' +
+    viewport + ': ' + JSON.stringify(box));
+}
+
 async function journeySwitchUser(username) {
   const logout = '(() => {const button=[...document.querySelectorAll("header button")]' +
     '.find(el=>el.textContent?.trim()==="Sortir");if(!button)return false;' +
@@ -468,6 +497,7 @@ async function journeySwitchUser(username) {
     assert.ok(desktopLogin && desktopLogin.form >= 380 &&
       desktopLogin.container >= 850 && desktopLogin.left >= desktopLogin.brandRight - 14,
       'Keycloak desktop must show a generous two-column login: ' + JSON.stringify(desktopLogin));
+    await assertKeycloakPasswordControl('1280px desktop');
     await journeyScreenshot('uxv3-keycloak-desktop-1280');
     await command('Emulation.setDeviceMetricsOverride', {
       width: 390, height: 844, deviceScaleFactor: 1, mobile: true,
@@ -484,6 +514,7 @@ async function journeySwitchUser(username) {
       mobileLogin.user >= 250 && mobileLogin.overflow <= 1,
       'Keycloak 390px mobile form must remain spacious without horizontal overflow: ' +
       JSON.stringify(mobileLogin));
+    await assertKeycloakPasswordControl('390px mobile');
     await journeyScreenshot('uxv3-keycloak-mobile-390');
     if (restoreMetrics) await command('Emulation.setDeviceMetricsOverride', restoreMetrics);
     else await command('Emulation.clearDeviceMetricsOverride');
