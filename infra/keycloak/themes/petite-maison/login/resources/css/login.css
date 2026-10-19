@@ -231,6 +231,15 @@ input[type="password"] {
   background: #d6e9dd !important;
   box-shadow: inset 0 0 0 2px var(--pm-forest) !important;
 }
+/* Windows High Contrast suppresses box shadows and replaces backgrounds.
+   Use a system-color INSIDE outline so Tab still identifies the eye button. */
+@media (forced-colors: active) {
+  #kc-form-login .pf-v5-c-input-group button:focus-visible {
+    outline: 2px solid Highlight !important;
+    outline-offset: -4px !important;
+    box-shadow: none !important;
+  }
+}
 @media (hover: hover) and (pointer: fine) {
   #kc-form-login .pf-v5-c-input-group button:hover {
     background: #e2f0e7 !important;
