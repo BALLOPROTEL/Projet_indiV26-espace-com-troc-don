@@ -25,7 +25,19 @@ pnpm jury:assets:check
 
 Le premier contrôle vérifie le schéma ; le deuxième les tests de validation hors ligne. **Le troisième doit échouer tant que les images, crédits, deux acteurs réellement distincts et statut `READY_FOR_REVIEW` ne sont pas prêts.** Ne pas désactiver ni contourner cette gate pour obtenir du vert.
 
-Avant toute recette avec connexion : relever *sans enregistrer de secrets* l'URL/nom de la stack isolée et le SHA exact ; vérifier les deux membres `USER` via une connexion réelle à ce Keycloak et un accès API authentifié. Un compte éventuellement déclaré dans un export JSON n'est **pas** une preuve qu'il est présent dans un realm déjà déployé.
+Avant toute recette avec connexion : relever *sans enregistrer de secrets* l'URL/nom de la stack isolée et le SHA exact. Après provisionnement autorisé des quatre identités dans **le Keycloak de cette stack isolée**, exécuter le contrôle **lecture seule** ci-dessous. Il vérifie les comptes effectivement présents, actifs et leurs rôles de realm effectifs ; il **ne crée aucun utilisateur** et ne dispense pas d'une connexion OIDC réelle par chaque membre suivie d'un appel API RBAC. Un compte éventuellement déclaré dans un export JSON n'est **pas** une preuve qu'il est présent dans un realm déjà déployé.
+
+```bash
+# Uniquement après vérification de la stack éphémère et du Keycloak cible.
+export JURY_ENVIRONMENT_CONFIRMED=isolated
+export JURY_KEYCLOAK_BASE_URL=http://127.0.0.1:8081 # adapter à la cible isolée (HTTPS hors localhost)
+read -rsp 'Jeton Admin Keycloak temporaire (non affiché) : ' JURY_KEYCLOAK_ADMIN_TOKEN; echo
+export JURY_KEYCLOAK_ADMIN_TOKEN
+pnpm jury:keycloak:check
+unset JURY_KEYCLOAK_ADMIN_TOKEN
+```
+
+La commande doit retourner **4/4** pour ouvrir la recette ; si `memberRequester` est toujours `null`, le contrôle doit échouer avant toute requête réseau. Le jeton Admin **ne doit jamais être communiqué dans un ticket, une capture, un fichier du dépôt ou une sortie CI**. Le script refuse HTTP sur une adresse non locale, n'effectue que des GET et interdit les redirections du jeton.
 
 ### Feuille de prévol à compléter par l'opérateur
 
