@@ -144,14 +144,91 @@ input[type="password"] {
   width: 100% !important;
   align-items: stretch;
 }
-.pf-v5-c-input-group .pf-v5-c-form-control,
+/* Password is a native PatternFly input-group: flex the control/wrapper,
+   never force the nested input to width:1% (that reduced it to a thin sliver). */
+.pf-v5-c-input-group > .pf-v5-c-form-control,
+.pf-v5-c-input-group > .pf-v5-c-input-group__item:first-child {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+}
 .pf-v5-c-input-group input {
   min-width: 0 !important;
-  flex: 1 1 auto !important;
-  width: 1% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
-/* Password visibility is still Keycloak's native button. */
-.pf-v5-c-input-group button { flex: 0 0 auto; min-height: 49px; min-width: 48px; }
+/* #96 — unify the password field and Keycloak's native reveal button into
+   one control with the same border, radius and focus ring as username. */
+#kc-form-login .pf-v5-c-input-group {
+  display: flex !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  min-height: 49px !important;
+  box-sizing: border-box !important;
+  overflow: hidden;
+  border: 1px solid #718e7f !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+}
+#kc-form-login .pf-v5-c-input-group > :first-child {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+}
+#kc-form-login .pf-v5-c-input-group #password,
+#kc-form-login .pf-v5-c-input-group .pf-v5-c-form-control {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 47px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+}
+#kc-form-login .pf-v5-c-input-group #password {
+  padding: 12px 13px !important;
+  font-size: 16px !important;
+}
+#kc-form-login .pf-v5-c-input-group .pf-v5-c-form-control:focus-within,
+#kc-form-login .pf-v5-c-input-group #password:focus {
+  outline: 0 !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+#kc-form-login .pf-v5-c-input-group:focus-within {
+  border-color: var(--pm-forest) !important;
+  outline: 2px solid var(--pm-forest) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 3px rgba(11, 85, 58, .12) !important;
+}
+/* The eye control stays accessible: one subtle divider, no dark square. */
+#kc-form-login .pf-v5-c-input-group button {
+  flex: 0 0 48px !important;
+  width: 48px !important;
+  min-width: 48px !important;
+  min-height: 47px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-left: 1px solid #d2e3d8 !important;
+  border-radius: 0 !important;
+  background: #f4faf6 !important;
+  color: var(--pm-forest-deep) !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+#kc-form-login .pf-v5-c-input-group button:focus-visible {
+  outline: 2px solid var(--pm-forest) !important;
+  outline-offset: -4px !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  #kc-form-login .pf-v5-c-input-group button:hover {
+    background: #e6f1e9 !important;
+  }
+}
 .pf-v5-c-form-control:focus-within,
 input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
   border-color: var(--pm-forest) !important;
