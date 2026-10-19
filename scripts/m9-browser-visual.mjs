@@ -498,6 +498,32 @@ async function assertKeycloakPasswordLayout(viewport) {
     focus.toggleShadow.includes('inset'),
     'Keyboard Tab must identify eye with an inset cue and ONE outer group ring at ' +
     viewport + ': ' + JSON.stringify(focus));
+  // Real forced-colors emulation: unlike box-shadow/background, a system-color
+  // inset outline survives Windows High Contrast and signals focus transfer.
+  await command('Emulation.setEmulatedMedia', {
+    features: [{ name: 'forced-colors', value: 'active' }],
+  });
+  try {
+    const highContrast = await evaluate('(() => {' +
+      'const eye=document.querySelector("#password")' +
+      '?.closest(".pf-v5-c-input-group")?.querySelector("button");' +
+      'if(!eye)return null;const css=getComputedStyle(eye);' +
+      'return {forced:matchMedia("(forced-colors: active)").matches,' +
+      'eyeFocused:document.activeElement===eye,' +
+      'eyeFocusVisible:eye.matches(":focus-visible"),' +
+      'outlineWidth:parseFloat(css.outlineWidth),' +
+      'outlineOffset:parseFloat(css.outlineOffset),' +
+      'outlineStyle:css.outlineStyle};})()');
+    assert.ok(highContrast && highContrast.forced &&
+      highContrast.eyeFocused && highContrast.eyeFocusVisible &&
+      highContrast.outlineWidth >= 2 &&
+      highContrast.outlineOffset <= -2 &&
+      highContrast.outlineStyle !== 'none',
+      'High Contrast must retain an inset native eye focus outline at ' +
+      viewport + ': ' + JSON.stringify(highContrast));
+  } finally {
+    await command('Emulation.setEmulatedMedia', { features: [] });
+  }
   // Click Keycloak's own show/hide button; never log password content.
   const visibility = await evaluate('(() => {' +
     'const password=document.querySelector("#password"),' +
