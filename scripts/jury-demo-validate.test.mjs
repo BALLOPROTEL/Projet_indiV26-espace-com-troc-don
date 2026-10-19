@@ -58,6 +58,18 @@ test('strict gate fails on missing media, provenance and readiness', () => {
   assert.ok(v.errors.some(x => x.includes('READY_FOR_REVIEW')));
 });
 
+test('metadata rejects unsupported readiness states before any conditional asset gate', () => {
+  for (const readiness of ['READY_FOR_REVEIW', 'PENDING', '', null, undefined]) {
+    const invalidState = modify(p => { p.readiness = readiness; });
+    const metadata = inspectPlan(invalidState);
+    assert.ok(metadata.errors.some(e => e.includes('Invalid readiness state')),
+      'Metadata must reject unknown readiness: ' + String(readiness));
+  }
+  assert.deepEqual(inspectPlan(plan).errors, []);
+  const ready = modify(p => { p.readiness = 'READY_FOR_REVIEW'; });
+  assert.ok(!inspectPlan(ready).errors.some(e => e.includes('Invalid readiness')));
+});
+
 test('a completed manifest does not invalidate the draft test fixture', () => {
   const completed = modify(p => {
     p.readiness = 'READY_FOR_REVIEW';
