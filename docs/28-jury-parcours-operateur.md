@@ -49,15 +49,15 @@ Exécuter les actions **dans cet ordre** pour ne pas immobiliser une annonce né
 | C | Demandeur | Créer `troc-livres` avec 5 photos et 5 souhaits | Deux propriétaires distincts |
 | D | Modérateur | Contrôler les galeries privées, approuver les quatre annonces | Publiées dans le catalogue ; vérifier les 20 médias et leur persistance |
 | E | Demandeur | Faire une demande DON sur `don-lampe` | Proposition `PENDING`, reçue uniquement par le bon propriétaire |
-| F | Propriétaire | Refuser la demande `don-lampe` | `REJECTED`, annonce non réservée, notification au demandeur |
+| F | Propriétaire | Refuser la demande `don-lampe` | Proposition `REJECTED`, annonce disponible et événement interne `proposal.rejected` persisté avec `requesterId` ; **aucune notification utilisateur affichée n'est garantie** |
 | G | Demandeur | Faire une demande DON sur `don-etagere` | Proposition `PENDING`, visible dans le suivi |
-| H | Propriétaire | Accepter `don-etagere` | Réservation cohérente côté Catalog / Marketplace |
-| I | Les deux membres | Confirmer le DON chacun depuis son propre compte | `COMPLETED` ; confirmation d'un seul membre insuffisante |
+| H | Propriétaire | Accepter `don-etagere` | Proposition `ACCEPTED`, annonce réservée et transaction créée ; confronter Catalog et Marketplace |
+| I | Les deux membres | Confirmer le DON chacun depuis son propre compte | Transaction `COMPLETED` et annonce `COMPLETED` ; proposition reste `ACCEPTED` ; une seule confirmation ne termine pas la transaction |
 | J | Demandeur | Choisir `troc-livres` comme contrepartie de `troc-sac` | Comparaison des **deux fiches** et proposition TROC |
-| K | Propriétaire | Accepter le TROC, puis les deux membres confirment | Deux annonces réservées et proposition `COMPLETED` |
+| K | Propriétaire puis les deux membres | Accepter le TROC : proposition `ACCEPTED`, deux annonces réservées. Ensuite confirmer séparément depuis chaque compte | Après les deux confirmations : transaction `COMPLETED` et **deux annonces** `COMPLETED` ; la proposition demeure `ACCEPTED` |
 | L | Administrateur | Consulter les indicateurs réels puis tester un USER sur la même route | Totaux issus des API ; ADMIN autorisé, USER refusé 403 |
 
-À chaque passage : vérifier le changement d'état **dans les API**, pas seulement dans un toast de succès. Vérifier l'absence de doublons de notifications après actualisation, la visibilité des propositions par le bon propriétaire et le refus des accès tiers (401/403/409 selon le contrat). Les données du tableau ne sont pas des résultats déjà observés.
+À chaque passage : vérifier le changement d'état **dans les API**, pas seulement dans un toast de succès. Distinguer explicitement **proposition**, **transaction** et **annonce** : leur statut ne progresse pas de la même façon. La notification `proposal.rejected` est un **événement interne persistant**, non une notification consultable dans une boîte de réception personnelle ; constater l'événement dans les preuves techniques autorisées, sans inventer de route ni d'écran utilisateur. Vérifier l'absence de doublons d'événements persistés, la visibilité des propositions par le bon propriétaire et le refus des accès tiers (401/403/409 selon le contrat). Les données du tableau ne sont pas des résultats déjà observés.
 
 ## 4. Journal de preuve à remplir en direct
 
@@ -66,7 +66,7 @@ Exécuter les actions **dans cet ordre** pour ne pas immobiliser une annonce né
 | DON refusé | À renseigner | À renseigner | À renseigner | Non testé |
 | DON accepté et double-confirmé | À renseigner | À renseigner | À renseigner | Non testé |
 | TROC accepté et double-confirmé | À renseigner | À renseigner | À renseigner | Non testé |
-| RBAC ADMIN/USER, médias et notifications | À renseigner | À renseigner | À renseigner | Non testé |
+| RBAC ADMIN/USER, médias et événements persistés | À renseigner | À renseigner | À renseigner | Non testé |
 
 Conserver SHA, horodatage et version de l'image applicative avec le compte rendu ; masquer tokens, mots de passe, e-mails privés, cookies, URL signées et identifiants de session.
 
