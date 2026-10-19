@@ -89,6 +89,11 @@ export function inspectPlan(plan, { assets = false, directory: root = directory 
       (admin && [owner, requester].includes(admin))) {
     errors.push('Moderator and admin must be distinct from USER identities and from each other');
   }
+  // --metadata must reject typos too: the CI skips the strict asset gate
+  // for draft manifests, never for unknown/unsupported readiness values.
+  if (!['DRAFT_NOT_READY', 'READY_FOR_REVIEW'].includes(plan.readiness)) {
+    errors.push('Invalid readiness state: expected DRAFT_NOT_READY or READY_FOR_REVIEW');
+  }
   if (assets && plan.readiness !== 'READY_FOR_REVIEW') {
     errors.push('Manifest is not marked READY_FOR_REVIEW by the kit curator');
   }
