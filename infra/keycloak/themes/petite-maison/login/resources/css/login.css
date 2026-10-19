@@ -205,6 +205,12 @@ input[type="password"] {
   box-shadow: none !important;
   outline: 0 !important;
 }
+/* Keyboard focus is already exposed by the shared :focus-within ring.
+   Do not draw a second outline around Keycloak's native eye toggle. */
+#kc-form-login .pf-v5-c-input-group button:focus-visible {
+  outline: 0 !important;
+  box-shadow: none !important;
+}
 /* Keep Keycloak's real show/hide button, visually attached to the field. */
 #kc-form-login .pf-v5-c-input-group button {
   flex: 0 0 48px !important;
