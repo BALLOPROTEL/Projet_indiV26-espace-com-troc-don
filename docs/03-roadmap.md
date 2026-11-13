@@ -12,7 +12,7 @@ La branche `main` a pour dernier HEAD `8a248fa` et son Bootstrap #39301448528 es
 | **Backlog** | #70 | F6 facultatif, hors MVP |
 | **Backlog** | #18, #58, #59 | Preuves, soutenance, répétition et vidéo après #56/#71 |
 
-Cette table est **un plan de réconciliation**, pas une mise à jour effective du champ GitHub Projects V2. Les sous-issues déjà closes doivent figurer en `Done` dans le Kanban. Les 45 branches du snapshot initial comprennent 39 branches de PR fusionnées éligibles au nettoyage ; les tags/releases sont actuellement absents. Voir [l'audit détaillé, le détail des 39 branches et le plan de version](29-audit-github-2026-11-13.md). Aucune PR ne peut être fusionnée sans accord explicite du propriétaire.
+Cette table est **un plan de réconciliation**, pas une mise à jour effective du champ GitHub Projects V2. Les sous-issues déjà closes doivent figurer en `Done` dans le Kanban. Les 45 branches du snapshot initial comprennent 39 branches de PR fusionnées et une branche strict ancêtre de main éligibles au nettoyage (40 candidates sûres) ; les tags/releases sont actuellement absents. Voir [l'audit détaillé, le détail des 39 branches et le plan de version](29-audit-github-2026-11-13.md). Aucune PR ne peut être fusionnée sans accord explicite du propriétaire.
 
 ---
 
