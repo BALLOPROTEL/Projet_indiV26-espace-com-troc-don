@@ -12,7 +12,7 @@ Le tag `baseline-2026-10-19` a été **créé et vérifié** sur le SHA `8a248fa
 
 Un nouveau risque d'audit npm est suivi dans [#102](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/102) / [PR #103](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/103) : **2 critiques + 3 élevées + 1 modérée** ont fait échouer les anciennes CI des PR #84 et #101. Le nouveau lockfile a été régénéré par pnpm : [audit sécurité #43514970640](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/43514970640) **« No known vulnerabilities found »** après mises à jour Next.js 16.4.1, body-parser 2.4.0, multer 2.5.0, qs 6.16.1. Ces changements restent **non fusionnés** et doivent passer leurs CI/revue complètes avant accord propriétaire.
 
-**Le Kanban GitHub Projects V2 n'a pas été modifié** : ses colonnes restent hors des mutations autorisées par le connecteur actuel. Les statuts cibles sont en revanche documentés dans les 12 issues ouvertes.
+**Le Kanban GitHub Projects V2 n'a pas été modifié** : une tentative de synchronisation automatisée, strictement limitée au projet nommé `Projet_individuel26 - Kanban`, a été exécutée dans [Actions #43516291730](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/43516291730) et a échoué car **le projet exact n'était pas accessible au jeton GitHub Actions**. Le script a expressément interrompu toute écriture sur les colonnes, puis supprimé sa branche de maintenance. Les 13 statuts cibles (12 issues précédentes + nouvelle issue de sécurité #102) restent documentés ; une connexion possédant les permissions GitHub Projects V2 du bon compte est nécessaire pour synchroniser le board.
 
 ---
 
