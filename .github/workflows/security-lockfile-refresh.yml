@@ -1,0 +1,55 @@
+name: Security lockfile refresh (issue 102)
+
+on:
+  push:
+    branches:
+      - fix/102-security-advisories
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lockfile:
+    if: github.repository == 'BALLOPROTEL/Projet_indiV26-espace-com-troc-don' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout isolated security branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.24.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+
+      - name: Resolve patched dependencies without running install scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm install --lockfile-only --no-frozen-lockfile --ignore-scripts
+          pnpm audit --prod --audit-level=high
+          git diff --check -- pnpm-lock.yaml
+
+      - name: Commit only regenerated lockfile to this fix branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF}" = 'refs/heads/fix/102-security-advisories'
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo 'Lockfile unchanged after successful audit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- pnpm-lock.yaml
+          git commit -m 'chore(deps): regenerate patched lockfile [lock-sync] (#102)'
+          git push origin HEAD:refs/heads/fix/102-security-advisories
