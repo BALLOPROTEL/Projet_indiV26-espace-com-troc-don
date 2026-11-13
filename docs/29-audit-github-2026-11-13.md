@@ -32,7 +32,7 @@
 | --- | --- | --- | --- |
 | [#99](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/99) correctif largeur mot de passe | `b3c4c61a925977eb097167d4e255f3859360b0de` | Bootstrap #39325942169, M8 Chrome #39325942412 : SUCCESS ; Codex sans finding | Prête pour revue humaine, **non fusionnée** ; liée à #98 |
 | [#100](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/100) repli des pulls Docker officiels | `17a5cfc6be017d75347512eb8cffcabf9e2db749` | Bootstrap complet #39335129166 SUCCESS (Postgres, RabbitMQ, migrations, Web, Compose, Kubernetes, Trivy) ; Codex sans finding | Prête pour revue humaine, **non fusionnée** ; liée à #80 |
-| [#84](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/84) kit jury | `31438d020c1d40ac76123660711894e1976b7936` après correction P1 détectée par l'audit | Nouveau M8 Contracts #43509085254 et Jury offline #43509085345 SUCCESS ; Bootstrap #43509085868 et revue Codex en attente au moment de la rédaction | **Draft** ; données réelles manquantes, aucun GO jury, ne pas fusionner prématurément |
+| [#84](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/84) kit jury | `31438d020c1d40ac76123660711894e1976b7936` après correction P1 détectée par l'audit | Nouveau M8 Contracts #43509085254 et Jury offline #43509085345 SUCCESS ; **Codex de code sans finding** sur ce SHA ; Bootstrap #43509085868 encore en cours à la dernière consultation | **Draft** ; données réelles manquantes, aucun GO jury, ne pas fusionner prématurément |
 
 **Important :** le correctif P1 de #84 empêche `TMPDIR/TMP/TEMP` (y compris symlink) d'écrire un export contenant des mots de passe sous le checkout Git, avant toute écriture de secret. Maintenir cette garde et les tests de régression.
 
@@ -114,9 +114,10 @@ Les références GitHub n'affichent **aucun tag**, et la collection des releases
 ## 7. Checklist de clôture du nettoyage
 
 - [x] Vérifier le HEAD de `main`, la CI post-merge, les 3 PR, Codex et les 12 issues ouvertes.
+- [x] **Actualiser les 12 issues ouvertes** par une section datée (sans effacer leur historique) et ajouter leurs labels existants : `bug`, `enhancement`, `architecture`, `documentation`.
 - [x] Classer les 45 branches et isoler les 40 candidates vérifiées (39 PR fusionnées + 1 ancêtre).
 - [x] Constater l'absence de tags/releases et fixer une politique de version.
-- [x] Définir les statuts **cibles** du Kanban sans fermer abusivement les tâches.
+- [x] Définir les statuts **cibles** du Kanban sans fermer abusivement les tâches, et les documenter dans les 12 issues.
 - [ ] Appliquer les colonnes GitHub Projects V2 avec accès autorisé, puis vérifier visuellement.
 - [ ] Supprimer les 40 refs candidates (39 fusionnées et 1 ancêtre) après vérification finale ; ne pas supprimer les branches actives.
 - [ ] Décider séparément du sort de `fix/96-keycloak-password-input-group` (2 commits uniques).
