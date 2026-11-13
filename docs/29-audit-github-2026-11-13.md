@@ -10,7 +10,7 @@
 | Dernier Bootstrap sur `main` | [run #39301448528](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/39301448528) : **SUCCESS** | Citer le SHA exact |
 | Version package.json | `0.1.0` | Version de POC, pas de release production |
 | Tags Git / releases | **0 tag**, **0 release** dans les références/release GitHub accessibles | Préparer une politique de tag, ne pas inventer de release |
-| Branches avant l'audit | **45** : `main`, 3 branches de PR ouvertes, 39 branches de PR déjà fusionnées, 1 branche de PR abandonnée, 1 branche sans PR identifiable | Conserver les 3 PR ouvertes ; supprimer uniquement les 39 déjà fusionnées après vérification de leur SHA |
+| Branches avant l'audit | **45** : `main`, 3 branches de PR ouvertes, 39 branches de PR déjà fusionnées, 1 branche de PR fermée non fusionnée, 1 branche strict ancêtre de main | Conserver les 3 PR ouvertes ; supprimer les 39 fusionnées et la branche ancêtre après vérification du SHA |
 | Issues de travail ouvertes | **12** (hors PR) | Triages et statuts ci-dessous |
 | Pull requests ouvertes | **#84** (draft), **#99** (ready), **#100** (ready) | Aucune fusion sans GO explicite |
 | GitHub Projects V2 | Projet Kanban documenté par #5/#55, mais champ `Status` non accessible via le connecteur Issues | Tableau de réconciliation ci-dessous : **cible**, pas état du board déjà modifié |
@@ -97,7 +97,7 @@ test/44-m8-microservices-contracts-e2e
 test/56-lot9bf-media-certification
 ```
 
-**Ne surtout pas supprimer** : `main` (protégée), `feat/56-jury-demo-kit-plan`, `fix/98-keycloak-password-field`, `fix/80-bootstrap-registry-fallback`, et la nouvelle branche de ce rapport tant qu'une PR est ouverte. Vérifier séparément `fix/96-keycloak-password-input-group` (PR #97 fermée **sans fusion**, probablement remplacée par #99) et `feat/20-lot6b-frontend` (aucune PR associée trouvée) avant suppression ; ces deux branches ne font **pas** partie des 39 suppressions sûres.
+**Ne surtout pas supprimer** : `main` (protégée), `feat/56-jury-demo-kit-plan`, `fix/98-keycloak-password-field`, `fix/80-bootstrap-registry-fallback`, et la nouvelle branche de ce rapport tant qu'une PR est ouverte. La branche `feat/20-lot6b-frontend` a été comparée à `main` : **0 commit en avance et 145 en retard** ; c'est donc une **40e candidate** sûre sous réserve d'une dernière comparaison avant suppression. En revanche, **conserver** `fix/96-keycloak-password-input-group` : PR #97 fermée sans fusion, **2 commits uniques** et divergence face à #99 ; son sort nécessite une décision spécifique.
 
 La suppression effective nécessite un outil GitHub autorisant `DELETE /git/refs/heads/{branch}` ou l'interface authentifiée, **après relecture de la liste et vérification SHA**. Le connecteur GitHub actif ne permet que la lecture des branches et les mutations de fichiers/issues/PR ; ne pas prétendre que les branches ont été supprimées.
 
@@ -114,12 +114,12 @@ Les références GitHub n'affichent **aucun tag**, et la collection des releases
 ## 7. Checklist de clôture du nettoyage
 
 - [x] Vérifier le HEAD de `main`, la CI post-merge, les 3 PR, Codex et les 12 issues ouvertes.
-- [x] Classer les 45 branches et isoler les 39 suppressions sûres.
+- [x] Classer les 45 branches et isoler les 40 candidates vérifiées (39 PR fusionnées + 1 ancêtre).
 - [x] Constater l'absence de tags/releases et fixer une politique de version.
 - [x] Définir les statuts **cibles** du Kanban sans fermer abusivement les tâches.
 - [ ] Appliquer les colonnes GitHub Projects V2 avec accès autorisé, puis vérifier visuellement.
-- [ ] Supprimer les 39 refs de branches fusionnées après vérification finale ; ne pas supprimer les branches actives.
-- [ ] Décider séparément du sort des branches #97 et `feat/20-lot6b-frontend`.
+- [ ] Supprimer les 40 refs candidates (39 fusionnées et 1 ancêtre) après vérification finale ; ne pas supprimer les branches actives.
+- [ ] Décider séparément du sort de `fix/96-keycloak-password-input-group` (2 commits uniques).
 - [ ] Créer et vérifier le premier tag de référence **uniquement** avec l'outil de tag approprié.
 - [ ] Faire approuver explicitement les fusions #99/#100 ; garder #84 draft tant que la démo et les preuves ne sont pas prêtes.
 - [ ] Faire la recette réelle #71/#56, puis les preuves #58 et le support #59.
