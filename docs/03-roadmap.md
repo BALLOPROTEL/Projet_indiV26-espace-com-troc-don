@@ -1,5 +1,21 @@
 # Roadmap GitHub — Projet_individuel26
 
+## État de pilotage au 13 novembre 2026 (prioritaire sur les jalons historiques ci-dessous)
+
+La branche `main` a pour dernier HEAD `8a248fa` et son Bootstrap #39301448528 est **SUCCESS**. Les correctifs Keycloak [PR #99](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/99) et Docker [PR #100](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/100) sont validés techniquement mais **pas fusionnés**. Le kit jury [PR #84](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/84) est un brouillon en validation ; import réel du deuxième USER et 20 médias autorisés manquants.
+
+| Statut cible Kanban | Tâches | Critère de sortie |
+| --- | --- | --- |
+| **In Progress** | #55, #56, #35 | Kanban et nettoyage réels ; recette jury authentique et kit d'images |
+| **Review** | #98, #80 | GO propriétaire et intégration des PR #99 / #100 |
+| **Review** | #71, #63, #85 | Recette Safari/Android physique, zoom/clavier et validation UX |
+| **Backlog** | #70 | F6 facultatif, hors MVP |
+| **Backlog** | #18, #58, #59 | Preuves, soutenance, répétition et vidéo après #56/#71 |
+
+Cette table est **un plan de réconciliation**, pas une mise à jour effective du champ GitHub Projects V2. Les sous-issues déjà closes doivent figurer en `Done` dans le Kanban. Les 45 branches du snapshot initial comprennent 39 branches de PR fusionnées éligibles au nettoyage ; les tags/releases sont actuellement absents. Voir [l'audit détaillé, le détail des 39 branches et le plan de version](29-audit-github-2026-11-13.md). Aucune PR ne peut être fusionnée sans accord explicite du propriétaire.
+
+---
+
 Cette page relie le cadrage technique au backlog GitHub.
 
 ## LOT 0 — Initialisation
