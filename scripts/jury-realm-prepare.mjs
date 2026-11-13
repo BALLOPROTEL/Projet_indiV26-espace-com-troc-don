@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Prepare an import file for a NEW disposable jury realm; never call Keycloak,
 // write to the repository, edit the base realm or mutate a running account.
-import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdtempSync, realpathSync, rmdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve, dirname } from 'node:path';
+import { join, resolve, dirname, relative, isAbsolute, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
@@ -42,8 +42,24 @@ export function prepareJuryRealm(base, password, id = randomUUID()) {
   return realm;
 }
 
-export function writeDisposableRealm(realm) {
-  const dir = mkdtempSync(join(tmpdir(), 'jury-realm-'), { mode: 0o700 });
+// TMPDIR/TMP/TEMP are user-controlled: resolve symlinks and reject checkout
+// paths BEFORE creating any file that contains plaintext Keycloak credentials.
+function outsideCheckout(directory) {
+  const relativePath = relative(realpathSync(root), realpathSync(directory));
+  return relativePath === '..' || relativePath.startsWith('..' + sep) ||
+    isAbsolute(relativePath);
+}
+
+export function writeDisposableRealm(realm, { temporaryDirectory = tmpdir() } = {}) {
+  if (!outsideCheckout(temporaryDirectory)) {
+    throw new Error('Refusing to write Keycloak credentials inside the repository');
+  }
+  const dir = mkdtempSync(join(temporaryDirectory, 'jury-realm-'), { mode: 0o700 });
+  // Re-check the actual private directory before writing secrets.
+  if (!outsideCheckout(dir)) {
+    rmdirSync(dir);
+    throw new Error('Refusing redirected temporary directory inside repository');
+  }
   const output = join(dir, 'keycloak-realm.json');
   writeFileSync(output, JSON.stringify(realm, null, 2) + '\n', {
     flag: 'wx', mode: 0o600,
