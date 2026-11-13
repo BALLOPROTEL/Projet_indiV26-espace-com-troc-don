@@ -1,5 +1,22 @@
 # Audit GitHub et plan d'assainissement — 13 novembre 2026
 
+## Mise à jour : nettoyage réellement exécuté le 13 novembre
+
+[L'exécution GitHub Actions #43515368165](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/43515368165) s'est terminée **SUCCESS**. Elle a supprimé **39 branches** d'anciennes PR fusionnées, après vérification de l'état de chaque PR, de son SHA et de l'absence de PR ouverte ; puis sa propre branche temporaire. Le dépôt compte maintenant **8 branches**, toutes préservées pour une raison précise :
+
+- `main` (protégée) ;
+- `feat/56-jury-demo-kit-plan` (#84), `fix/98-keycloak-password-field` (#99), `fix/80-bootstrap-registry-fallback` (#100), `docs/github-audit-hygiene-20261113` (#101), `fix/102-security-advisories` (#103) : PR **ouvertes** ;
+- `fix/96-keycloak-password-input-group` (PR #97 fermée sans fusion) et `feat/20-lot6b-frontend` (branche historique sans PR identifiée) : **préservées pour examen individuel**.
+
+Le tag `baseline-2026-10-19` a été **créé et vérifié** sur le SHA `8a248fa7366b52341c79ace52cffdb63121c1352`, sans prétendre à une release de production ou de jury.
+
+Un nouveau risque d'audit npm est suivi dans [#102](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/102) / [PR #103](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/103) : **2 critiques + 3 élevées + 1 modérée** ont fait échouer les anciennes CI des PR #84 et #101. Le nouveau lockfile a été régénéré par pnpm : [audit sécurité #43514970640](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/43514970640) **« No known vulnerabilities found »** après mises à jour Next.js 16.4.1, body-parser 2.4.0, multer 2.5.0, qs 6.16.1. Ces changements restent **non fusionnés** et doivent passer leurs CI/revue complètes avant accord propriétaire.
+
+**Le Kanban GitHub Projects V2 n'a pas été modifié** : ses colonnes restent hors des mutations autorisées par le connecteur actuel. Les statuts cibles sont en revanche documentés dans les 12 issues ouvertes.
+
+---
+
+
 > **Source de vérité :** GitHub consulté le 13/11/2026. Ce document distingue précisément le code déjà fusionné, les PR non fusionnées, les preuves automatisées et les validations humaines. Il ne prétend pas que le Kanban GitHub Projects V2, les tags ou les branches ont été modifiés sans vérification de leur écriture effective.
 
 ## 1. Synthèse vérifiée
@@ -109,7 +126,7 @@ Les références GitHub n'affichent **aucun tag**, et la collection des releases
 2. Éviter de taguer `v1.0.0` ou une release `stable` : ces libellés impliqueraient à tort une préparation achevée.
 3. Après GO et intégration réelle des correctifs, préparer un tag SemVer correspondant à la version publiée, avec notes exactes, lien CI sur le SHA et inventaire des limites.
 
-**Aucun tag ni release n'a été créé pendant l'audit** sans accès à une mutation GitHub dédiée. Ne jamais déplacer un tag existant.
+**Mise à jour du 13/11 :** le tag de référence a été créé par la maintenance GitHub Actions #43515368165 ; **aucune release** n'a été créée et aucun tag existant déplacé.
 
 ## 7. Checklist de clôture du nettoyage
 
@@ -119,9 +136,9 @@ Les références GitHub n'affichent **aucun tag**, et la collection des releases
 - [x] Constater l'absence de tags/releases et fixer une politique de version.
 - [x] Définir les statuts **cibles** du Kanban sans fermer abusivement les tâches, et les documenter dans les 12 issues.
 - [ ] Appliquer les colonnes GitHub Projects V2 avec accès autorisé, puis vérifier visuellement.
-- [ ] Supprimer les 40 refs candidates (39 fusionnées et 1 ancêtre) après vérification finale ; ne pas supprimer les branches actives.
+- [x] Supprimer les **39 branches fusionnées** et l'éphémère branche de nettoyage : succès #43515368165 ; **2 branches historiques non fusionnées ou ambiguës préservées**.
 - [ ] Décider séparément du sort de `fix/96-keycloak-password-input-group` (2 commits uniques).
-- [ ] Créer et vérifier le premier tag de référence **uniquement** avec l'outil de tag approprié.
+- [x] Créer et vérifier le tag de référence **`baseline-2026-10-19`** sur `8a248fa` (aucune release).
 - [ ] Faire approuver explicitement les fusions #99/#100 ; garder #84 draft tant que la démo et les preuves ne sont pas prêtes.
 - [ ] Faire la recette réelle #71/#56, puis les preuves #58 et le support #59.
 
