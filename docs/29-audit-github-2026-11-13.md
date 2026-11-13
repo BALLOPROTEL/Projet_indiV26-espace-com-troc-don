@@ -2,11 +2,11 @@
 
 ## Mise à jour : nettoyage réellement exécuté le 13 novembre
 
-[L'exécution GitHub Actions #43515368165](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/43515368165) s'est terminée **SUCCESS**. Elle a supprimé **39 branches** d'anciennes PR fusionnées, après vérification de l'état de chaque PR, de son SHA et de l'absence de PR ouverte ; puis sa propre branche temporaire. Le dépôt compte maintenant **8 branches**, toutes préservées pour une raison précise :
+[L'exécution GitHub Actions #43515368165](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/43515368165) s'est terminée **SUCCESS**. Elle a supprimé **39 branches** d'anciennes PR fusionnées, après vérification de l'état de chaque PR, de son SHA et de l'absence de PR ouverte ; puis sa propre branche temporaire. Le dépôt compte désormais **7 branches** après une deuxième exécution [#43515848969](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/43515848969), **SUCCESS**, qui a supprimé uniquement `feat/20-lot6b-frontend` après comparaison Git : 0 commit en avance sur main, 145 en retard, aucune PR ouverte. Les branches conservées ont toutes une raison explicite :
 
 - `main` (protégée) ;
 - `feat/56-jury-demo-kit-plan` (#84), `fix/98-keycloak-password-field` (#99), `fix/80-bootstrap-registry-fallback` (#100), `docs/github-audit-hygiene-20261113` (#101), `fix/102-security-advisories` (#103) : PR **ouvertes** ;
-- `fix/96-keycloak-password-input-group` (PR #97 fermée sans fusion) et `feat/20-lot6b-frontend` (branche historique sans PR identifiée) : **préservées pour examen individuel**.
+- `fix/96-keycloak-password-input-group` (PR #97 fermée **sans fusion**, **2 commits uniques en avance sur main**) : **préservée pour examen individuel**.
 
 Le tag `baseline-2026-10-19` a été **créé et vérifié** sur le SHA `8a248fa7366b52341c79ace52cffdb63121c1352`, sans prétendre à une release de production ou de jury.
 
@@ -136,8 +136,8 @@ Les références GitHub n'affichent **aucun tag**, et la collection des releases
 - [x] Constater l'absence de tags/releases et fixer une politique de version.
 - [x] Définir les statuts **cibles** du Kanban sans fermer abusivement les tâches, et les documenter dans les 12 issues.
 - [ ] Appliquer les colonnes GitHub Projects V2 avec accès autorisé, puis vérifier visuellement.
-- [x] Supprimer les **39 branches fusionnées** et l'éphémère branche de nettoyage : succès #43515368165 ; **2 branches historiques non fusionnées ou ambiguës préservées**.
-- [ ] Décider séparément du sort de `fix/96-keycloak-password-input-group` (2 commits uniques).
+- [x] Supprimer les **39 branches fusionnées** et l'éphémère branche de nettoyage : succès #43515368165 ; **1 branche historique non fusionnée avec 2 commits uniques préservée**.
+- [ ] Décider séparément du sort de `fix/96-keycloak-password-input-group` (2 commits uniques non fusionnés) ; ne pas supprimer sans revue de ces commits.
 - [x] Créer et vérifier le tag de référence **`baseline-2026-10-19`** sur `8a248fa` (aucune release).
 - [ ] Faire approuver explicitement les fusions #99/#100 ; garder #84 draft tant que la démo et les preuves ne sont pas prêtes.
 - [ ] Faire la recette réelle #71/#56, puis les preuves #58 et le support #59.
