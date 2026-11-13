@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, statSync, rmSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { readFileSync, statSync, rmSync, mkdtempSync, symlinkSync, existsSync } from 'node:fs';
+import { dirname, resolve, join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+
+const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 import { prepareJuryRealm, writeDisposableRealm } from './jury-realm-prepare.mjs';
 
 const base = () => ({
@@ -52,11 +56,35 @@ test('never accepts a blank, weak or multiline requester password', () => {
   }
 });
 
+test('refuses TMPDIR inside the checkout even if it looks like a valid temp root', () => {
+  const candidate = prepareJuryRealm(base(), 'only-for-disposable-test');
+  assert.throws(
+    () => writeDisposableRealm(candidate, { temporaryDirectory: projectRoot }),
+    /inside the repository/,
+  );
+  assert.equal(existsSync(join(projectRoot, 'jury-realm-should-not-exist')), false);
+});
+
+test('rejects symlinked temporary roots pointing into the checkout', () => {
+  const parent = mkdtempSync(join(tmpdir(), 'jury-tmp-guard-'));
+  try {
+    const alias = join(parent, 'alias-to-checkout');
+    symlinkSync(projectRoot, alias, 'dir');
+    assert.throws(
+      () => writeDisposableRealm(prepareJuryRealm(base(), 'only-for-disposable-test'),
+        { temporaryDirectory: alias }),
+      /inside the repository/,
+    );
+  } finally {
+    rmSync(parent, { recursive: true, force: true });
+  }
+});
+
 test('writes a new protected temp import, never a tracked project file', () => {
   const output = writeDisposableRealm(prepareJuryRealm(base(), 'only-for-disposable-test'));
   try {
     assert.ok(output.includes('jury-realm-'));
-    assert.ok(output.startsWith('/tmp/') || output.includes('Temp'));
+    assert.ok(!output.startsWith(projectRoot + '/'), 'Secrets must stay outside checkout');
     const loaded = JSON.parse(readFileSync(output, 'utf8'));
     assert.equal(loaded.users.length, 4);
     if (process.platform !== 'win32') {
