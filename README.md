@@ -1,5 +1,9 @@
 # Projet_individuel26 — Espace communautaire de troc & don
 
+> **État GitHub vérifié le 13 novembre 2026 :** `main` est à `8a248fa` (19/10/2026), dernier Bootstrap main [#39301448528](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/39301448528) réussi. Les PR [#99 Keycloak](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/99) et [#100 CI Docker](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/100) sont techniquement validées, **prêtes pour revue mais non fusionnées**.
+
+> La PR [#84 kit jury](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/84) reste en **draft** : comptes/photos réalistes non certifiés et contrôle sécurité/CI du dernier commit à finaliser. Les recettes physiques #71 et la soutenance LOT10 #58/#59 restent à réaliser. Voir l'[audit GitHub et la matrice Kanban du 13/11](docs/29-audit-github-2026-11-13.md). **Le POC n'est ni une version de production ni une démonstration jury prête.**
+
 Projet individuel pour le bloc **« Superviser et assurer le développement des applications logicielles »**. Le POC de *La Petite Maison de l'Épouvante* démontre une véritable verticale métier DON/TROC avec modération, transactions et exigences d'industrialisation.
 
 > **État au 16 octobre 2026 :** migration microservices M0–M10 et frontend V2 F0–F5/F7 fusionnés dans `main` (dont PR #79 et #82). La recette automatisée navigateur est validée, mais la validation sur **vrais appareils iOS/Android** reste à réaliser (#71), ainsi que le kit de démonstration jury réinitialisable (#56). Le POC n'est pas un service de production et n'a pas de déploiement public permanent certifié.
