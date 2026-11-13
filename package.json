@@ -87,7 +87,10 @@
       "deepmerge-ts": "8.0.1",
       "@nestjs/swagger>js-yaml": "5.4.1",
       "source-map-js": "1.2.2",
-      "sharp": "0.35.5"
+      "sharp": "0.35.5",
+      "body-parser": "2.4.0",
+      "multer": "2.5.0",
+      "qs": "6.16.1"
     }
   }
 }
