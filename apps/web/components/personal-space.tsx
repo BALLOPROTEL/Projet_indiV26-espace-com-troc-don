@@ -125,8 +125,22 @@ export function PersonalSpace() {
     // leave a deep-linked section below the viewport even after Keycloak
     // resolves. Recheck visibility after route hydration, without forcing
     // a jump for sections already readable on screen.
+    let userInteracted = false;
+    let frame = 0;
+    let retry = 0;
+    let lateRetry = 0;
+    const cancelPending = () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(retry);
+      window.clearTimeout(lateRetry);
+    };
+    // Never snap back after a person scrolls, taps or uses the keyboard.
+    const cancelOnUserInput = () => {
+      userInteracted = true;
+      cancelPending();
+    };
     const restore = () => {
-      if (window.location.hash !== '#' + target) return;
+      if (userInteracted || workspaceSectionFromHash(window.location.hash) !== target) return;
       const section = document.getElementById(target);
       if (!section) return;
       const top = section.getBoundingClientRect().top;
@@ -134,13 +148,19 @@ export function PersonalSpace() {
         section.scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
       }
     };
-    const frame = window.requestAnimationFrame(restore);
-    const retry = window.setTimeout(restore, 450);
-    const lateRetry = window.setTimeout(restore, 1100);
+    window.addEventListener('wheel', cancelOnUserInput, { passive: true });
+    window.addEventListener('touchstart', cancelOnUserInput, { passive: true });
+    window.addEventListener('pointerdown', cancelOnUserInput, { passive: true });
+    window.addEventListener('keydown', cancelOnUserInput);
+    frame = window.requestAnimationFrame(restore);
+    retry = window.setTimeout(restore, 450);
+    lateRetry = window.setTimeout(restore, 1100);
     return () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(retry);
-      window.clearTimeout(lateRetry);
+      cancelPending();
+      window.removeEventListener('wheel', cancelOnUserInput);
+      window.removeEventListener('touchstart', cancelOnUserInput);
+      window.removeEventListener('pointerdown', cancelOnUserInput);
+      window.removeEventListener('keydown', cancelOnUserInput);
     };
   }, [ready, authenticated]);
 
