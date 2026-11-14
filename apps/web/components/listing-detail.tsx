@@ -69,11 +69,28 @@ export function ListingDetail({ id }: { id: string }) {
       typeof window === 'undefined' ? '' : window.location.hash,
       !loading && !error && !notFound && listing !== null,
     )) return;
-    const frame = window.requestAnimationFrame(() => {
-      document.getElementById('faire-une-demande')
-        ?.scrollIntoView({ block: 'start', behavior: 'auto' });
-    });
-    return () => window.cancelAnimationFrame(frame);
+    // The global document uses smooth scrolling, while Next.js may perform
+    // a competing scroll restoration during initial client hydration. An
+    // explicit instant scroll with a delayed, visibility-checked retry keeps
+    // the requested form in view after Keycloak redirects without animating
+    // a long page unexpectedly.
+    const restore = () => {
+      if (window.location.hash !== '#faire-une-demande') return;
+      const target = document.getElementById('faire-une-demande');
+      if (!target) return;
+      const top = target.getBoundingClientRect().top;
+      if (top < 64 || top > Math.min(window.innerHeight * 0.6, 550)) {
+        target.scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
+      }
+    };
+    const frame = window.requestAnimationFrame(restore);
+    const retry = window.setTimeout(restore, 450);
+    const lateRetry = window.setTimeout(restore, 1100);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(retry);
+      window.clearTimeout(lateRetry);
+    };
   }, [loading, error, notFound, listing]);
 
   if (loading) {
