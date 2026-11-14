@@ -656,11 +656,92 @@ async function runRealBrowserJourneys() {
   const requester = await browserToken('demo-user');
   await seedBrowserJourneys(owner, requester);
 
+  // UX V4: a signed-in visitor must return to the intended proposal form
+  // after the listing detail is asynchronously fetched, not the top of page.
+  await journeyOpen('/annonces/' + browserIds.donation + '#faire-une-demande',
+    '.listing-detail__proposal-target', 'UX V4 deferred product request destination',
+    'M9 visual donation accepted');
+  // Debug only public layout geometry, never page credentials or tokens.
+  // This distinguishes broken hash scroll from an overstrict viewport check.
+  await sleep(850);
+  const productAnchorGeometry = await evaluate('(() => {' +
+    'const target=document.getElementById("faire-une-demande");' +
+    'const rect=target?.getBoundingClientRect();' +
+    'return {hash:location.hash,scrollY:window.scrollY,innerHeight:innerHeight,' +
+    'scrollHeight:document.documentElement.scrollHeight,' +
+    'behavior:getComputedStyle(document.documentElement).scrollBehavior,' +
+    'top:rect?.top,bottom:rect?.bottom,height:rect?.height};})()');
+  console.log('[UX V4] Product anchor geometry:', JSON.stringify(productAnchorGeometry));
+  await waitUntil('UX V4 product deep link restored after asynchronous fetch',
+    '(() => {const target=document.getElementById("faire-une-demande");' +
+    'const form=target?.querySelector(".marketplace-action form.listing-form");' +
+    'const box=form?.getBoundingClientRect();' +
+    'return location.hash==="#faire-une-demande" && window.scrollY>0 && !!target && !!box' +
+    '&& target.getBoundingClientRect().top>=56' +
+    '&& target.getBoundingClientRect().top<Math.min(innerHeight*.8,600)' +
+    '&& target.getBoundingClientRect().bottom>56' +
+    '&& box.top<innerHeight-80 && box.bottom>56;})()', 120);
+  await journeyScreenshot('uxv4-product-request-deep-link');
+
   // Existing smoke test leaves a real Keycloak demo-user session in Chrome.
   await journeyOffer(browserIds.donation, null, 'don-accepted');
   await journeyOffer(browserIds.rejected, null, 'don-rejected');
   await journeyOffer(browserIds.trade, browserIds.offered, 'troc');
 
+  // UX V4: exercise the actual header account dropdown with a Keycloak
+  // USER session, not only the static shortcuts within PersonalSpace.
+  await journeyOpen('/espace', '.marketplace-dashboard', 'UX V4 USER account dropdown');
+  for (const targetId of ['publier', 'mes-articles', 'mes-echanges']) {
+    const menu = await evaluate('(() => {' +
+      'const root=document.querySelector(".session__menu");' +
+      'const summary=root?.querySelector("summary");' +
+      'if(!summary)return null;summary.click();return {' +
+      'open:root.open, links:[...root.querySelectorAll(".session__dropdown a")]' +
+      '.map(a=>a.getAttribute("href"))};})()');
+    assert.deepEqual(menu, {
+      open: true,
+      links: ['/espace#publier', '/espace#mes-articles', '/espace#mes-echanges'],
+    }, 'UX V4 USER dropdown must open with exactly three authorized destinations');
+    // Serialize the href as a JS string literal rather than nesting quoted
+    // CSS attribute selectors; otherwise Chrome throws a SyntaxError.
+    const expectedHref = '/espace#' + targetId;
+    const clicked = await evaluate('(() => {' +
+      'const href=' + JSON.stringify(expectedHref) + ';' +
+      'const link=[...document.querySelectorAll(".session__dropdown a")]' +
+      '.find(a=>a.getAttribute("href")===href);' +
+      'if(!link)return false;link.click();return true;})()');
+    assert.equal(clicked, true, 'UX V4 USER must click account dropdown target ' + targetId);
+    await waitUntil('UX V4 USER account menu navigates to ' + targetId,
+      '(() => {const el=document.getElementById(' + JSON.stringify(targetId) + ');' +
+      'if(location.hash!=="#"+' + JSON.stringify(targetId) + '||!el)return false;' +
+      'const rect=el.getBoundingClientRect();return !document.querySelector(".session__menu")?.open' +
+      '&& rect.top>=56 && rect.top<Math.min(innerHeight*.8,600)' +
+      '&& rect.bottom>56;})()', 120);
+  }
+  console.log('[UX V4] USER account dropdown: all three real destinations and viewport focus PASS');
+
+  // Unlike a same-document hash transition, a new document forces the
+  // asynchronous Keycloak bootstrap and PersonalSpace mount. Otherwise the
+  // previous USER-menu click would mask a broken deep-link restoration.
+  await command('Page.navigate', { url: 'about:blank' });
+  await waitUntil('UX V4 prior member document unloaded',
+    'location.href==="about:blank"', 40);
+
+  // UX V4: member navigation anchors must survive the delayed Keycloak
+  // bootstrap and preserve the real sent/received/hand-over dashboard.
+  await journeyOpen('/espace#mes-echanges', '.marketplace-dashboard',
+    'UX V4 member exchange section after login');
+  const memberTargets = await evaluate('[...document.querySelectorAll(".workspace-v3__quick-nav a")]' +
+    '.map(a=>a.getAttribute("href"))');
+  assert.deepEqual(memberTargets, ['#publier', '#mes-articles', '#mes-echanges'],
+    'UX V4 member quick links must target the three real activity sections');
+  await waitUntil('UX V4 member deep link restored after Keycloak bootstrap',
+    '(() => {const target=document.getElementById("mes-echanges");' +
+    'return location.hash==="#mes-echanges" && window.scrollY>0 && !!target' +
+    '&& target.getBoundingClientRect().top>=56' +
+    '&& target.getBoundingClientRect().top<Math.min(innerHeight*.8,600)' +
+    '&& target.getBoundingClientRect().bottom>56;})()', 120);
+  await journeyScreenshot('uxv4-member-exchange-deep-link');
   await journeyOpen('/espace', '.marketplace-dashboard', 'requester outgoing dashboard');
   await journeyWaitCard(browserIds.donation, 'En attente');
   await journeyWaitCard(browserIds.rejected, 'En attente');
@@ -1151,6 +1232,22 @@ async function runFrontV2HomeJourney() {
     width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false,
   });
   await journeyOpen('/', '.home-v2__welcome h1', 'FRONT-V2 F1 public homepage');
+  // UX V4: validate the actual task-oriented landing navigation in Chrome.
+  const homeGuideReady = await evaluate('(() => {' +
+    'const links=[...document.querySelectorAll(".home-v2__hero-actions a")].map(a=>a.getAttribute("href"));' +
+    'const guide=document.querySelector("#fonctionnement");' +
+    'return links.includes("#annonces") && links.includes("/espace#publier")' +
+    '&& guide?.querySelectorAll(".home-v2__step").length===3' +
+    '&& !!document.querySelector(".home-v2__helper-link[href=\"#fonctionnement\"]");})()');
+  assert.equal(homeGuideReady, true, 'UX V4 must expose real catalogue, publish and help destinations');
+  assert.equal(await evaluate('(() => {' +
+    'const link=document.querySelector(".home-v2__helper-link");' +
+    'if(!link)return false;link.click();return true;})()'), true,
+  'UX V4 help link must be clickable');
+  await waitUntil('UX V4 live guide fragment navigation',
+    'location.hash==="#fonctionnement" && !!document.querySelector("#fonctionnement")', 40);
+  await journeyScreenshot('uxv4-how-it-works-desktop');
+  await journeyOpen('/', '.home-v2__welcome h1', 'F1 homepage after guide navigation');
   await waitUntil('F1 exactly six cards on the first page',
     'document.querySelectorAll(".home-v2__grid .listing-card").length===6' +
     '&&document.querySelector(".home-v2__results")?.innerText.includes("sur")', 120);
@@ -1343,6 +1440,11 @@ async function runAdminDashboardBrowser() {
   assert.ok(Number.isInteger(summary.total) && summary.total >= 1);
 
   await journeySwitchUser('demo-moderator');
+  await journeyOpen('/moderation', '.management-v2__guide',
+    'UX V4 genuine moderator workflow guidance');
+  assert.equal(await evaluate('document.querySelectorAll(".management-v2__guide > div").length'), 3,
+    'UX V4 moderator must see the three existing review steps');
+  await journeyScreenshot('uxv4-moderator-review-guide');
   await journeyOpen('/admin', '.gate-card--denied',
     'F5 moderator forbidden from ADMIN dashboard');
   assert.equal(await evaluate('document.body.innerText.includes("Accès réservé aux administrateurs")'),
@@ -1359,6 +1461,10 @@ async function runAdminDashboardBrowser() {
   });
   await journeyOpen('/admin', '.admin-v2__stats',
     'F5 true Keycloak ADMIN dashboard');
+  const adminQuickLinks = await evaluate('[...document.querySelectorAll(".admin-v2__quick-actions a")]' +
+    '.map(a=>a.getAttribute("href"))');
+  assert.deepEqual(adminQuickLinks, ['/moderation', '/#annonces', '/espace#mes-echanges'],
+    'UX V4 ADMIN shortcuts must point to real authorized destinations only');
   await waitUntil('F5 ADMIN values from Catalog', '(() => {' +
     'const values=[...document.querySelectorAll(".admin-v2__metric strong")]' +
     '.map(el=>Number(el.textContent.replaceAll(/\\s/g,"")));' +

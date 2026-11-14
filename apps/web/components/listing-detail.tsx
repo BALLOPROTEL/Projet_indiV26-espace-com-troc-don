@@ -69,11 +69,48 @@ export function ListingDetail({ id }: { id: string }) {
       typeof window === 'undefined' ? '' : window.location.hash,
       !loading && !error && !notFound && listing !== null,
     )) return;
-    const frame = window.requestAnimationFrame(() => {
-      document.getElementById('faire-une-demande')
-        ?.scrollIntoView({ block: 'start', behavior: 'auto' });
-    });
-    return () => window.cancelAnimationFrame(frame);
+    // The global document uses smooth scrolling, while Next.js may perform
+    // a competing scroll restoration during initial client hydration. An
+    // explicit instant scroll with a delayed, visibility-checked retry keeps
+    // the requested form in view after Keycloak redirects without animating
+    // a long page unexpectedly.
+    let userInteracted = false;
+    let frame = 0;
+    let retry = 0;
+    let lateRetry = 0;
+    const cancelPending = () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(retry);
+      window.clearTimeout(lateRetry);
+    };
+    // Preserve deliberate user scrolling rather than hijacking the viewport.
+    const cancelOnUserInput = () => {
+      userInteracted = true;
+      cancelPending();
+    };
+    const restore = () => {
+      if (userInteracted || window.location.hash !== '#faire-une-demande') return;
+      const target = document.getElementById('faire-une-demande');
+      if (!target) return;
+      const top = target.getBoundingClientRect().top;
+      if (top < 64 || top > Math.min(window.innerHeight * 0.6, 550)) {
+        target.scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
+      }
+    };
+    window.addEventListener('wheel', cancelOnUserInput, { passive: true });
+    window.addEventListener('touchstart', cancelOnUserInput, { passive: true });
+    window.addEventListener('pointerdown', cancelOnUserInput, { passive: true });
+    window.addEventListener('keydown', cancelOnUserInput);
+    frame = window.requestAnimationFrame(restore);
+    retry = window.setTimeout(restore, 450);
+    lateRetry = window.setTimeout(restore, 1100);
+    return () => {
+      cancelPending();
+      window.removeEventListener('wheel', cancelOnUserInput);
+      window.removeEventListener('touchstart', cancelOnUserInput);
+      window.removeEventListener('pointerdown', cancelOnUserInput);
+      window.removeEventListener('keydown', cancelOnUserInput);
+    };
   }, [loading, error, notFound, listing]);
 
   if (loading) {
