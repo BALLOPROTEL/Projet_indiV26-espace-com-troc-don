@@ -121,10 +121,27 @@ export function PersonalSpace() {
     if (!ready || !authenticated) return;
     const target = workspaceSectionFromHash(window.location.hash);
     if (!target) return;
-    const frame = window.requestAnimationFrame(() => {
-      document.getElementById(target)?.scrollIntoView({ block: 'start', behavior: 'auto' });
-    });
-    return () => window.cancelAnimationFrame(frame);
+    // A document-wide smooth-scroll rule and Next.js initial restoration can
+    // leave a deep-linked section below the viewport even after Keycloak
+    // resolves. Recheck visibility after route hydration, without forcing
+    // a jump for sections already readable on screen.
+    const restore = () => {
+      if (window.location.hash !== '#' + target) return;
+      const section = document.getElementById(target);
+      if (!section) return;
+      const top = section.getBoundingClientRect().top;
+      if (top < 64 || top > Math.min(window.innerHeight * 0.6, 550)) {
+        section.scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
+      }
+    };
+    const frame = window.requestAnimationFrame(restore);
+    const retry = window.setTimeout(restore, 450);
+    const lateRetry = window.setTimeout(restore, 1100);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(retry);
+      window.clearTimeout(lateRetry);
+    };
   }, [ready, authenticated]);
 
   async function createListing(event: FormEvent<HTMLFormElement>) {
