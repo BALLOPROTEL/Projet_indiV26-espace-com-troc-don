@@ -3,7 +3,10 @@ ARG ALPINE_IMAGE=alpine:3.24.1
 
 FROM ${NODE_IMAGE} AS build
 
-RUN apk add --no-cache openssl
+# Refresh the pinned Alpine base to current 3.24 security revisions
+# (musl >=1.2.6-r3, zlib >=1.3.2-r1); keep the Trivy gate enabled.
+RUN apk upgrade --no-cache \
+  && apk add --no-cache openssl
 
 ENV PNPM_HOME=/pnpm
 ENV PATH=${PNPM_HOME}:${PATH}
@@ -46,7 +49,8 @@ CMD ["pnpm", "db:deploy"]
 
 FROM ${ALPINE_IMAGE} AS runtime
 
-RUN apk add --no-cache \
+RUN apk upgrade --no-cache \
+  && apk add --no-cache \
       ca-certificates \
       dumb-init \
       libstdc++ \

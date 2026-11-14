@@ -28,7 +28,15 @@ const browser = spawn(chrome, [
   '--disable-gpu', '--no-first-run', '--no-default-browser-check',
   '--remote-debugging-port=0', '--user-data-dir=' + profileDir,
   'about:blank',
-], { stdio: 'ignore' });
+], { stdio: ['ignore', 'ignore', 'pipe'] });
+// On loaded CI runners Chrome CDP may initialize slowly. Capture only a
+// bounded startup diagnostic; never dump browser cookies or environment.
+let chromeStartupDiagnostic = '';
+let chromeSpawnError = null;
+browser.on('error', error => { chromeSpawnError = String(error); });
+browser.stderr?.on('data', data => {
+  chromeStartupDiagnostic = (chromeStartupDiagnostic + String(data)).slice(-2500);
+});
 let socket;
 const pending = new Map();
 let sequence = 0;
@@ -39,12 +47,21 @@ let currentDeviceMetrics = null;
 
 async function waitForPort() {
   const file = join(profileDir, 'DevToolsActivePort');
-  for (let attempt = 0; attempt < 100; attempt++) {
-    if (existsSync(file)) return Number(readFileSync(file, 'utf8').split('\n')[0]);
-    if (browser.exitCode !== null) throw new Error('Headless Chrome unexpectedly exited');
-    await sleep(150);
+  // One minute avoids the previous 15-second premature Chrome startup failure.
+  for (let attempt = 0; attempt < 240; attempt++) {
+    if (existsSync(file)) {
+      const port = Number(readFileSync(file, 'utf8').split('\n')[0]);
+      if (Number.isSafeInteger(port) && port > 0 && port < 65536) return port;
+    }
+    if (chromeSpawnError || browser.exitCode !== null || browser.signalCode !== null) {
+      throw new Error('Chrome failed before CDP startup: ' +
+        (chromeSpawnError ?? 'exit=' + browser.exitCode + ', signal=' + browser.signalCode) +
+        '; stderr=' + chromeStartupDiagnostic);
+    }
+    await sleep(250);
   }
-  throw new Error('Chrome debugging port did not become ready');
+  throw new Error('Chrome debugging port not ready after 60s; pid=' + browser.pid +
+    '; stderr=' + chromeStartupDiagnostic);
 }
 
 function command(method, params = {}) {
