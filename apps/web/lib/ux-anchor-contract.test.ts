@@ -37,6 +37,9 @@ describe('UX V4 task-first entry points', () => {
     expect(detail).toContain('href="#faire-une-demande"');
     expect(detail).toContain('id="faire-une-demande"');
     expect(detail).toContain('<ListingProposalForm listing={listing} />');
+    expect(detail).toContain('canRestoreProposalAnchor(');
+    expect(detail).toContain('requestAnimationFrame');
+    expect(detail).toContain("document.getElementById('faire-une-demande')");
     expect(detail).toContain('href="/espace#publier"');
   });
 
