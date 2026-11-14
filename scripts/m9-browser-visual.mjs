@@ -702,9 +702,14 @@ async function runRealBrowserJourneys() {
       open: true,
       links: ['/espace#publier', '/espace#mes-articles', '/espace#mes-echanges'],
     }, 'UX V4 USER dropdown must open with exactly three authorized destinations');
+    // Serialize the href as a JS string literal rather than nesting quoted
+    // CSS attribute selectors; otherwise Chrome throws a SyntaxError.
+    const expectedHref = '/espace#' + targetId;
     const clicked = await evaluate('(() => {' +
-      'const link=document.querySelector(".session__dropdown a[href=\"/espace#' +
-      targetId + '\"]");if(!link)return false;link.click();return true;})()');
+      'const href=' + JSON.stringify(expectedHref) + ';' +
+      'const link=[...document.querySelectorAll(".session__dropdown a")]' +
+      '.find(a=>a.getAttribute("href")===href);' +
+      'if(!link)return false;link.click();return true;})()');
     assert.equal(clicked, true, 'UX V4 USER must click account dropdown target ' + targetId);
     await waitUntil('UX V4 USER account menu navigates to ' + targetId,
       '(() => {const el=document.getElementById(' + JSON.stringify(targetId) + ');' +
