@@ -204,3 +204,22 @@
 
 /* Author rules must not override the browser's closed details hiding. */
 .moderation-review:not([open]) > .moderation-review__details { display: none; }
+
+
+/* UX #104: a readable moderation process before operational statistics. */
+.management-v2__guide {
+  display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 12px; margin: 0 0 22px;
+}
+.management-v2__guide > div {
+  display: flex; flex-direction: column; gap: 7px; min-width: 0;
+  padding: 17px 19px; border-radius: 13px;
+  background: #fff; border: 1px solid #d8e8dc;
+}
+.management-v2__guide strong { color: #17563b; font-size: .88rem; line-height: 1.4; }
+.management-v2__guide span { font-size: .77rem; line-height: 1.6; color: #587164; }
+.management-v2 #file-moderation { scroll-margin-top: 106px; }
+@media (max-width: 820px) {
+  .management-v2__guide { grid-template-columns: 1fr; gap: 8px; }
+  .management-v2__guide > div { padding: 13px 16px; }
+}
