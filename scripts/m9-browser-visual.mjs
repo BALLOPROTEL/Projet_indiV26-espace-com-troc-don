@@ -674,10 +674,13 @@ async function runRealBrowserJourneys() {
   console.log('[UX V4] Product anchor geometry:', JSON.stringify(productAnchorGeometry));
   await waitUntil('UX V4 product deep link restored after asynchronous fetch',
     '(() => {const target=document.getElementById("faire-une-demande");' +
-    'return location.hash==="#faire-une-demande" && window.scrollY>0 && !!target' +
+    'const form=target?.querySelector(".marketplace-action form.listing-form");' +
+    'const box=form?.getBoundingClientRect();' +
+    'return location.hash==="#faire-une-demande" && window.scrollY>0 && !!target && !!box' +
     '&& target.getBoundingClientRect().top>=56' +
     '&& target.getBoundingClientRect().top<Math.min(innerHeight*.8,600)' +
-    '&& target.getBoundingClientRect().bottom>56;})()', 120);
+    '&& target.getBoundingClientRect().bottom>56' +
+    '&& box.top<innerHeight-80 && box.bottom>56;})()', 120);
   await journeyScreenshot('uxv4-product-request-deep-link');
 
   // Existing smoke test leaves a real Keycloak demo-user session in Chrome.
