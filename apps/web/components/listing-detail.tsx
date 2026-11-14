@@ -11,6 +11,7 @@ import {
   operationLabel,
 } from '../lib/presentation';
 import type { Listing } from '../lib/types';
+import { canRestoreProposalAnchor } from '../lib/listing-navigation';
 import { ListingProposalForm } from './listing-proposal-form';
 import { ListingImageGallery } from './listing-image-gallery';
 
@@ -59,6 +60,21 @@ export function ListingDetail({ id }: { id: string }) {
       active = false;
     };
   }, [id]);
+
+  // On first navigation from Keycloak, the browser may consume the hash
+  // while only PageLoading exists. Restore the requested form after the
+  // asynchronously fetched listing and its proposal section are mounted.
+  useEffect(() => {
+    if (!canRestoreProposalAnchor(
+      typeof window === 'undefined' ? '' : window.location.hash,
+      !loading && !error && !notFound && listing !== null,
+    )) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById('faire-une-demande')
+        ?.scrollIntoView({ block: 'start', behavior: 'auto' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [loading, error, notFound, listing]);
 
   if (loading) {
     return (
