@@ -701,6 +701,13 @@ async function runRealBrowserJourneys() {
   }
   console.log('[UX V4] USER account dropdown: all three real destinations and viewport focus PASS');
 
+  // Unlike a same-document hash transition, a new document forces the
+  // asynchronous Keycloak bootstrap and PersonalSpace mount. Otherwise the
+  // previous USER-menu click would mask a broken deep-link restoration.
+  await command('Page.navigate', { url: 'about:blank' });
+  await waitUntil('UX V4 prior member document unloaded',
+    'location.href==="about:blank"', 40);
+
   // UX V4: member navigation anchors must survive the delayed Keycloak
   // bootstrap and preserve the real sent/received/hand-over dashboard.
   await journeyOpen('/espace#mes-echanges', '.marketplace-dashboard',
