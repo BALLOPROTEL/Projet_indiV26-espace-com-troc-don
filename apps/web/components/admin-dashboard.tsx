@@ -99,6 +99,24 @@ export function AdminDashboard() {
             <span className="admin-v2__role">Administrateur</span>
           </header>
 
+          <nav className="admin-v2__quick-actions" aria-label="Actions principales d'administration">
+            <Link href="/moderation">
+              <strong>Examiner les annonces</strong>
+              <span>Accepter ou refuser les publications en attente</span>
+              <span aria-hidden="true">↗</span>
+            </Link>
+            <Link href="/#annonces">
+              <strong>Voir le catalogue public</strong>
+              <span>Contrôler les annonces visibles aux visiteurs</span>
+              <span aria-hidden="true">↗</span>
+            </Link>
+            <Link href="/espace#mes-echanges">
+              <strong>Mes échanges personnels</strong>
+              <span>Suivre mes propres dons et trocs</span>
+              <span aria-hidden="true">↗</span>
+            </Link>
+          </nav>
+
           <div className="admin-v2__section-title">
             <div>
               <span className="admin-v2__caption">Activité du catalogue</span>
