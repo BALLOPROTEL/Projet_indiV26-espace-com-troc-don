@@ -181,12 +181,26 @@ export function ModerationSpace() {
             </div>
             <span className="management-v2__role">{role}</span>
           </div>
+          <section className="management-v2__guide" aria-label="Comment modérer une annonce">
+            <div>
+              <strong>1. Lire la fiche</strong>
+              <span>Vérifier le titre, la description et les souhaits de troc.</span>
+            </div>
+            <div>
+              <strong>2. Contrôler les photos</strong>
+              <span>Ouvrir la galerie privée uniquement si nécessaire.</span>
+            </div>
+            <div>
+              <strong>3. Décider et expliquer</strong>
+              <span>Approuver ou motiver un refus pour aider le membre.</span>
+            </div>
+          </section>
           <div className="management-v2__stats" aria-label="Indicateurs réels de la file d’attente">
             <div><span>À examiner</span><strong>{loading || loadError ? '—' : metrics.total}</strong><small>Annonces en attente</small></div>
             <div><span>Dons</span><strong>{loading || loadError ? '—' : metrics.donations}</strong><small>Dons en attente</small></div>
             <div><span>Trocs</span><strong>{loading || loadError ? '—' : metrics.trades}</strong><small>Trocs en attente</small></div>
           </div>
-          <div className="management-v2__section-head">
+          <div className="management-v2__section-head" id="file-moderation">
             <div><span>Validation des annonces</span><h2>File de modération</h2></div>
             <strong>{loading ? 'Chargement…' : loadError ? 'File indisponible' : metrics.total + ' à traiter'}</strong>
           </div>
