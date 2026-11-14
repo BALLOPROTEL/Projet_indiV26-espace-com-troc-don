@@ -196,3 +196,48 @@
 @media (prefers-reduced-motion: reduce) {
   .workspace-v3__quick-link { transition: none; }
 }
+
+
+/* UX #104: orient members through three actual donation/trade states. */
+.workspace-v3 .marketplace-dashboard__help {
+  margin: 0 0 17px; max-width: 840px; color: #486b57;
+  font-size: .88rem; line-height: 1.7;
+}
+.workspace-v3 .marketplace-dashboard__shortcuts {
+  display: flex; align-items: stretch; flex-wrap: wrap; gap: 10px;
+  margin: 0 0 24px;
+}
+.workspace-v3 .marketplace-dashboard__shortcuts a {
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 14px;
+  min-height: 45px; padding: 10px 15px; border: 1px solid #c7dfd0;
+  border-radius: 12px; background: #fff; color: #0e6845;
+  font-weight: 780; text-decoration: none; font-size: .83rem;
+}
+.workspace-v3 .marketplace-dashboard__shortcuts a:hover {
+  background: #eff8f2; border-color: #93c4a6;
+}
+.workspace-v3 .marketplace-dashboard__shortcuts a:focus-visible {
+  outline: 3px solid #0e6845; outline-offset: 3px;
+}
+.workspace-v3 .marketplace-dashboard__shortcuts a span {
+  display: inline-grid; place-items: center; min-width: 24px;
+  min-height: 24px; border-radius: 7px; padding: 3px 6px;
+  background: #e5f5eb; color: #0e6845; font-size: .74rem;
+  font-variant-numeric: tabular-nums;
+}
+.workspace-v3 #echanges-recus,
+.workspace-v3 #echanges-envoyes,
+.workspace-v3 #echanges-remises { scroll-margin-top: 110px; }
+.workspace-v3 .marketplace-dashboard__section-note {
+  margin: -3px 0 16px; font-size: .82rem; line-height: 1.5;
+  color: #557064;
+}
+@media (max-width: 530px) {
+  .workspace-v3 .marketplace-dashboard__shortcuts {
+    display: grid; grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+  .workspace-v3 .marketplace-dashboard__shortcuts a { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-v3 .marketplace-dashboard__shortcuts a { transition: none; }
+}
