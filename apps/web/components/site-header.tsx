@@ -124,8 +124,10 @@ export function SiteHeader() {
                   <HeaderIcon name="chevron" />
                 </summary>
                 <div className="session__dropdown">
-                  <p>Connecté avec Keycloak</p>
-                  <Link href="/espace" onClick={closeAccountMenu}>Mes articles et échanges</Link>
+                  <p>Accès rapide à mon espace</p>
+                  <Link href="/espace#publier" onClick={closeAccountMenu}>Déposer un objet</Link>
+                  <Link href="/espace#mes-articles" onClick={closeAccountMenu}>Mes annonces</Link>
+                  <Link href="/espace#mes-echanges" onClick={closeAccountMenu}>Mes échanges</Link>
                   {elevatedRole ? <Link href="/moderation" onClick={closeAccountMenu}>Espace de modération</Link> : null}
                   {roles.includes('ADMIN') ? <Link href="/admin" onClick={closeAccountMenu}>Administration</Link> : null}
                   <button type="button" onClick={() => void logout()}>

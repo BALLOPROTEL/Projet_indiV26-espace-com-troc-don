@@ -10,14 +10,12 @@ import {
   paginationNumbers,
 } from '../lib/home-pagination';
 import type { Listing, ListingOperationType } from '../lib/types';
-import { useAuth } from './auth-provider';
 import { EmptyState } from './empty-state';
 import { ListingCard } from './listing-card';
 
 type OperationFilter = ListingOperationType | 'ALL';
 
 export function HomeExperience() {
-  const { ready, authenticated, username } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,21 +80,26 @@ export function HomeExperience() {
           <div className="home-v2__welcome-copy">
             <span className="home-v2__kicker">
               <span className="home-v2__status-dot" aria-hidden="true" />
-              La communauté de la seconde vie
+              La communauté du don et du troc
             </span>
             <h1 id="home-welcome-title">
-              {ready && authenticated && username
-                ? `Bonjour ${username}`
-                : 'Bienvenue à la Petite Maison'}
-              <span aria-hidden="true"> 👋</span>
+              Donnez, trouvez, échangez. <span>Tout simplement.</span>
             </h1>
             <p>
-              Donnez ce qui ne vous sert plus, trouvez votre prochain coup
-              de cœur et échangez en toute confiance.
+              Un objet inutilisé peut servir à quelqu’un d’autre. Explorez
+              les annonces de la communauté ou proposez le vôtre en quelques étapes.
             </p>
-            <Link className="home-v2__hero-action" href="/espace">
-              Proposer un article <span aria-hidden="true">→</span>
-            </Link>
+            <div className="home-v2__hero-actions">
+              <a className="home-v2__hero-action" href="#annonces">
+                Voir les annonces <span aria-hidden="true">↓</span>
+              </a>
+              <Link className="home-v2__hero-action home-v2__hero-action--secondary" href="/espace#publier">
+                Déposer un objet <span aria-hidden="true">→</span>
+              </Link>
+            </div>
+            <a className="home-v2__helper-link" href="#fonctionnement">
+              Comment ça marche ? <span aria-hidden="true">↘</span>
+            </a>
           </div>
           <div className="home-v2__facts" aria-label="La communauté en chiffres">
             {loading || error ? (
@@ -114,6 +117,36 @@ export function HomeExperience() {
         </div>
       </section>
 
+      <section className="home-v2__how" id="fonctionnement" aria-labelledby="home-how-title">
+        <div className="home-v2__how-heading">
+          <div>
+            <span className="home-v2__overline">Simple, de bout en bout</span>
+            <h2 id="home-how-title">Comment fonctionne La Petite Maison ?</h2>
+          </div>
+          <p>Trois étapes pour donner une seconde vie aux objets.</p>
+        </div>
+        <ol className="home-v2__steps">
+          <li className="home-v2__step">
+            <span className="home-v2__step-index" aria-hidden="true">01</span>
+            <h3>Découvrir</h3>
+            <p>Parcourez les annonces de dons et de trocs, sans obligation de connexion.</p>
+            <a href="#annonces">Explorer les articles <span aria-hidden="true">→</span></a>
+          </li>
+          <li className="home-v2__step">
+            <span className="home-v2__step-index" aria-hidden="true">02</span>
+            <h3>Proposer</h3>
+            <p>Connectez-vous, décrivez votre objet, ajoutez ses photos et soumettez-le à la modération.</p>
+            <Link href="/espace#publier">Déposer une annonce <span aria-hidden="true">→</span></Link>
+          </li>
+          <li className="home-v2__step">
+            <span className="home-v2__step-index" aria-hidden="true">03</span>
+            <h3>Échanger</h3>
+            <p>Suivez vos demandes, choisissez une contrepartie et confirmez la remise entre membres.</p>
+            <Link href="/espace#mes-echanges">Suivre mes échanges <span aria-hidden="true">→</span></Link>
+          </li>
+        </ol>
+      </section>
+
       <section className="home-v2__catalog" id="annonces" aria-labelledby="home-catalog-title">
         <div className="home-v2__section-intro">
           <div>
@@ -121,8 +154,8 @@ export function HomeExperience() {
             <h2 id="home-catalog-title">Les articles à découvrir</h2>
             <p>De belles histoires commencent avec un objet qui change de mains.</p>
           </div>
-          <Link className="home-v2__secondary-link" href="/espace">
-            Mon espace <span aria-hidden="true">↗</span>
+          <Link className="home-v2__secondary-link" href="/espace#mes-echanges">
+            Suivre mes échanges <span aria-hidden="true">↗</span>
           </Link>
         </div>
 

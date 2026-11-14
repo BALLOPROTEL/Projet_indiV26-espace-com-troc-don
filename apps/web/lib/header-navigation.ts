@@ -12,11 +12,11 @@ export function headerLinks(
   roles: readonly HeaderRole[],
 ): HeaderLink[] {
   const links: HeaderLink[] = [
-    { href: '/', label: 'Accueil', icon: 'home' },
+    { href: '/', label: 'Découvrir', icon: 'home' },
   ];
 
   if (authenticated) {
-    links.push({ href: '/espace', label: 'Mes articles', icon: 'box' });
+    links.push({ href: '/espace', label: 'Mon espace', icon: 'box' });
     if (roles.includes('MODERATOR') || roles.includes('ADMIN')) {
       links.push({
         href: '/moderation',

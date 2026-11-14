@@ -101,9 +101,9 @@ export function ListingDetail({ id }: { id: string }) {
   return (
     <article className="listing-detail listing-detail-v2">
       <div className="listing-detail__breadcrumbs">
-        <Link href="/">Accueil</Link>
+        <Link href="/#annonces">Toutes les annonces</Link>
         <span aria-hidden="true">/</span>
-        <span>Fiche article</span>
+        <span aria-current="page">Détail de l’article</span>
       </div>
 
       <div className="listing-detail__layout">
@@ -122,6 +122,12 @@ export function ListingDetail({ id }: { id: string }) {
           </span>
 
           <h1>{listing.title}</h1>
+          {listing.availabilityStatus === 'AVAILABLE' ? (
+            <a className="listing-detail__quick-action" href="#faire-une-demande">
+              {listing.operationType === 'DONATION' ? 'Demander cet objet' : 'Proposer un troc'}
+              <span aria-hidden="true"> ↓</span>
+            </a>
+          ) : null}
 
           <ListingImageGallery
             key={listing.id}
@@ -162,14 +168,16 @@ export function ListingDetail({ id }: { id: string }) {
             </section>
           )}
 
-          <ListingProposalForm listing={listing} />
+          <div id="faire-une-demande" className="listing-detail__proposal-target">
+            <ListingProposalForm listing={listing} />
+          </div>
 
           <div className="listing-detail__actions">
-            <Link className="button" href="/espace">
-              Proposer un objet
+            <Link className="button" href="/espace#publier">
+              Déposer mon objet
             </Link>
-            <Link className="text-link" href="/">
-              ← Retour aux trouvailles
+            <Link className="text-link" href="/#annonces">
+              ← Retour aux annonces
             </Link>
           </div>
         </section>

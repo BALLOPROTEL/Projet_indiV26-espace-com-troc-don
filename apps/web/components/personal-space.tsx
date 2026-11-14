@@ -11,6 +11,7 @@ import {
 import Link from 'next/link';
 import { listingsApi, listingAssetUrl } from '../lib/api';
 import { PUBLICATION_STEPS, validateWizardStep } from '../lib/publication-wizard';
+import { workspaceSectionFromHash } from '../lib/workspace-navigation';
 import { canEditListing } from '../lib/presentation';
 import {
   createBlankListingInput,
@@ -112,6 +113,19 @@ export function PersonalSpace() {
       active = false;
     };
   }, [ready, authenticated, getToken]);
+
+  // Keycloak initialization is asynchronous: at first paint this page can
+  // render only PageLoading, so the browser may process /espace#mes-echanges
+  // before that target exists. Re-apply the fragment after member content mounts.
+  useEffect(() => {
+    if (!ready || !authenticated) return;
+    const target = workspaceSectionFromHash(window.location.hash);
+    if (!target) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(target)?.scrollIntoView({ block: 'start', behavior: 'auto' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [ready, authenticated]);
 
   async function createListing(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -300,18 +314,36 @@ export function PersonalSpace() {
     <div className="workspace workspace-v3">
       <section className="workspace-intro">
         <div>
-          <span className="eyebrow">Mon étagère</span>
-          <h1>Votre étagère, {username ?? 'bienvenue'}.</h1>
+          <span className="eyebrow">Mon espace</span>
+          <h1>Bonjour, {username ?? 'bienvenue'}.</h1>
         </div>
-        <p>Déposez une annonce en quelques étapes et suivez vos objets et leur statut au même endroit.</p>
+        <p>Un seul endroit pour publier vos objets, retrouver vos annonces et suivre vos échanges.</p>
       </section>
 
+      <nav className="workspace-v3__quick-nav" aria-label="Aller directement à une activité">
+        <Link className="workspace-v3__quick-link" href="#publier">
+          <span className="workspace-v3__quick-number" aria-hidden="true">01</span>
+          <span><strong>Déposer un objet</strong><small>Don ou troc, en quelques étapes</small></span>
+          <span aria-hidden="true">↗</span>
+        </Link>
+        <Link className="workspace-v3__quick-link" href="#mes-articles">
+          <span className="workspace-v3__quick-number" aria-hidden="true">02</span>
+          <span><strong>Mes annonces</strong><small>Retrouver les statuts et corrections</small></span>
+          <span aria-hidden="true">↗</span>
+        </Link>
+        <Link className="workspace-v3__quick-link" href="#mes-echanges">
+          <span className="workspace-v3__quick-number" aria-hidden="true">03</span>
+          <span><strong>Mes échanges</strong><small>Demandes reçues, envoyées et suivi</small></span>
+          <span aria-hidden="true">↗</span>
+        </Link>
+      </nav>
+
       <div className="workspace-grid">
-        <section className="form-panel">
+        <section className="form-panel" id="publier" aria-labelledby="workspace-publish-title">
           <span className="form-panel__index">PUBLIER</span>
           <div className="form-panel__heading">
             <span className="eyebrow">Nouvelle fiche</span>
-            <h2>Proposer un objet</h2>
+            <h2 id="workspace-publish-title">Proposer un objet</h2>
             <p>
               Un choix à la fois. Revenez en arrière sans perdre vos réponses.
             </p>
@@ -338,11 +370,11 @@ export function PersonalSpace() {
           />
         </section>
 
-        <section className="shelf-panel">
+        <section className="shelf-panel" id="mes-articles" aria-labelledby="workspace-listings-title">
           <div className="section-heading section-heading--compact">
             <div>
               <span className="eyebrow">Suivi</span>
-              <h2>Mes annonces</h2>
+              <h2 id="workspace-listings-title">Mes annonces</h2>
             </div>
             <span className="counter">
               {listings.length.toString().padStart(2, '0')}
@@ -409,7 +441,9 @@ export function PersonalSpace() {
         </section>
       </div>
 
-      <MarketplaceDashboard />
+      <section className="workspace-v3__exchanges" id="mes-echanges" aria-label="Mes échanges">
+        <MarketplaceDashboard />
+      </section>
 
       {editing ? (
         <div className="dialog-backdrop">

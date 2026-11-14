@@ -27,6 +27,15 @@ describe('headerLinks role-aware navigation', () => {
     expect(headerLinks(false, ['ADMIN']).map((item) => item.href)).toEqual(['/']);
   });
 
+  it('uses plain-language destinations for browsing and member actions', () => {
+    expect(headerLinks(false, []).map((item) => item.label))
+      .toEqual(['Découvrir']);
+    expect(headerLinks(true, ['USER']).map((item) => item.label))
+      .toEqual(['Découvrir', 'Mon espace']);
+    expect(headerLinks(true, ['ADMIN']).map((item) => item.label))
+      .toEqual(['Découvrir', 'Mon espace', 'Modération', 'Administration']);
+  });
+
   it('does not expose nonfunctional messages or favorites entries', () => {
     const urls = headerLinks(true, ['ADMIN']).map((item) => item.href);
     expect(urls).not.toContain('/messages');
