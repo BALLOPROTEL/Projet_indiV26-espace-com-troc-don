@@ -151,23 +151,36 @@ export function MarketplaceDashboard() {
           }).finally(() => setLoading(false));
         }} disabled={loading || busy !== null}>Actualiser</button>
       </div>
+      <p className="marketplace-dashboard__help">
+        Retrouvez ici les demandes reçues pour vos objets, celles que vous avez envoyées
+        et les remises à confirmer. Une demande acceptée ne termine pas l’échange :
+        chaque participant confirme ensuite la remise.
+      </p>
+      <nav className="marketplace-dashboard__shortcuts" aria-label="Accès rapide dans mes échanges">
+        <a href="#echanges-recus">Reçues <span>{loading ? '…' : received.length}</span></a>
+        <a href="#echanges-envoyes">Envoyées <span>{loading ? '…' : sent.length}</span></a>
+        <a href="#echanges-remises">Remises <span>{loading ? '…' : transactions.length}</span></a>
+      </nav>
       {notice ? <p role="status" className="notice notice--success">{notice}</p> : null}
       {error ? <p role="alert" className="notice notice--error">{error}</p> : null}
-      {loading ? <p>Chargement des propositions…</p> : null}
+      {loading ? <p role="status">Actualisation de vos demandes…</p> : null}
       <div className="marketplace-dashboard__grid">
-        <section>
-          <h3>Demandes reçues ({received.length})</h3>
+        <section id="echanges-recus" aria-labelledby="echanges-recus-titre">
+          <h3 id="echanges-recus-titre">Demandes reçues ({received.length})</h3>
+          <p className="marketplace-dashboard__section-note">Répondez aux personnes intéressées par vos annonces.</p>
           {received.length ? received.map((proposal) => proposalCard(proposal, true)) :
-            <p className="quiet-note">Aucune proposition reçue pour vos annonces.</p>}
+            !loading ? <p className="quiet-note">Aucune demande pour le moment. <Link href="#mes-articles">Voir mes annonces</Link></p> : null}
         </section>
-        <section>
-          <h3>Mes demandes envoyées ({sent.length})</h3>
+        <section id="echanges-envoyes" aria-labelledby="echanges-envoyes-titre">
+          <h3 id="echanges-envoyes-titre">Mes demandes envoyées ({sent.length})</h3>
+          <p className="marketplace-dashboard__section-note">Suivez la réponse des propriétaires de vos objets préférés.</p>
           {sent.length ? sent.map((proposal) => proposalCard(proposal, false)) :
-            <p className="quiet-note">Vous n’avez pas encore demandé de don ni proposé de troc.</p>}
+            !loading ? <p className="quiet-note">Aucune demande envoyée. <Link href="/#annonces">Découvrir les annonces</Link></p> : null}
         </section>
       </div>
-      <section className="marketplace-transactions">
-        <h3>Remises et échanges ({transactions.length})</h3>
+      <section className="marketplace-transactions" id="echanges-remises" aria-labelledby="echanges-remises-titre">
+        <h3 id="echanges-remises-titre">Remises et échanges ({transactions.length})</h3>
+        <p className="marketplace-dashboard__section-note">Confirmez uniquement lorsqu’une remise a réellement eu lieu.</p>
         <div className="marketplace-dashboard__grid">
           {transactions.map((transaction) => {
             const mine = subject === transaction.ownerId ? transaction.ownerConfirmedAt : transaction.requesterConfirmedAt;
@@ -189,7 +202,7 @@ export function MarketplaceDashboard() {
             );
           })}
         </div>
-        {!transactions.length ? <p className="quiet-note">Aucune transaction en cours.</p> : null}
+        {!transactions.length && !loading ? <p className="quiet-note">Aucune remise à confirmer pour le moment.</p> : null}
       </section>
     </section>
   );
