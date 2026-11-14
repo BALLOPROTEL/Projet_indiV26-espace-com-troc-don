@@ -99,3 +99,24 @@
   .admin-v2__error button,
   .admin-v2__action-link { transition: none; }
 }
+
+
+/* UX #104: an administrator can identify a useful next action at first glance. */
+.admin-v2__quick-actions {
+  display: grid; grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 12px; margin: -10px 0 31px;
+}
+.admin-v2__quick-actions a {
+  position: relative; display: flex; flex-direction: column; gap: 7px;
+  min-height: 126px; padding: 19px 42px 17px 19px;
+  border: 1px solid #d2e5d9; border-radius: 15px;
+  color: #163c2a; background: #fff; text-decoration: none;
+}
+.admin-v2__quick-actions strong { font-size: .95rem; font-weight: 800; line-height: 1.35; }
+.admin-v2__quick-actions span:nth-child(2) { color: #526e5f; font-size: .8rem; line-height: 1.5; }
+.admin-v2__quick-actions span:last-child {
+  position: absolute; right: 17px; top: 17px; color: #0a6944; font-size: 1.12rem;
+}
+.admin-v2__quick-actions a:hover { background: #f2f9f4; border-color: #9dceb0; }
+.admin-v2__quick-actions a:focus-visible { outline: 3px solid #0d6946; outline-offset: 3px; }
+@media (max-width: 930px) { .admin-v2__quick-actions { grid-template-columns: 1fr; } .admin-v2__quick-actions a { min-height: 80px; } }
