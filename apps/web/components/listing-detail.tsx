@@ -11,6 +11,7 @@ import {
   operationLabel,
 } from '../lib/presentation';
 import type { Listing } from '../lib/types';
+import { canRestoreProposalAnchor } from '../lib/listing-navigation';
 import { ListingProposalForm } from './listing-proposal-form';
 import { ListingImageGallery } from './listing-image-gallery';
 
@@ -60,6 +61,21 @@ export function ListingDetail({ id }: { id: string }) {
     };
   }, [id]);
 
+  // On first navigation from Keycloak, the browser may consume the hash
+  // while only PageLoading exists. Restore the requested form after the
+  // asynchronously fetched listing and its proposal section are mounted.
+  useEffect(() => {
+    if (!canRestoreProposalAnchor(
+      typeof window === 'undefined' ? '' : window.location.hash,
+      !loading && !error && !notFound && listing !== null,
+    )) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById('faire-une-demande')
+        ?.scrollIntoView({ block: 'start', behavior: 'auto' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [loading, error, notFound, listing]);
+
   if (loading) {
     return (
       <div className="page-loading">
@@ -101,9 +117,9 @@ export function ListingDetail({ id }: { id: string }) {
   return (
     <article className="listing-detail listing-detail-v2">
       <div className="listing-detail__breadcrumbs">
-        <Link href="/">Accueil</Link>
+        <Link href="/#annonces">Toutes les annonces</Link>
         <span aria-hidden="true">/</span>
-        <span>Fiche article</span>
+        <span aria-current="page">Détail de l’article</span>
       </div>
 
       <div className="listing-detail__layout">
@@ -122,6 +138,12 @@ export function ListingDetail({ id }: { id: string }) {
           </span>
 
           <h1>{listing.title}</h1>
+          {listing.availabilityStatus === 'AVAILABLE' ? (
+            <a className="listing-detail__quick-action" href="#faire-une-demande">
+              {listing.operationType === 'DONATION' ? 'Demander cet objet' : 'Proposer un troc'}
+              <span aria-hidden="true"> ↓</span>
+            </a>
+          ) : null}
 
           <ListingImageGallery
             key={listing.id}
@@ -162,14 +184,16 @@ export function ListingDetail({ id }: { id: string }) {
             </section>
           )}
 
-          <ListingProposalForm listing={listing} />
+          <div id="faire-une-demande" className="listing-detail__proposal-target">
+            <ListingProposalForm listing={listing} />
+          </div>
 
           <div className="listing-detail__actions">
-            <Link className="button" href="/espace">
-              Proposer un objet
+            <Link className="button" href="/espace#publier">
+              Déposer mon objet
             </Link>
-            <Link className="text-link" href="/">
-              ← Retour aux trouvailles
+            <Link className="text-link" href="/#annonces">
+              ← Retour aux annonces
             </Link>
           </div>
         </section>

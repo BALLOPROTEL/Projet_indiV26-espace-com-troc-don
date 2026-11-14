@@ -109,3 +109,24 @@
   outline: 3px solid #0b6842;
   outline-offset: 3px;
 }
+
+
+/* UX V4 #104: allow visitors to jump directly to the real request form. */
+.listing-detail-v2 .listing-detail__quick-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 0 0 22px; min-height: 48px; padding: 10px 18px;
+  border: 1px solid #0c6542; border-radius: 11px;
+  color: #0c6542; background: #eaf5ed;
+  text-decoration: none; font-size: .9rem; font-weight: 790;
+}
+.listing-detail-v2 .listing-detail__quick-action:focus-visible {
+  outline: 3px solid #0c6542; outline-offset: 3px;
+}
+.listing-detail-v2 .listing-detail__proposal-target {
+  scroll-margin-top: 104px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .listing-detail-v2 .listing-detail__quick-action:hover {
+    color: #063d29; background: #d7ecdd;
+  }
+}
