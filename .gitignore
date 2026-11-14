@@ -12,6 +12,8 @@ apps/catalog-service/generated/prisma/
 apps/marketplace-service/generated/prisma/
 
 # Environment / secrets
+# Defense in depth: never stage ephemeral Keycloak exports with credentials.
+jury-realm-*/
 .env
 .env.*
 !.env.example
