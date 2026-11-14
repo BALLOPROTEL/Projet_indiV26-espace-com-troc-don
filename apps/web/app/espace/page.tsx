@@ -3,7 +3,7 @@ import './space-v3.css';
 import { PersonalSpace } from '../../components/personal-space';
 
 export const metadata: Metadata = {
-  title: 'Mon étagère',
+  title: 'Mon espace',
 };
 
 export default function PersonalSpacePage() {
