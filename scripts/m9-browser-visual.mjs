@@ -1238,7 +1238,7 @@ async function runFrontV2HomeJourney() {
     'const guide=document.querySelector("#fonctionnement");' +
     'return links.includes("#annonces") && links.includes("/espace#publier")' +
     '&& guide?.querySelectorAll(".home-v2__step").length===3' +
-    '&& !!document.querySelector(".home-v2__helper-link[href=\"#fonctionnement\"]");})()');
+    '&& !!document.querySelector(\'.home-v2__helper-link[href="#fonctionnement"]\');})()');
   assert.equal(homeGuideReady, true, 'UX V4 must expose real catalogue, publish and help destinations');
   assert.equal(await evaluate('(() => {' +
     'const link=document.querySelector(".home-v2__helper-link");' +
