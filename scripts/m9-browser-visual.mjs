@@ -664,13 +664,42 @@ async function runRealBrowserJourneys() {
   await waitUntil('UX V4 product deep link restored after asynchronous fetch',
     '(() => {const target=document.getElementById("faire-une-demande");' +
     'return location.hash==="#faire-une-demande" && window.scrollY>0 && !!target' +
-    '&& target.getBoundingClientRect().top<Math.min(innerHeight*.8,600);})()', 120);
+    '&& target.getBoundingClientRect().top>=56' +
+    '&& target.getBoundingClientRect().top<Math.min(innerHeight*.8,600)' +
+    '&& target.getBoundingClientRect().bottom>56;})()', 120);
   await journeyScreenshot('uxv4-product-request-deep-link');
 
   // Existing smoke test leaves a real Keycloak demo-user session in Chrome.
   await journeyOffer(browserIds.donation, null, 'don-accepted');
   await journeyOffer(browserIds.rejected, null, 'don-rejected');
   await journeyOffer(browserIds.trade, browserIds.offered, 'troc');
+
+  // UX V4: exercise the actual header account dropdown with a Keycloak
+  // USER session, not only the static shortcuts within PersonalSpace.
+  await journeyOpen('/espace', '.marketplace-dashboard', 'UX V4 USER account dropdown');
+  for (const targetId of ['publier', 'mes-articles', 'mes-echanges']) {
+    const menu = await evaluate('(() => {' +
+      'const root=document.querySelector(".session__menu");' +
+      'const summary=root?.querySelector("summary");' +
+      'if(!summary)return null;summary.click();return {' +
+      'open:root.open, links:[...root.querySelectorAll(".session__dropdown a")]' +
+      '.map(a=>a.getAttribute("href"))};})()');
+    assert.deepEqual(menu, {
+      open: true,
+      links: ['/espace#publier', '/espace#mes-articles', '/espace#mes-echanges'],
+    }, 'UX V4 USER dropdown must open with exactly three authorized destinations');
+    const clicked = await evaluate('(() => {' +
+      'const link=document.querySelector(".session__dropdown a[href=\"/espace#' +
+      targetId + '\"]");if(!link)return false;link.click();return true;})()');
+    assert.equal(clicked, true, 'UX V4 USER must click account dropdown target ' + targetId);
+    await waitUntil('UX V4 USER account menu navigates to ' + targetId,
+      '(() => {const el=document.getElementById(' + JSON.stringify(targetId) + ');' +
+      'if(location.hash!=="#"+' + JSON.stringify(targetId) + '||!el)return false;' +
+      'const rect=el.getBoundingClientRect();return !document.querySelector(".session__menu")?.open' +
+      '&& rect.top>=56 && rect.top<Math.min(innerHeight*.8,600)' +
+      '&& rect.bottom>56;})()', 120);
+  }
+  console.log('[UX V4] USER account dropdown: all three real destinations and viewport focus PASS');
 
   // UX V4: member navigation anchors must survive the delayed Keycloak
   // bootstrap and preserve the real sent/received/hand-over dashboard.
@@ -683,7 +712,9 @@ async function runRealBrowserJourneys() {
   await waitUntil('UX V4 member deep link restored after Keycloak bootstrap',
     '(() => {const target=document.getElementById("mes-echanges");' +
     'return location.hash==="#mes-echanges" && window.scrollY>0 && !!target' +
-    '&& target.getBoundingClientRect().top<Math.min(innerHeight*.8,600);})()', 120);
+    '&& target.getBoundingClientRect().top>=56' +
+    '&& target.getBoundingClientRect().top<Math.min(innerHeight*.8,600)' +
+    '&& target.getBoundingClientRect().bottom>56;})()', 120);
   await journeyScreenshot('uxv4-member-exchange-deep-link');
   await journeyOpen('/espace', '.marketplace-dashboard', 'requester outgoing dashboard');
   await journeyWaitCard(browserIds.donation, 'En attente');
