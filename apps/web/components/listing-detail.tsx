@@ -74,8 +74,22 @@ export function ListingDetail({ id }: { id: string }) {
     // explicit instant scroll with a delayed, visibility-checked retry keeps
     // the requested form in view after Keycloak redirects without animating
     // a long page unexpectedly.
+    let userInteracted = false;
+    let frame = 0;
+    let retry = 0;
+    let lateRetry = 0;
+    const cancelPending = () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(retry);
+      window.clearTimeout(lateRetry);
+    };
+    // Preserve deliberate user scrolling rather than hijacking the viewport.
+    const cancelOnUserInput = () => {
+      userInteracted = true;
+      cancelPending();
+    };
     const restore = () => {
-      if (window.location.hash !== '#faire-une-demande') return;
+      if (userInteracted || window.location.hash !== '#faire-une-demande') return;
       const target = document.getElementById('faire-une-demande');
       if (!target) return;
       const top = target.getBoundingClientRect().top;
@@ -83,13 +97,19 @@ export function ListingDetail({ id }: { id: string }) {
         target.scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
       }
     };
-    const frame = window.requestAnimationFrame(restore);
-    const retry = window.setTimeout(restore, 450);
-    const lateRetry = window.setTimeout(restore, 1100);
+    window.addEventListener('wheel', cancelOnUserInput, { passive: true });
+    window.addEventListener('touchstart', cancelOnUserInput, { passive: true });
+    window.addEventListener('pointerdown', cancelOnUserInput, { passive: true });
+    window.addEventListener('keydown', cancelOnUserInput);
+    frame = window.requestAnimationFrame(restore);
+    retry = window.setTimeout(restore, 450);
+    lateRetry = window.setTimeout(restore, 1100);
     return () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(retry);
-      window.clearTimeout(lateRetry);
+      cancelPending();
+      window.removeEventListener('wheel', cancelOnUserInput);
+      window.removeEventListener('touchstart', cancelOnUserInput);
+      window.removeEventListener('pointerdown', cancelOnUserInput);
+      window.removeEventListener('keydown', cancelOnUserInput);
     };
   }, [loading, error, notFound, listing]);
 
