@@ -661,6 +661,17 @@ async function runRealBrowserJourneys() {
   await journeyOpen('/annonces/' + browserIds.donation + '#faire-une-demande',
     '.listing-detail__proposal-target', 'UX V4 deferred product request destination',
     'M9 visual donation accepted');
+  // Debug only public layout geometry, never page credentials or tokens.
+  // This distinguishes broken hash scroll from an overstrict viewport check.
+  await sleep(850);
+  const productAnchorGeometry = await evaluate('(() => {' +
+    'const target=document.getElementById("faire-une-demande");' +
+    'const rect=target?.getBoundingClientRect();' +
+    'return {hash:location.hash,scrollY:window.scrollY,innerHeight:innerHeight,' +
+    'scrollHeight:document.documentElement.scrollHeight,' +
+    'behavior:getComputedStyle(document.documentElement).scrollBehavior,' +
+    'top:rect?.top,bottom:rect?.bottom,height:rect?.height};})()');
+  console.log('[UX V4] Product anchor geometry:', JSON.stringify(productAnchorGeometry));
   await waitUntil('UX V4 product deep link restored after asynchronous fetch',
     '(() => {const target=document.getElementById("faire-une-demande");' +
     'return location.hash==="#faire-une-demande" && window.scrollY>0 && !!target' +
