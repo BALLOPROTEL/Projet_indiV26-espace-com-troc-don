@@ -7,6 +7,9 @@ const home = readFileSync(new URL('../components/home-experience.tsx', import.me
 const space = readFileSync(new URL('../components/personal-space.tsx', import.meta.url), 'utf8');
 const detail = readFileSync(new URL('../components/listing-detail.tsx', import.meta.url), 'utf8');
 const header = readFileSync(new URL('../components/site-header.tsx', import.meta.url), 'utf8');
+const exchanges = readFileSync(new URL('../components/marketplace-dashboard.tsx', import.meta.url), 'utf8');
+const admin = readFileSync(new URL('../components/admin-dashboard.tsx', import.meta.url), 'utf8');
+const moderation = readFileSync(new URL('../components/moderation-space.tsx', import.meta.url), 'utf8');
 
 describe('UX V4 task-first entry points', () => {
   it('offers catalogue browsing without authentication and an actual help section', () => {
@@ -35,6 +38,24 @@ describe('UX V4 task-first entry points', () => {
     expect(detail).toContain('id="faire-une-demande"');
     expect(detail).toContain('<ListingProposalForm listing={listing} />');
     expect(detail).toContain('href="/espace#publier"');
+  });
+
+  it('exposes concrete sections for received, sent and completed exchange steps', () => {
+    for (const section of ['echanges-recus', 'echanges-envoyes', 'echanges-remises']) {
+      expect(exchanges).toContain(`href="#${section}"`);
+      expect(exchanges).toContain(`id="${section}"`);
+    }
+    expect(exchanges).toContain("marketplaceApi.received");
+    expect(exchanges).toContain("marketplaceApi.mine");
+    expect(exchanges).toContain("marketplaceApi.transactions");
+  });
+
+  it('keeps administrators and moderators on real existing destinations', () => {
+    expect(admin).toContain('href="/moderation"');
+    expect(admin).toContain('href="/#annonces"');
+    expect(admin).toContain('href="/espace#mes-echanges"');
+    expect(moderation).toContain('id="file-moderation"');
+    expect(moderation).toContain("hasAnyRole('MODERATOR', 'ADMIN')");
   });
 
   it('does not offer invented functional pages or bypass role-based menus', () => {
