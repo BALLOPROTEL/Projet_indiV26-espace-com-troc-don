@@ -13,6 +13,10 @@ const juryRoot = resolve(repo, 'demo', 'jury');
 const assetsRoot = resolve(juryRoot, 'assets');
 const sourceCatalogPath = resolve(assetsRoot, 'sources.json');
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+export const MAX_RATE_LIMIT_RETRIES = 5;
+export const BASE_RETRY_DELAY_MS = 2000;
+export const MAX_RETRY_DELAY_MS = 60000;
+export const BETWEEN_FILE_DELAY_MS = 1500;
 
 const LISTINGS = new Set(['don-lampe', 'don-etagere', 'troc-sac', 'troc-livres']);
 const ALLOWED_FINAL_HOSTS = new Set(['commons.wikimedia.org', 'upload.wikimedia.org']);
@@ -38,6 +42,23 @@ export function isAllowedFinalUrl(value) {
     return false;
   }
 }
+
+export function parseRetryAfterMs(value, nowMs = Date.now()) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const trimmed = value.trim();
+  if (/^\d+$/.test(trimmed)) return Number(trimmed) * 1000;
+  const dateMs = Date.parse(trimmed);
+  if (!Number.isFinite(dateMs)) return null;
+  return Math.max(0, dateMs - nowMs);
+}
+
+export function rateLimitDelayMs(attempt, retryAfterValue, nowMs = Date.now()) {
+  const retryAfterMs = parseRetryAfterMs(retryAfterValue, nowMs);
+  if (retryAfterMs !== null) return Math.min(Math.max(retryAfterMs, BASE_RETRY_DELAY_MS), MAX_RETRY_DELAY_MS);
+  return Math.min(BASE_RETRY_DELAY_MS * (2 ** attempt), MAX_RETRY_DELAY_MS);
+}
+
+const sleep = ms => new Promise(resolvePromise => setTimeout(resolvePromise, ms));
 
 export function resolveAllowedRedirect(currentUrl, location) {
   if (typeof location !== 'string' || !location.trim()) throw new Error('Redirect location missing');
@@ -171,15 +192,38 @@ function verifyExistingFile(path) {
   return true;
 }
 
-async function fetchWithAllowedRedirects(initialUrl, maxRedirects = 5) {
-  let current = initialUrl;
-  for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
-    if (!isAllowedFinalUrl(current)) throw new Error('Blocked request target: ' + current);
-    const response = await fetch(current, {
+async function requestWithRateLimitRetry(url) {
+  for (let attempt = 0; attempt <= MAX_RATE_LIMIT_RETRIES; attempt += 1) {
+    const response = await fetch(url, {
       redirect: 'manual',
       signal: AbortSignal.timeout(30000),
       headers: { 'user-agent': 'ProjetIndiv26-jury-media-review/1.0' },
     });
+
+    if (response.status !== 429) return response;
+
+    const retryAfter = response.headers.get('retry-after');
+    await response.body?.cancel().catch(() => {});
+
+    if (attempt === MAX_RATE_LIMIT_RETRIES) {
+      throw new Error('Commons rate limit persisted after ' + (attempt + 1) + ' attempts');
+    }
+
+    const delayMs = rateLimitDelayMs(attempt, retryAfter);
+    console.warn(
+      'RATE LIMIT 429: retry ' + (attempt + 1) + '/' + MAX_RATE_LIMIT_RETRIES +
+      ' after ' + Math.ceil(delayMs / 1000) + 's'
+    );
+    await sleep(delayMs);
+  }
+  throw new Error('Unexpected rate-limit retry state');
+}
+
+async function fetchWithAllowedRedirects(initialUrl, maxRedirects = 5) {
+  let current = initialUrl;
+  for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
+    if (!isAllowedFinalUrl(current)) throw new Error('Blocked request target: ' + current);
+    const response = await requestWithRateLimitRetry(current);
 
     if (response.status >= 300 && response.status < 400) {
       if (redirectCount === maxRedirects) {
@@ -294,7 +338,10 @@ async function main() {
   }
 
   installSignalCleanup();
-  for (const source of catalog.sources) await fetchOne(source);
+  for (const [index, source] of catalog.sources.entries()) {
+    await fetchOne(source);
+    if (index < catalog.sources.length - 1) await sleep(BETWEEN_FILE_DELAY_MS);
+  }
   cleanupActiveParts();
 
   console.log('');
