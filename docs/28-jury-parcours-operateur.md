@@ -36,7 +36,7 @@ export JURY_REQUESTER_PASSWORD
 pnpm jury:stack:prepare
 ```
 
-La commande crée hors du dépôt un realm temporaire et un fichier `jury-stack.env` en permissions 0600. Elle affiche le chemin du fichier d'environnement, le nom unique de session et les URL dédiées. Elle **ne démarre aucun conteneur**.
+La commande crée hors du dépôt un realm temporaire protégé (0640 uniquement pour permettre la lecture au groupe numérique explicitement ajouté au processus Keycloak) et un fichier `jury-stack.env` en permissions 0600. Elle affiche le chemin du fichier d'environnement, le nom unique de session et les URL dédiées. Elle **ne démarre aucun conteneur**.
 
 Copier ensuite uniquement le chemin affiché :
 
@@ -72,7 +72,7 @@ pnpm jury:realm:prepare
 unset JURY_REQUESTER_PASSWORD
 ```
 
-Le script indique l'emplacement du fichier temporaire `keycloak-realm.json` (permissions 0600, dossier 0700). **La génération échoue sans écrire de secret si `TMPDIR`, `TMP` ou `TEMP` pointe dans le checkout Git, directement ou via un lien symbolique.** Un motif `jury-realm-*/` est également ignoré dans `.gitignore` comme défense supplémentaire. Monter ce fichier **uniquement lors de la création du nouveau realm Keycloak jetable**, avec la méthode de démarrage déjà documentée dans le projet. Le supprimer manuellement **après** import vérifié ; ne jamais le commiter, le partager ni le passer dans les logs. Le fichier contient les identifiants locaux de démonstration du realm d'origine ainsi que le nouveau secret ; garder strictement privé.
+Le générateur `jury:realm:prepare` seul produit `keycloak-realm.json` en 0600. Le flux `jury:stack:prepare` resserre l'accès au propriétaire + groupe (0640), relève le GID réel du fichier et ajoute uniquement ce GID au conteneur Keycloak ; aucun accès `other` n'est accordé. **La génération échoue sans écrire de secret si `TMPDIR`, `TMP` ou `TEMP` pointe dans le checkout Git, directement ou via un lien symbolique.** Un motif `jury-realm-*/` est également ignoré dans `.gitignore` comme défense supplémentaire. Monter ce fichier **uniquement lors de la création du nouveau realm Keycloak jetable**, avec la méthode de démarrage déjà documentée dans le projet. Le supprimer manuellement **après** import vérifié ; ne jamais le commiter, le partager ni le passer dans les logs. Le fichier contient les identifiants locaux de démonstration du realm d'origine ainsi que le nouveau secret ; garder strictement privé.
 
 **Important :** la génération n'implique pas que le deuxième compte existe dans un serveur. Laisser `actors.memberRequester: null` et `readiness: DRAFT_NOT_READY` dans le manifeste tant que l'import puis la connexion OIDC du demandeur n'ont pas été effectivement vérifiés. Après vérification réelle, l'opérateur peut renseigner `memberRequester: demo-requester`, avec justification dans son journal, puis effectuer les gates de médias séparément.
 
