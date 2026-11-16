@@ -25,6 +25,40 @@ pnpm jury:assets:check
 
 Le premier contrôle vérifie le schéma ; le deuxième les tests de validation hors ligne. **Le troisième doit échouer tant que les images, crédits, deux acteurs réellement distincts et statut `READY_FOR_REVIEW` ne sont pas prêts.** Ne pas désactiver ni contourner cette gate pour obtenir du vert.
 
+### Stack jury parallèle automatisée
+
+Le chemin recommandé dans Codespaces est désormais une **deuxième stack Compose** avec un nom de projet, des ports et des volumes propres. Elle n'arrête ni ne réutilise la stack courante.
+
+```bash
+export JURY_ENVIRONMENT_CONFIRMED=isolated
+read -rsp 'Mot de passe temporaire demo-requester (minimum 14 caractères) : ' JURY_REQUESTER_PASSWORD; echo
+export JURY_REQUESTER_PASSWORD
+pnpm jury:stack:prepare
+```
+
+La commande crée hors du dépôt un realm temporaire et un fichier `jury-stack.env` en permissions 0600. Elle affiche le chemin du fichier d'environnement, le nom unique de session et les URL dédiées. Elle **ne démarre aucun conteneur**.
+
+Copier ensuite uniquement le chemin affiché :
+
+```bash
+export JURY_STACK_ENV_FILE=/chemin/temporaire/jury-stack.env
+pnpm jury:stack:up
+pnpm jury:stack:check
+```
+
+`jury:stack:up` refuse de démarrer si le fichier realm se trouve dans le dépôt, si le nom Compose ne correspond pas au préfixe jury ou si l'espace libre est inférieur à 4 Gio. La stack utilise des ports distincts (Web 13001, Keycloak 18081, Gateway 13000, etc.) et un `COMPOSE_PROJECT_NAME` unique ; les volumes de la stack Codespaces normale ne sont donc pas réutilisés.
+
+`jury:stack:check` vérifie les services puis authentifie `demo-requester` via le client local `cli`, sans afficher le jeton. Le JWT doit porter le rôle `USER` et ne contenir ni `MODERATOR` ni `ADMIN`. Cette preuve technique ne remplace pas la connexion navigateur manuelle qui reste nécessaire avant de renseigner le manifeste.
+
+Pour arrêter cette stack sans toucher aux données :
+
+```bash
+pnpm jury:stack:down
+unset JURY_REQUESTER_PASSWORD
+```
+
+La commande `down` **n'utilise jamais `-v` ni `prune`** : les volumes jury restent conservés. Pour une répétition depuis zéro, préparer une nouvelle session avec `jury:stack:prepare`, qui reçoit un autre nom de projet et donc de nouveaux volumes.
+
 ### Préparer le deuxième membre — nouveau realm uniquement
 
 Si une **nouvelle stack Keycloak jetable** va être créée, préparer un import avec un second USER sans modifier le realm de base. Le générateur ne contacte aucun serveur et n'effectue **aucun import** ; il crée uniquement un nouveau fichier protégé en dehors du dépôt. Il ne faut **jamais** importer cet export par-dessus un realm déjà en fonctionnement ou dans une instance partagée.
