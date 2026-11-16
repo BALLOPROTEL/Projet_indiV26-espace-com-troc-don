@@ -2,13 +2,13 @@
 
 **Runbook opérateur et journal de recette :** [docs/28-jury-parcours-operateur.md](28-jury-parcours-operateur.md). Aucun scénario du runbook n'est réputé exécuté tant que ses preuves ne sont pas renseignées.
 
-**État : DRAFT. Pas de seed, pas de reset, pas de médias livrés.** Ceci est un scénario préparatoire pour l'issue [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56), distinct des fixtures jetables certifiées en CI par la PR #61.
+**État : DRAFT. Deuxième USER certifié, pas de seed/reset destructif, médias définitifs non encore certifiés.** Ceci est un scénario préparatoire pour l'issue [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56), distinct des fixtures jetables certifiées en CI par la PR #61.
 
 ## Vérifications faites sur le dépôt
 
-Le realm de labo dispose de `demo-user` (USER), `demo-moderator` (MODERATOR) et `demo-admin` (ADMIN). **Il manque encore un deuxième USER distinct** : `actors.memberRequester` vaut `null` dans le manifeste. Un générateur d'import **hors-ligne et non destructif**, `pnpm jury:realm:prepare`, permet de préparer un nouveau realm de démonstration contenant `demo-requester` avec le rôle USER, mais **ne crée pas le compte dans un Keycloak déjà déployé** (procédure dans le [runbook](28-jury-parcours-operateur.md)). Aucun compte fictif n'est présenté comme existant.
+`demo-user` (USER), `demo-requester` (USER), `demo-moderator` (MODERATOR) et `demo-admin` (ADMIN) sont désormais les quatre acteurs déclarés. `demo-requester` a été validé dans une stack jury Compose isolée : authentification OIDC/JWT `USER` uniquement puis connexion navigateur réelle sans accès Modération/Administration. Le workflow `jury:stack:*` reste la procédure reproductible pour recréer une session jetable sans toucher aux volumes du Codespace courant.
 
-Le manifeste réserve **quatre annonces** : deux dons (lampe, étagère) et deux annonces de troc (sac et livres), chacune avec **cinq photos à fournir**. Ces vingt chemins d'images ne pointent pas vers des photos réellement présentes. **Il est interdit de présenter le kit comme prêt tant que les droits de réutilisation et les fichiers n'ont pas été validés.**
+Le manifeste réserve **quatre annonces** : deux dons (lampe, étagère) et deux annonces de troc (sac et livres), chacune avec **cinq photos à fournir**. Ces vingt chemins d'images ne pointent pas encore vers un lot certifié. Un catalogue de **20 candidats Wikimedia Commons** est versionné dans `demo/jury/assets/sources.json`, mais chaque entrée reste `CANDIDATE_NOT_AUTHORIZED`. **Télécharger un candidat ne vaut ni validation visuelle, ni validation juridique, ni autorisation de démonstration.**
 
 ## Démonstration prévue une fois les données préparées
 
@@ -26,6 +26,23 @@ Le manifeste réserve **quatre annonces** : deux dons (lampe, étagère) et deux
 - Chaque photo doit être une image régulière identifiable (signature JPEG, PNG ou WebP) d'au plus **5 Mio**, et posséder une entrée de provenance propre au fichier : source, auteur, autorisation, conditions et date réelle **non future**. L'approbation juridique reste manuelle.
 - Les tests unitaires Node s'appuient sur des **fixtures de brouillon autonomes**, et non sur les avertissements du manifeste réel : la conversion du jeu de données en `READY_FOR_REVIEW` ne peut donc pas casser les tests de brouillon.
 - La CI exécute le contrôle des médias `--assets` **automatiquement** dès que le manifeste du dépôt porte le statut `READY_FOR_REVIEW`. Ne changer ce statut qu'après constitution du second compte et des vingt photos autorisées, dans un environnement isolé.
+
+## Acquisition contrôlée des médias candidats
+
+Le dépôt sépare volontairement **acquisition** et **certification** :
+
+```bash
+pnpm jury:assets:sources:check
+pnpm jury:assets:fetch:test
+
+export JURY_ASSET_FETCH_CONFIRMED=commons-review
+pnpm jury:assets:fetch
+unset JURY_ASSET_FETCH_CONFIRMED
+```
+
+Le fetcher n'accepte que Wikimedia Commons / upload.wikimedia.org en HTTPS, refuse les chemins hors `demo/jury/assets`, limite chaque fichier à 5 Mio, contrôle la signature JPEG/PNG/WebP et écrit de façon atomique. Il **ne modifie jamais** `provenance.json`, les `creditId` ou `readiness`.
+
+Après téléchargement, l'opérateur doit ouvrir les 20 images, vérifier que chaque groupe de cinq représente honnêtement l'annonce prévue, relire chaque page source/licence, puis seulement construire les 20 crédits de provenance. Tant que cette revue n'est pas faite, les fichiers sont des **candidats de travail**, pas des preuves jury.
 
 ## Contrôles sûrs (aucune connexion à la base)
 
@@ -47,7 +64,7 @@ Fournir uniquement des images réutilisables légalement. Compléter le `creditI
 
 ## Critères restants avant clôture
 
-- [ ] Deuxième USER réellement provisionné et RBAC vérifié.
+- [x] Deuxième USER réellement provisionné et RBAC vérifié (`demo-requester`).
 - [ ] 20 fichiers images réels disponibles et droits vérifiés.
 - [ ] Création, publication, DON/TROC et double confirmation réellement testés depuis l'interface avec ce dataset.
 - [ ] Procédure de réinitialisation **non destructive**, rapport de recette, preuve des statuts finaux.
