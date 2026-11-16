@@ -18,6 +18,7 @@ read_env() {
 }
 project="$(read_env COMPOSE_PROJECT_NAME)"
 realm_file="$(read_env KEYCLOAK_REALM_FILE)"
+realm_gid="$(read_env JURY_REALM_GID)"
 
 [[ "$project" =~ ^projet-indiv26-jury-[a-f0-9]{8}$ ]] || {
   echo "[FAIL] Invalid isolated Compose project name."
@@ -27,12 +28,30 @@ realm_file="$(read_env KEYCLOAK_REALM_FILE)"
   echo "[FAIL] Disposable Keycloak realm file is missing."
   exit 1
 }
+[[ "$realm_gid" =~ ^[0-9]+$ ]] || {
+  echo "[FAIL] Invalid realm group id."
+  exit 1
+}
 
 root_real="$(realpath "$ROOT_DIR")"
 realm_real="$(realpath "$realm_file")"
 case "$realm_real" in
   "$root_real"|"$root_real"/*)
     echo "[FAIL] Refusing a credential-bearing realm file inside the repository."
+    exit 1
+    ;;
+esac
+
+actual_gid="$(stat -c '%g' "$realm_real")"
+actual_mode="$(stat -c '%a' "$realm_real")"
+[ "$actual_gid" = "$realm_gid" ] || {
+  echo "[FAIL] Realm GID changed after preparation."
+  exit 1
+}
+case "$actual_mode" in
+  600|640) ;;
+  *)
+    echo "[FAIL] Realm permissions must be 0600 or 0640, never world-readable."
     exit 1
     ;;
 esac
