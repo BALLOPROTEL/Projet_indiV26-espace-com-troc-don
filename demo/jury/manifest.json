@@ -3,7 +3,7 @@
   "readiness": "DRAFT_NOT_READY",
   "actors": {
     "memberOwner": "demo-user",
-    "memberRequester": null,
+    "memberRequester": "demo-requester",
     "moderator": "demo-moderator",
     "admin": "demo-admin"
   },
