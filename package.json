@@ -92,7 +92,10 @@
     "jury:stack:test": "node --test scripts/jury-stack-prepare.test.mjs",
     "jury:stack:up": "bash scripts/jury-stack-up.sh",
     "jury:stack:check": "bash scripts/jury-stack-check.sh",
-    "jury:stack:down": "bash scripts/jury-stack-down.sh"
+    "jury:stack:down": "bash scripts/jury-stack-down.sh",
+    "jury:assets:sources:check": "node scripts/jury-assets-fetch.mjs --check",
+    "jury:assets:fetch": "node scripts/jury-assets-fetch.mjs --fetch",
+    "jury:assets:fetch:test": "node --test scripts/jury-assets-fetch.test.mjs"
   },
   "pnpm": {
     "overrides": {
