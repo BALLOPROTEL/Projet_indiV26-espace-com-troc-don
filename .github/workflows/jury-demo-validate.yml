@@ -16,6 +16,8 @@ on:
       - 'scripts/jury-stack-up.sh'
       - 'scripts/jury-stack-check.sh'
       - 'scripts/jury-stack-down.sh'
+      - 'scripts/jury-assets-fetch.mjs'
+      - 'scripts/jury-assets-fetch.test.mjs'
       - 'package.json'
       - '.github/workflows/jury-demo-validate.yml'
   workflow_dispatch:
@@ -45,6 +47,10 @@ jobs:
         run: node --test scripts/jury-stack-prepare.test.mjs
       - name: Validate isolated stack shell scripts
         run: bash -n scripts/jury-stack-up.sh scripts/jury-stack-check.sh scripts/jury-stack-down.sh
+      - name: Validate candidate media catalog without network
+        run: node scripts/jury-assets-fetch.mjs --check
+      - name: Test guarded media acquisition helpers
+        run: node --test scripts/jury-assets-fetch.test.mjs
       - name: Detect curated bundle readiness
         id: readiness
         run: |
