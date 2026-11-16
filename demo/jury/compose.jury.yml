@@ -1,0 +1,8 @@
+services:
+  keycloak:
+    environment:
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
+    volumes:
+      - ${KEYCLOAK_REALM_FILE}:/opt/keycloak/data/import/projet-indiv26-realm.json:ro
