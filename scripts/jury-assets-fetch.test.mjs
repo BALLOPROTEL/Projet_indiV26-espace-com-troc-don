@@ -1,10 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync, mkdirSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   MAX_IMAGE_BYTES,
   checkImageSignature,
   commonsDownloadUrl,
+  ensureSafeParentDirs,
   isAllowedFinalUrl,
+  resolveAllowedRedirect,
   resolveAssetTarget,
   validateSourceCatalog,
 } from './jury-assets-fetch.mjs';
@@ -34,12 +39,20 @@ function catalog() {
   };
 }
 
-test('catalog enforces 20 candidates and five per listing', () => {
+test('catalog enforces 20 candidates, five per listing and exact manifest slots', () => {
   assert.deepEqual(validateSourceCatalog(catalog()), []);
-  const broken = catalog();
-  broken.sources.pop();
-  assert.ok(validateSourceCatalog(broken).some(x => x.includes('20 candidate')));
-  assert.ok(validateSourceCatalog(broken).some(x => x.includes('5 candidates')));
+
+  const missing = catalog();
+  missing.sources.pop();
+  assert.ok(validateSourceCatalog(missing).some(x => x.includes('20 candidate')));
+  assert.ok(validateSourceCatalog(missing).some(x => x.includes('5 candidates')));
+  assert.ok(validateSourceCatalog(missing).some(x => x.includes('Missing manifest media slot')));
+
+  const wrong = catalog();
+  wrong.sources[0].target = 'assets/don-etagere/01.jpg';
+  const errors = validateSourceCatalog(wrong);
+  assert.ok(errors.some(x => x.includes('does not match manifest slot') || x.includes('duplicate target')));
+  assert.ok(errors.some(x => x.includes('Missing manifest media slot')));
 });
 
 test('catalog refuses pre-authorized candidate and duplicate filename', () => {
@@ -58,12 +71,37 @@ test('asset target stays inside jury assets', () => {
   assert.throws(() => resolveAssetTarget(root, 'assets/don-lampe/../../secret.jpg'));
 });
 
-test('download and final URL allowlists are strict', () => {
+test('safe parents reject symlinks and can create normal nested directories', () => {
+  const root = mkdtempSync(join(tmpdir(), 'jury-assets-test-'));
+  const assets = join(root, 'assets');
+  mkdirSync(assets);
+  const outside = mkdtempSync(join(tmpdir(), 'jury-assets-outside-'));
+  symlinkSync(outside, join(assets, 'bad'));
+  assert.throws(() => ensureSafeParentDirs(assets, join(assets, 'bad'), { create: true }), /Unsafe asset parent/);
+
+  const created = ensureSafeParentDirs(assets, join(assets, 'good', 'nested'), { create: true });
+  assert.equal(created, join(assets, 'good', 'nested'));
+});
+
+test('download and redirect URL allowlists are strict', () => {
   assert.match(commonsDownloadUrl('A file.jpg'), /^https:\/\/commons\.wikimedia\.org\/wiki\/Special:Redirect\/file\//);
   assert.equal(isAllowedFinalUrl('https://upload.wikimedia.org/example.jpg'), true);
   assert.equal(isAllowedFinalUrl('https://commons.wikimedia.org/wiki/File:Example.jpg'), true);
   assert.equal(isAllowedFinalUrl('http://upload.wikimedia.org/example.jpg'), false);
   assert.equal(isAllowedFinalUrl('https://evil.example/example.jpg'), false);
+
+  assert.equal(
+    resolveAllowedRedirect('https://commons.wikimedia.org/wiki/Special:Redirect/file/A.jpg', 'https://upload.wikimedia.org/A.jpg'),
+    'https://upload.wikimedia.org/A.jpg'
+  );
+  assert.throws(
+    () => resolveAllowedRedirect('https://commons.wikimedia.org/wiki/Special:Redirect/file/A.jpg', 'http://upload.wikimedia.org/A.jpg'),
+    /Blocked redirect/
+  );
+  assert.throws(
+    () => resolveAllowedRedirect('https://commons.wikimedia.org/wiki/Special:Redirect/file/A.jpg', 'https://evil.example/A.jpg'),
+    /Blocked redirect/
+  );
 });
 
 test('JPEG signature and max size are enforced', () => {
