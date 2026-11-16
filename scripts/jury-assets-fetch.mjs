@@ -1,6 +1,9 @@
 #!/usr/bin/env node
-import { createWriteStream, existsSync, lstatSync, mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
-import { dirname, extname, resolve, sep } from 'node:path';
+import {
+  createWriteStream, existsSync, lstatSync, mkdirSync, readFileSync,
+  realpathSync, renameSync, rmSync,
+} from 'node:fs';
+import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pipeline } from 'node:stream/promises';
 import { Readable, Transform } from 'node:stream';
@@ -13,6 +16,14 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const LISTINGS = new Set(['don-lampe', 'don-etagere', 'troc-sac', 'troc-livres']);
 const ALLOWED_FINAL_HOSTS = new Set(['commons.wikimedia.org', 'upload.wikimedia.org']);
+const EXPECTED_TARGETS = new Set(
+  [...LISTINGS].flatMap(listing =>
+    Array.from({ length: 5 }, (_, i) =>
+      `assets/${listing}/${String(i + 1).padStart(2, '0')}.jpg`
+    )
+  )
+);
+const activeParts = new Set();
 
 export function commonsDownloadUrl(fileName) {
   if (typeof fileName !== 'string' || !fileName.trim()) throw new Error('Commons filename required');
@@ -28,14 +39,53 @@ export function isAllowedFinalUrl(value) {
   }
 }
 
+export function resolveAllowedRedirect(currentUrl, location) {
+  if (typeof location !== 'string' || !location.trim()) throw new Error('Redirect location missing');
+  const next = new URL(location, currentUrl).toString();
+  if (!isAllowedFinalUrl(next)) throw new Error('Blocked redirect target: ' + next);
+  return next;
+}
+
 export function resolveAssetTarget(root, target) {
-  if (typeof target !== 'string' || !/^assets\/[a-z0-9-]+\/[0-9]{2}\.(jpg|jpeg|png|webp)$/.test(target)) {
+  if (typeof target !== 'string' || !/^assets\/[a-z0-9-]+\/[0-9]{2}\.jpg$/.test(target)) {
     throw new Error('Invalid jury asset target: ' + String(target));
   }
   const absolute = resolve(root, target);
   const expectedRoot = resolve(root, 'assets');
   if (!absolute.startsWith(expectedRoot + sep)) throw new Error('Asset target escapes jury assets root');
   return absolute;
+}
+
+export function ensureSafeParentDirs(root, targetDir, { create = false } = {}) {
+  const rootReal = realpathSync(root);
+  const lexicalTarget = resolve(targetDir);
+  const rel = relative(resolve(root), lexicalTarget);
+  if (!rel || rel.startsWith('..' + sep) || rel === '..' || rel.startsWith(sep)) {
+    throw new Error('Parent directory escapes jury assets root');
+  }
+
+  let current = rootReal;
+  for (const part of rel.split(sep).filter(Boolean)) {
+    current = join(current, part);
+    if (existsSync(current)) {
+      const stat = lstatSync(current);
+      if (stat.isSymbolicLink() || !stat.isDirectory()) {
+        throw new Error('Unsafe asset parent: ' + current);
+      }
+      const currentReal = realpathSync(current);
+      if (currentReal !== rootReal && !currentReal.startsWith(rootReal + sep)) {
+        throw new Error('Asset parent resolves outside jury assets root');
+      }
+    } else {
+      if (!create) throw new Error('Missing asset parent: ' + current);
+      mkdirSync(current, { mode: 0o755 });
+      const stat = lstatSync(current);
+      if (stat.isSymbolicLink() || !stat.isDirectory()) {
+        throw new Error('Unsafe created asset parent: ' + current);
+      }
+    }
+  }
+  return current;
 }
 
 export function checkImageSignature(bytes, extension) {
@@ -64,36 +114,50 @@ export function validateSourceCatalog(catalog) {
     return ['Invalid media source catalog header'];
   }
   if (catalog.sources.length !== 20) errors.push('Exactly 20 candidate sources are required');
+
   const ids = new Set(), targets = new Set(), names = new Set(), counts = new Map();
   for (const source of catalog.sources) {
     if (!/^candidate-[0-9]{2}$/.test(source?.id || '') || ids.has(source.id)) {
       errors.push('Invalid/duplicate candidate id: ' + String(source?.id));
     } else ids.add(source.id);
+
     if (!LISTINGS.has(source?.listing)) errors.push('Invalid listing: ' + String(source?.listing));
     counts.set(source?.listing, (counts.get(source?.listing) || 0) + 1);
+
     if (typeof source?.target !== 'string' || targets.has(source.target)) {
       errors.push('Invalid/duplicate target: ' + String(source?.target));
     } else {
       targets.add(source.target);
       try { resolveAssetTarget(juryRoot, source.target); } catch (error) { errors.push(error.message); }
+      if (!EXPECTED_TARGETS.has(source.target) ||
+          !source.target.startsWith('assets/' + source.listing + '/')) {
+        errors.push('Candidate target does not match manifest slot: ' + source.target);
+      }
     }
+
     if (typeof source?.commonsFileName !== 'string' || !source.commonsFileName.endsWith('.jpg') ||
         names.has(source.commonsFileName)) {
       errors.push('Invalid/duplicate Commons filename: ' + String(source?.commonsFileName));
     } else names.add(source.commonsFileName);
+
     if (!isAllowedFinalUrl(source?.sourcePage)) errors.push('Invalid Commons source page: ' + String(source?.sourcePage));
     if (typeof source?.expectedAuthor !== 'string' || !source.expectedAuthor.trim()) errors.push('Expected author missing: ' + source?.id);
     if (typeof source?.expectedLicense !== 'string' || !source.expectedLicense.trim()) errors.push('Expected license missing: ' + source?.id);
     if (typeof source?.conditions !== 'string' || !source.conditions.trim()) errors.push('Reuse conditions missing: ' + source?.id);
-    if (!isAllowedFinalUrl(source?.licenseUrl) && !String(source?.licenseUrl || '').startsWith('https://creativecommons.org/')) {
+    if (!isAllowedFinalUrl(source?.licenseUrl) &&
+        !String(source?.licenseUrl || '').startsWith('https://creativecommons.org/')) {
       errors.push('Invalid license URL: ' + source?.id);
     }
     if (source?.rightsReviewStatus !== 'CANDIDATE_NOT_AUTHORIZED') {
       errors.push('Candidate must remain non-authorized until human review: ' + source?.id);
     }
   }
+
   for (const listing of LISTINGS) {
     if (counts.get(listing) !== 5) errors.push('Exactly 5 candidates required for ' + listing);
+  }
+  for (const expected of EXPECTED_TARGETS) {
+    if (!targets.has(expected)) errors.push('Missing manifest media slot: ' + expected);
   }
   return errors;
 }
@@ -107,43 +171,98 @@ function verifyExistingFile(path) {
   return true;
 }
 
+async function fetchWithAllowedRedirects(initialUrl, maxRedirects = 5) {
+  let current = initialUrl;
+  for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount += 1) {
+    if (!isAllowedFinalUrl(current)) throw new Error('Blocked request target: ' + current);
+    const response = await fetch(current, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(30000),
+      headers: { 'user-agent': 'ProjetIndiv26-jury-media-review/1.0' },
+    });
+
+    if (response.status >= 300 && response.status < 400) {
+      if (redirectCount === maxRedirects) {
+        await response.body?.cancel().catch(() => {});
+        throw new Error('Too many redirects');
+      }
+      const next = resolveAllowedRedirect(current, response.headers.get('location'));
+      await response.body?.cancel().catch(() => {});
+      current = next;
+      continue;
+    }
+    return response;
+  }
+  throw new Error('Redirect loop');
+}
+
 async function fetchOne(source) {
   const target = resolveAssetTarget(juryRoot, source.target);
+  ensureSafeParentDirs(assetsRoot, dirname(target), { create: true });
+
   if (verifyExistingFile(target)) {
     console.log('SKIP valid existing: ' + source.target);
     return;
   }
-  mkdirSync(dirname(target), { recursive: true });
+
   const part = target + '.part-' + process.pid;
   rmSync(part, { force: true });
+  activeParts.add(part);
 
-  const response = await fetch(commonsDownloadUrl(source.commonsFileName), {
-    redirect: 'follow',
-    signal: AbortSignal.timeout(30000),
-    headers: { 'user-agent': 'ProjetIndiv26-jury-media-review/1.0' },
-  });
-  if (!response.ok || !response.body) throw new Error('Download failed (' + response.status + '): ' + source.commonsFileName);
-  if (!isAllowedFinalUrl(response.url)) throw new Error('Unexpected redirect host: ' + response.url);
-  const length = Number(response.headers.get('content-length') || '0');
-  if (Number.isFinite(length) && length > MAX_IMAGE_BYTES) throw new Error('Image exceeds 5 MiB: ' + source.commonsFileName);
-
-  let total = 0;
-  const limiter = new Transform({
-    transform(chunk, _encoding, callback) {
-      total += chunk.length;
-      if (total > MAX_IMAGE_BYTES) callback(new Error('Image exceeds 5 MiB while streaming'));
-      else callback(null, chunk);
-    },
-  });
   try {
-    await pipeline(Readable.fromWeb(response.body), limiter, createWriteStream(part, { flags: 'wx', mode: 0o644 }));
+    const response = await fetchWithAllowedRedirects(commonsDownloadUrl(source.commonsFileName));
+    if (!response.ok || !response.body) {
+      throw new Error('Download failed (' + response.status + '): ' + source.commonsFileName);
+    }
+
+    const length = Number(response.headers.get('content-length') || '0');
+    if (Number.isFinite(length) && length > MAX_IMAGE_BYTES) {
+      await response.body.cancel().catch(() => {});
+      throw new Error('Image exceeds 5 MiB: ' + source.commonsFileName);
+    }
+
+    let total = 0;
+    const limiter = new Transform({
+      transform(chunk, _encoding, callback) {
+        total += chunk.length;
+        if (total > MAX_IMAGE_BYTES) callback(new Error('Image exceeds 5 MiB while streaming'));
+        else callback(null, chunk);
+      },
+    });
+
+    await pipeline(
+      Readable.fromWeb(response.body),
+      limiter,
+      createWriteStream(part, { flags: 'wx', mode: 0o644 })
+    );
+
     const bytes = readFileSync(part);
     if (!checkImageSignature(bytes, extname(target))) throw new Error('Downloaded file signature is invalid');
+
+    ensureSafeParentDirs(assetsRoot, dirname(target), { create: false });
     renameSync(part, target);
+    activeParts.delete(part);
     console.log('FETCHED ' + source.target + ' <- ' + source.commonsFileName);
   } catch (error) {
     rmSync(part, { force: true });
+    activeParts.delete(part);
     throw error;
+  }
+}
+
+function cleanupActiveParts() {
+  for (const part of activeParts) {
+    try { rmSync(part, { force: true }); } catch {}
+  }
+  activeParts.clear();
+}
+
+function installSignalCleanup() {
+  for (const [signal, exitCode] of [['SIGINT', 130], ['SIGTERM', 143]]) {
+    process.once(signal, () => {
+      cleanupActiveParts();
+      process.exit(exitCode);
+    });
   }
 }
 
@@ -156,21 +275,28 @@ async function main() {
     process.exitCode = 1;
     return;
   }
+
   if (mode === '--check') {
     console.log('Jury media candidate catalog: PASS; candidates=20; authorized=0');
     return;
   }
+
   if (mode !== '--fetch' || process.argv.length !== 3) {
     console.error('Usage: node scripts/jury-assets-fetch.mjs --check|--fetch');
     process.exitCode = 2;
     return;
   }
+
   if (process.env.JURY_ASSET_FETCH_CONFIRMED !== 'commons-review') {
     console.error('[FAIL] Set JURY_ASSET_FETCH_CONFIRMED=commons-review to download review candidates.');
     process.exitCode = 1;
     return;
   }
+
+  installSignalCleanup();
   for (const source of catalog.sources) await fetchOne(source);
+  cleanupActiveParts();
+
   console.log('');
   console.log('[OK] 20 candidate files downloaded for HUMAN REVIEW ONLY.');
   console.log('No provenance authorization or READY_FOR_REVIEW state was changed.');
@@ -178,6 +304,7 @@ async function main() {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch(error => {
+    cleanupActiveParts();
     console.error('[FAIL] ' + error.message);
     process.exitCode = 1;
   });
