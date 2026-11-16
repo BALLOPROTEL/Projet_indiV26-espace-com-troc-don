@@ -84,6 +84,7 @@ export function validateSourceCatalog(catalog) {
     if (!isAllowedFinalUrl(source?.sourcePage)) errors.push('Invalid Commons source page: ' + String(source?.sourcePage));
     if (typeof source?.expectedAuthor !== 'string' || !source.expectedAuthor.trim()) errors.push('Expected author missing: ' + source?.id);
     if (typeof source?.expectedLicense !== 'string' || !source.expectedLicense.trim()) errors.push('Expected license missing: ' + source?.id);
+    if (typeof source?.conditions !== 'string' || !source.conditions.trim()) errors.push('Reuse conditions missing: ' + source?.id);
     if (!isAllowedFinalUrl(source?.licenseUrl) && !String(source?.licenseUrl || '').startsWith('https://creativecommons.org/')) {
       errors.push('Invalid license URL: ' + source?.id);
     }
