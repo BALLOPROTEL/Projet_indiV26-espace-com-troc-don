@@ -4,11 +4,15 @@ import { mkdtempSync, mkdirSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  BASE_RETRY_DELAY_MS,
   MAX_IMAGE_BYTES,
+  MAX_RETRY_DELAY_MS,
   checkImageSignature,
   commonsDownloadUrl,
   ensureSafeParentDirs,
   isAllowedFinalUrl,
+  parseRetryAfterMs,
+  rateLimitDelayMs,
   resolveAllowedRedirect,
   resolveAssetTarget,
   validateSourceCatalog,
@@ -110,4 +114,23 @@ test('JPEG signature and max size are enforced', () => {
   assert.equal(checkImageSignature(jpeg,'.jpg'), true);
   assert.equal(checkImageSignature(Buffer.alloc(63),'.jpg'), false);
   assert.equal(checkImageSignature(Buffer.alloc(MAX_IMAGE_BYTES + 1),'.jpg'), false);
+});
+
+
+test('Retry-After parsing supports seconds and HTTP dates', () => {
+  assert.equal(parseRetryAfterMs('7', 1000), 7000);
+  assert.equal(parseRetryAfterMs('invalid', 1000), null);
+  const now = Date.parse('2026-11-17T00:00:00Z');
+  assert.equal(
+    parseRetryAfterMs('Mon, 17 Nov 2026 00:00:10 GMT', now),
+    10000
+  );
+});
+
+test('rate-limit delay honors Retry-After and caps exponential backoff', () => {
+  assert.equal(rateLimitDelayMs(0, null, 0), BASE_RETRY_DELAY_MS);
+  assert.equal(rateLimitDelayMs(1, null, 0), BASE_RETRY_DELAY_MS * 2);
+  assert.equal(rateLimitDelayMs(99, null, 0), MAX_RETRY_DELAY_MS);
+  assert.equal(rateLimitDelayMs(0, '1', 0), BASE_RETRY_DELAY_MS);
+  assert.equal(rateLimitDelayMs(0, '120', 0), MAX_RETRY_DELAY_MS);
 });
