@@ -182,3 +182,49 @@ test('imageinfo response rejects missing files and disallowed media hosts', () =
   };
   assert.throws(() => extractResolvedMediaUrls(evil, c.sources), /disallowed media URL/);
 });
+
+
+test('imageinfo mapping preserves case-sensitive Commons filenames', () => {
+  const sources = [
+    { id: 'candidate-03', commonsFileName: 'Model X (By Raphael Gobeil Gauthier).jpg' },
+    { id: 'candidate-04', commonsFileName: 'Model X (by Raphael Gobeil Gauthier).jpg' },
+  ];
+  const payload = {
+    query: {
+      pages: [
+        {
+          title: 'File:Model X (By Raphael Gobeil Gauthier).jpg',
+          imageinfo: [{ thumburl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/by-upper.jpg/1600px-by-upper.jpg' }],
+        },
+        {
+          title: 'File:Model X (by Raphael Gobeil Gauthier).jpg',
+          imageinfo: [{ thumburl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/by-lower.jpg/1600px-by-lower.jpg' }],
+        },
+      ],
+    },
+  };
+  const resolved = extractResolvedMediaUrls(payload, sources);
+  assert.equal(resolved.get('candidate-03'), 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/by-upper.jpg/1600px-by-upper.jpg');
+  assert.equal(resolved.get('candidate-04'), 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/by-lower.jpg/1600px-by-lower.jpg');
+  assert.notEqual(resolved.get('candidate-03'), resolved.get('candidate-04'));
+});
+
+test('imageinfo mapping rejects duplicate media URLs for distinct candidates', () => {
+  const sources = [
+    { id: 'candidate-03', commonsFileName: 'Model X (By Raphael Gobeil Gauthier).jpg' },
+    { id: 'candidate-04', commonsFileName: 'Model X (by Raphael Gobeil Gauthier).jpg' },
+  ];
+  const same = 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/same.jpg/1600px-same.jpg';
+  const payload = {
+    query: {
+      pages: [
+        { title: 'File:' + sources[0].commonsFileName, imageinfo: [{ thumburl: same }] },
+        { title: 'File:' + sources[1].commonsFileName, imageinfo: [{ thumburl: same }] },
+      ],
+    },
+  };
+  assert.throws(
+    () => extractResolvedMediaUrls(payload, sources),
+    /duplicate media URLs/
+  );
+});
