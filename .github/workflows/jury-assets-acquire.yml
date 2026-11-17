@@ -2,6 +2,11 @@ name: Jury assets acquisition
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - 'ops/jury-assets-acquire'
+    paths:
+      - '.github/jury-assets-trigger/**'
 
 permissions:
   contents: write
