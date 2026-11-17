@@ -32,7 +32,7 @@ export const BETWEEN_FILE_DELAY_MS =
     : 1500;
 
 const LISTINGS = new Set(['don-lampe', 'don-etagere', 'troc-sac', 'troc-livres']);
-const ALLOWED_FINAL_HOSTS = new Set(['commons.wikimedia.org', 'upload.wikimedia.org']);
+const ALLOWED_FINAL_HOSTS = new Set(['commons.wikimedia.org', 'upload.wikimedia.org', 'thumb.wikimedia.org']);
 const EXPECTED_TARGETS = new Set(
   [...LISTINGS].flatMap(listing =>
     Array.from({ length: 5 }, (_, i) =>
@@ -88,7 +88,8 @@ export function extractResolvedMediaUrls(payload, sources) {
     const mediaUrl = info?.thumburl || info?.url;
     if (typeof page?.title !== 'string' || typeof mediaUrl !== 'string') continue;
     const parsed = new URL(mediaUrl);
-    if (parsed.protocol !== 'https:' || parsed.hostname !== 'upload.wikimedia.org') {
+    if (parsed.protocol !== 'https:' ||
+        !['upload.wikimedia.org', 'thumb.wikimedia.org'].includes(parsed.hostname)) {
       throw new Error('Commons imageinfo returned disallowed media URL: ' + mediaUrl);
     }
     const key = commonsFileKey(page.title);
