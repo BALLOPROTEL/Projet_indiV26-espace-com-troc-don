@@ -16,6 +16,7 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_RATE_LIMIT_RETRIES = 5;
 export const BASE_RETRY_DELAY_MS = 2000;
 export const MAX_RETRY_DELAY_MS = 60000;
+export const MAX_SERVER_RETRY_AFTER_MS = 60000;
 export const BETWEEN_FILE_DELAY_MS = 1500;
 
 const LISTINGS = new Set(['don-lampe', 'don-etagere', 'troc-sac', 'troc-livres']);
@@ -54,7 +55,7 @@ export function parseRetryAfterMs(value, nowMs = Date.now()) {
 
 export function rateLimitDelayMs(attempt, retryAfterValue, nowMs = Date.now()) {
   const retryAfterMs = parseRetryAfterMs(retryAfterValue, nowMs);
-  if (retryAfterMs !== null) return Math.min(Math.max(retryAfterMs, BASE_RETRY_DELAY_MS), MAX_RETRY_DELAY_MS);
+  if (retryAfterMs !== null) return Math.max(retryAfterMs, BASE_RETRY_DELAY_MS);
   return Math.min(BASE_RETRY_DELAY_MS * (2 ** attempt), MAX_RETRY_DELAY_MS);
 }
 
@@ -210,6 +211,13 @@ async function requestWithRateLimitRetry(url) {
     }
 
     const delayMs = rateLimitDelayMs(attempt, retryAfter);
+    if (retryAfter && delayMs > MAX_SERVER_RETRY_AFTER_MS) {
+      throw new Error(
+        'Commons requested Retry-After ' + Math.ceil(delayMs / 1000) +
+        's, above the operator limit of ' + Math.ceil(MAX_SERVER_RETRY_AFTER_MS / 1000) +
+        's; aborting without an early retry'
+      );
+    }
     console.warn(
       'RATE LIMIT 429: retry ' + (attempt + 1) + '/' + MAX_RATE_LIMIT_RETRIES +
       ' after ' + Math.ceil(delayMs / 1000) + 's'
