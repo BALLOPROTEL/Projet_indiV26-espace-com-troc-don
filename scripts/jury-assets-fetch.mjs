@@ -74,8 +74,7 @@ function commonsFileKey(value) {
     .replace(/^File:/i, '')
     .replaceAll('_', ' ')
     .trim()
-    .normalize('NFC')
-    .toLocaleLowerCase('en-US');
+    .normalize('NFC');
 }
 
 export function extractResolvedMediaUrls(payload, sources) {
@@ -92,7 +91,11 @@ export function extractResolvedMediaUrls(payload, sources) {
     if (parsed.protocol !== 'https:' || parsed.hostname !== 'upload.wikimedia.org') {
       throw new Error('Commons imageinfo returned disallowed media URL: ' + mediaUrl);
     }
-    byFile.set(commonsFileKey(page.title), mediaUrl);
+    const key = commonsFileKey(page.title);
+    if (byFile.has(key)) {
+      throw new Error('Commons imageinfo returned duplicate canonical title: ' + page.title);
+    }
+    byFile.set(key, mediaUrl);
   }
 
   const resolved = new Map();
@@ -102,6 +105,10 @@ export function extractResolvedMediaUrls(payload, sources) {
     resolved.set(source.id, mediaUrl);
   }
   if (resolved.size !== sources.length) throw new Error('Commons imageinfo resolution count mismatch');
+  const uniqueMediaUrls = new Set(resolved.values());
+  if (uniqueMediaUrls.size !== sources.length) {
+    throw new Error('Commons imageinfo resolved duplicate media URLs for distinct candidates');
+  }
   return resolved;
 }
 
