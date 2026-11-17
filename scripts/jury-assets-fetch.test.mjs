@@ -10,6 +10,8 @@ import {
   MAX_SERVER_RETRY_AFTER_MS,
   checkImageSignature,
   commonsDownloadUrl,
+  commonsImageInfoApiUrl,
+  extractResolvedMediaUrls,
   ensureSafeParentDirs,
   isAllowedFinalUrl,
   parseRetryAfterMs,
@@ -135,4 +137,48 @@ test('rate-limit delay honors Retry-After and caps exponential backoff', () => {
   assert.equal(rateLimitDelayMs(0, '1', 0), BASE_RETRY_DELAY_MS);
   assert.equal(rateLimitDelayMs(0, '120', 0), 120000);
   assert.ok(rateLimitDelayMs(0, '120', 0) > MAX_SERVER_RETRY_AFTER_MS);
+});
+
+
+test('imageinfo URL resolves all catalog files in one Commons API request', () => {
+  const c = catalog();
+  const url = new URL(commonsImageInfoApiUrl(c.sources));
+  assert.equal(url.origin, 'https://commons.wikimedia.org');
+  assert.equal(url.pathname, '/w/api.php');
+  assert.equal(url.searchParams.get('prop'), 'imageinfo');
+  assert.equal(url.searchParams.get('iiurlwidth'), '1600');
+  assert.equal(url.searchParams.get('titles').split('|').length, 20);
+});
+
+test('imageinfo response maps each source to an upload.wikimedia.org media URL', () => {
+  const c = catalog();
+  const payload = {
+    query: {
+      pages: c.sources.map((source, index) => ({
+        title: 'File:' + source.commonsFileName,
+        imageinfo: [{
+          thumburl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/example-' + index + '/1600px-example-' + index + '.jpg',
+        }],
+      })),
+    },
+  };
+  const resolved = extractResolvedMediaUrls(payload, c.sources);
+  assert.equal(resolved.size, 20);
+  assert.match(resolved.get('candidate-01'), /^https:\/\/upload\.wikimedia\.org\//);
+});
+
+test('imageinfo response rejects missing files and disallowed media hosts', () => {
+  const c = catalog();
+  const missing = { query: { pages: [] } };
+  assert.throws(() => extractResolvedMediaUrls(missing, c.sources), /did not resolve/);
+
+  const evil = {
+    query: {
+      pages: c.sources.map(source => ({
+        title: 'File:' + source.commonsFileName,
+        imageinfo: [{ thumburl: 'https://evil.example/file.jpg' }],
+      })),
+    },
+  };
+  assert.throws(() => extractResolvedMediaUrls(evil, c.sources), /disallowed media URL/);
 });
