@@ -1,0 +1,70 @@
+name: Jury assets acquisition
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  acquire:
+    name: Fetch 20 jury media candidates to an isolated branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - name: Validate candidate catalog offline
+        run: node scripts/jury-assets-fetch.mjs --check
+
+      - name: Fetch candidates from approved Commons hosts
+        env:
+          JURY_ASSET_FETCH_CONFIRMED: commons-review
+        run: node scripts/jury-assets-fetch.mjs --fetch
+
+      - name: Verify exactly 20 JPEG candidates and no partial files
+        shell: bash
+        run: |
+          set -euo pipefail
+          count="$(find demo/jury/assets -type f -path '*/0[1-5].jpg' | wc -l | tr -d ' ')"
+          if [ "$count" != "20" ]; then
+            echo "::error::Expected exactly 20 candidate JPEGs, found $count"
+            exit 1
+          fi
+          if find demo/jury/assets -type f -name '*.part-*' -print -quit | grep -q .; then
+            echo "::error::Partial download file found"
+            exit 1
+          fi
+          find demo/jury/assets -type f -path '*/0[1-5].jpg' -printf '%p %s bytes\n' | sort
+
+      - name: Commit candidates to a dedicated branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          branch="chore/56-jury-assets-${GITHUB_RUN_ID}"
+          git switch -c "$branch"
+          git add \
+            demo/jury/assets/don-lampe \
+            demo/jury/assets/don-etagere \
+            demo/jury/assets/troc-sac \
+            demo/jury/assets/troc-livres
+          if git diff --cached --quiet; then
+            echo "::error::No jury media files were staged"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(#56): acquire 20 jury media candidates"
+          git push origin "$branch"
+          {
+            echo "### Jury media acquisition"
+            echo ""
+            echo "Created branch: $branch"
+            echo "Candidates remain CANDIDATE_NOT_AUTHORIZED until human rights/visual review."
+          } >> "$GITHUB_STEP_SUMMARY"
