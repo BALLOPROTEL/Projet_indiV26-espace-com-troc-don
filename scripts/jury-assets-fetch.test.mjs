@@ -259,3 +259,46 @@ test('imageinfo accepts the official thumb.wikimedia.org thumbnail host only', (
   };
   assert.throws(() => extractResolvedMediaUrls(sibling, sources), /disallowed media URL/);
 });
+
+
+test('imageinfo prefers original upload.wikimedia.org URL when original is within 5 MiB', () => {
+  const sources = [{ id: 'candidate-01', commonsFileName: 'Example 1.jpg' }];
+  const payload = {
+    query: {
+      pages: [{
+        title: 'File:Example 1.jpg',
+        imageinfo: [{
+          size: MAX_IMAGE_BYTES,
+          url: 'https://upload.wikimedia.org/wikipedia/commons/a/a1/example-original.jpg',
+          thumburl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/example-original.jpg/1600px-example-original.jpg',
+        }],
+      }],
+    },
+  };
+  const resolved = extractResolvedMediaUrls(payload, sources);
+  assert.equal(
+    resolved.get('candidate-01'),
+    'https://upload.wikimedia.org/wikipedia/commons/a/a1/example-original.jpg'
+  );
+});
+
+test('imageinfo falls back to thumbnail when original exceeds 5 MiB', () => {
+  const sources = [{ id: 'candidate-01', commonsFileName: 'Example 1.jpg' }];
+  const payload = {
+    query: {
+      pages: [{
+        title: 'File:Example 1.jpg',
+        imageinfo: [{
+          size: MAX_IMAGE_BYTES + 1,
+          url: 'https://upload.wikimedia.org/wikipedia/commons/a/a1/example-original.jpg',
+          thumburl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/example-original.jpg/1600px-example-original.jpg',
+        }],
+      }],
+    },
+  };
+  const resolved = extractResolvedMediaUrls(payload, sources);
+  assert.equal(
+    resolved.get('candidate-01'),
+    'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/example-original.jpg/1600px-example-original.jpg'
+  );
+});
