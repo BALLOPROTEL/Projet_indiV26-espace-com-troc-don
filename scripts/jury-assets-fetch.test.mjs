@@ -93,6 +93,7 @@ test('safe parents reject symlinks and can create normal nested directories', ()
 test('download and redirect URL allowlists are strict', () => {
   assert.match(commonsDownloadUrl('A file.jpg'), /^https:\/\/commons\.wikimedia\.org\/wiki\/Special:Redirect\/file\//);
   assert.equal(isAllowedFinalUrl('https://upload.wikimedia.org/example.jpg'), true);
+  assert.equal(isAllowedFinalUrl('https://thumb.wikimedia.org/wikipedia/commons/thumb/example.jpg'), true);
   assert.equal(isAllowedFinalUrl('https://commons.wikimedia.org/wiki/File:Example.jpg'), true);
   assert.equal(isAllowedFinalUrl('http://upload.wikimedia.org/example.jpg'), false);
   assert.equal(isAllowedFinalUrl('https://evil.example/example.jpg'), false);
@@ -227,4 +228,34 @@ test('imageinfo mapping rejects duplicate media URLs for distinct candidates', (
     () => extractResolvedMediaUrls(payload, sources),
     /duplicate media URLs/
   );
+});
+
+
+test('imageinfo accepts the official thumb.wikimedia.org thumbnail host only', () => {
+  const sources = [{ id: 'candidate-01', commonsFileName: 'Example 1.jpg' }];
+  const payload = {
+    query: {
+      pages: [{
+        title: 'File:Example 1.jpg',
+        imageinfo: [{
+          thumburl: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/example.jpg/1920px-example.jpg',
+        }],
+      }],
+    },
+  };
+  const resolved = extractResolvedMediaUrls(payload, sources);
+  assert.equal(
+    resolved.get('candidate-01'),
+    'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a1/example.jpg/1920px-example.jpg'
+  );
+
+  const sibling = {
+    query: {
+      pages: [{
+        title: 'File:Example 1.jpg',
+        imageinfo: [{ thumburl: 'https://evil.wikimedia.org/example.jpg' }],
+      }],
+    },
+  };
+  assert.throws(() => extractResolvedMediaUrls(sibling, sources), /disallowed media URL/);
 });
