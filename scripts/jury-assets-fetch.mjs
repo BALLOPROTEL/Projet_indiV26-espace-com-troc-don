@@ -16,8 +16,20 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_RATE_LIMIT_RETRIES = 5;
 export const BASE_RETRY_DELAY_MS = 2000;
 export const MAX_RETRY_DELAY_MS = 60000;
-export const MAX_SERVER_RETRY_AFTER_MS = 60000;
-export const BETWEEN_FILE_DELAY_MS = 1500;
+const configuredServerRetryAfterMs = Number(process.env.JURY_ASSET_MAX_SERVER_RETRY_AFTER_MS || '');
+export const MAX_SERVER_RETRY_AFTER_MS =
+  Number.isSafeInteger(configuredServerRetryAfterMs) &&
+  configuredServerRetryAfterMs >= BASE_RETRY_DELAY_MS &&
+  configuredServerRetryAfterMs <= 10 * 60 * 1000
+    ? configuredServerRetryAfterMs
+    : 60000;
+const configuredBetweenFileDelayMs = Number(process.env.JURY_ASSET_BETWEEN_FILE_DELAY_MS || '');
+export const BETWEEN_FILE_DELAY_MS =
+  Number.isSafeInteger(configuredBetweenFileDelayMs) &&
+  configuredBetweenFileDelayMs >= 1000 &&
+  configuredBetweenFileDelayMs <= 10000
+    ? configuredBetweenFileDelayMs
+    : 1500;
 
 const LISTINGS = new Set(['don-lampe', 'don-etagere', 'troc-sac', 'troc-livres']);
 const ALLOWED_FINAL_HOSTS = new Set(['commons.wikimedia.org', 'upload.wikimedia.org']);
@@ -33,6 +45,64 @@ const activeParts = new Set();
 export function commonsDownloadUrl(fileName) {
   if (typeof fileName !== 'string' || !fileName.trim()) throw new Error('Commons filename required');
   return 'https://commons.wikimedia.org/wiki/Special:Redirect/file/' + encodeURIComponent(fileName);
+}
+
+export function commonsImageInfoApiUrl(sources) {
+  if (!Array.isArray(sources) || sources.length < 1 || sources.length > 50) {
+    throw new Error('Commons imageinfo requires 1 to 50 sources');
+  }
+  const titles = sources.map(source => {
+    if (typeof source?.commonsFileName !== 'string' || !source.commonsFileName.trim()) {
+      throw new Error('Commons filename required for imageinfo');
+    }
+    return 'File:' + source.commonsFileName;
+  });
+
+  const url = new URL('https://commons.wikimedia.org/w/api.php');
+  url.searchParams.set('action', 'query');
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('formatversion', '2');
+  url.searchParams.set('prop', 'imageinfo');
+  url.searchParams.set('iiprop', 'url|size');
+  url.searchParams.set('iiurlwidth', '1600');
+  url.searchParams.set('titles', titles.join('|'));
+  return url.toString();
+}
+
+function commonsFileKey(value) {
+  return String(value || '')
+    .replace(/^File:/i, '')
+    .replaceAll('_', ' ')
+    .trim()
+    .normalize('NFC')
+    .toLocaleLowerCase('en-US');
+}
+
+export function extractResolvedMediaUrls(payload, sources) {
+  const pages = payload?.query?.pages;
+  if (!Array.isArray(pages)) throw new Error('Invalid Commons imageinfo response');
+
+  const byFile = new Map();
+  for (const page of pages) {
+    if (page?.missing === true) continue;
+    const info = page?.imageinfo?.[0];
+    const mediaUrl = info?.thumburl || info?.url;
+    if (typeof page?.title !== 'string' || typeof mediaUrl !== 'string') continue;
+    const parsed = new URL(mediaUrl);
+    if (parsed.protocol !== 'https:' || parsed.hostname !== 'upload.wikimedia.org') {
+      throw new Error('Commons imageinfo returned disallowed media URL: ' + mediaUrl);
+    }
+    byFile.set(commonsFileKey(page.title), mediaUrl);
+  }
+
+  const resolved = new Map();
+  for (const source of sources) {
+    const mediaUrl = byFile.get(commonsFileKey(source.commonsFileName));
+    if (!mediaUrl) throw new Error('Commons imageinfo did not resolve: ' + source.commonsFileName);
+    resolved.set(source.id, mediaUrl);
+  }
+  if (resolved.size !== sources.length) throw new Error('Commons imageinfo resolution count mismatch');
+  return resolved;
 }
 
 export function isAllowedFinalUrl(value) {
@@ -248,7 +318,16 @@ async function fetchWithAllowedRedirects(initialUrl, maxRedirects = 5) {
   throw new Error('Redirect loop');
 }
 
-async function fetchOne(source) {
+async function resolveMediaUrls(sources) {
+  const response = await fetchWithAllowedRedirects(commonsImageInfoApiUrl(sources));
+  if (!response.ok || !response.body) {
+    throw new Error('Commons imageinfo failed (' + response.status + ')');
+  }
+  const payload = await response.json();
+  return extractResolvedMediaUrls(payload, sources);
+}
+
+async function fetchOne(source, mediaUrl) {
   const target = resolveAssetTarget(juryRoot, source.target);
   ensureSafeParentDirs(assetsRoot, dirname(target), { create: true });
 
@@ -262,7 +341,8 @@ async function fetchOne(source) {
   activeParts.add(part);
 
   try {
-    const response = await fetchWithAllowedRedirects(commonsDownloadUrl(source.commonsFileName));
+    if (typeof mediaUrl !== 'string') throw new Error('Resolved media URL missing: ' + source.id);
+    const response = await fetchWithAllowedRedirects(mediaUrl);
     if (!response.ok || !response.body) {
       throw new Error('Download failed (' + response.status + '): ' + source.commonsFileName);
     }
@@ -346,8 +426,10 @@ async function main() {
   }
 
   installSignalCleanup();
+  const mediaUrls = await resolveMediaUrls(catalog.sources);
+  console.log('Resolved 20 Commons media URLs in one imageinfo batch.');
   for (const [index, source] of catalog.sources.entries()) {
-    await fetchOne(source);
+    await fetchOne(source, mediaUrls.get(source.id));
     if (index < catalog.sources.length - 1) await sleep(BETWEEN_FILE_DELAY_MS);
   }
   cleanupActiveParts();
