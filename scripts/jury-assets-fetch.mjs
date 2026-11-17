@@ -85,7 +85,13 @@ export function extractResolvedMediaUrls(payload, sources) {
   for (const page of pages) {
     if (page?.missing === true) continue;
     const info = page?.imageinfo?.[0];
-    const mediaUrl = info?.thumburl || info?.url;
+    const originalSize = Number(info?.size);
+    const canUseOriginal =
+      typeof info?.url === 'string' &&
+      Number.isFinite(originalSize) &&
+      originalSize > 0 &&
+      originalSize <= MAX_IMAGE_BYTES;
+    const mediaUrl = canUseOriginal ? info.url : (info?.thumburl || info?.url);
     if (typeof page?.title !== 'string' || typeof mediaUrl !== 'string') continue;
     const parsed = new URL(mediaUrl);
     if (parsed.protocol !== 'https:' ||
@@ -435,7 +441,7 @@ async function main() {
 
   installSignalCleanup();
   const mediaUrls = await resolveMediaUrls(catalog.sources);
-  console.log('Resolved 20 Commons media URLs in one imageinfo batch.');
+  console.log('Resolved 20 Commons media URLs in one imageinfo batch; originals are preferred when <= 5 MiB.');
   for (const [index, source] of catalog.sources.entries()) {
     await fetchOne(source, mediaUrls.get(source.id));
     if (index < catalog.sources.length - 1) await sleep(BETWEEN_FILE_DELAY_MS);
