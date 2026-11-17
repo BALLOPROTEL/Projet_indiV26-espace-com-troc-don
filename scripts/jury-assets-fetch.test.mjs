@@ -7,6 +7,7 @@ import {
   BASE_RETRY_DELAY_MS,
   MAX_IMAGE_BYTES,
   MAX_RETRY_DELAY_MS,
+  MAX_SERVER_RETRY_AFTER_MS,
   checkImageSignature,
   commonsDownloadUrl,
   ensureSafeParentDirs,
@@ -132,5 +133,6 @@ test('rate-limit delay honors Retry-After and caps exponential backoff', () => {
   assert.equal(rateLimitDelayMs(1, null, 0), BASE_RETRY_DELAY_MS * 2);
   assert.equal(rateLimitDelayMs(99, null, 0), MAX_RETRY_DELAY_MS);
   assert.equal(rateLimitDelayMs(0, '1', 0), BASE_RETRY_DELAY_MS);
-  assert.equal(rateLimitDelayMs(0, '120', 0), MAX_RETRY_DELAY_MS);
+  assert.equal(rateLimitDelayMs(0, '120', 0), 120000);
+  assert.ok(rateLimitDelayMs(0, '120', 0) > MAX_SERVER_RETRY_AFTER_MS);
 });
