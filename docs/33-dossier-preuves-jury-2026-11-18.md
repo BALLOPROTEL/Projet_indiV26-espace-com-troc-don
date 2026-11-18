@@ -53,10 +53,10 @@ Le Bootstrap post-fusion #568 est **SUCCESS** sur `7f553afd03f870da9f01ba5b650c6
 | Bootstrap CI | **PASS** | #131 + runs #561/#562/#568 | fallback registre et services CI après checkout |
 | Contrats / intégration | **PASS** | M8 | HTTP/JWT/RabbitMQ/services réels |
 | Docker Compose | **PASS** | M6 | stack isolée et smokes CI |
-| Kubernetes | **PASS laboratoire** | M7 | deployments, probes/resources, kind/Minikube, HPA |
-| Performance / HPA | **PASS laboratoire** | M7/M8 | 35 962 requêtes, 0,067 % erreurs, p95 399 ms, Gateway HPA 1→4 |
-| Observabilité | **PASS laboratoire** | LOT 7 / M10 | Prometheus/Grafana, health/readiness, métriques |
-| Sécurité dépendances/images | **PASS gates actuelles** | Bootstrap | audit prod HIGH/CRITICAL + Trivy HIGH/CRITICAL |
+| Kubernetes | **PASS laboratoire** | `docs/20-m7-kubernetes-microservices.md` | déploiements/services, probes/resources, kind/Minikube, HPA Gateway |
+| Performance / HPA | **PASS laboratoire** | `docs/13-lot8-performance.md` | stress 35 962 requêtes, 0,067 % erreurs, p95 399 ms, HPA Gateway jusqu’à 4 réplicas |
+| Observabilité | **PASS laboratoire** | `docs/12-lot7-observability.md` | Prometheus/Grafana, métriques, logs JSON, health/readiness |
+| Sécurité dépendances/images | **PASS gates actuelles** | `docs/14-lot9-security-audit.md` + Bootstrap | audit prod HIGH/CRITICAL + Trivy HIGH/CRITICAL + registre des risques résiduels |
 | Gouvernance GitHub | **PASS** | #55 fermé | README/roadmap/audit, branches, PR, Kanban V2 alignés |
 | Robustesse registre ECR | **PASS** | #80/#131 | retries + fallback officiel ECR Public → Docker Hub |
 
@@ -145,6 +145,13 @@ Les versions précises des appareils/navigateurs et captures manuelles n’ont p
 
 ## 7. Sécurité et qualité
 
+Références versionnées :
+- `docs/14-lot9-security-audit.md` : audit, Trivy, remédiations et risques résiduels ;
+- `docs/12-lot7-observability.md` : métriques, logs, Prometheus/Grafana ;
+- `docs/13-lot8-performance.md` : protocole JMeter, résultats et HPA ;
+- `docs/20-m7-kubernetes-microservices.md` : validation Minikube/kind multi-services ;
+- `docs/24-m10-architecture-finale.md` et `docs/25-m10-operations-limits.md` : architecture finale et limites d’exploitation.
+
 Les gates actuelles couvrent notamment :
 
 - lint / typecheck / tests unitaires ;
@@ -159,6 +166,12 @@ Les gates actuelles couvrent notamment :
 - revues Codex sur les PR sensibles ;
 - RBAC backend explicite sur la route ADMIN ;
 - absence de secrets loggés dans les workflows de certification.
+
+### Couverture de tests
+
+Le dépôt ne conserve pas de **rapport de couverture chiffré autonome** (LCOV/Codecov ou pourcentage final) dans `main`. Les tests unitaires, d’intégration, de contrats et E2E sont des gates CI, mais aucun pourcentage de couverture ne doit être inventé ou présenté au jury.
+
+Pour #58, la collecte est donc considérée complète avec cette limite explicitement documentée : **résultats de tests disponibles, couverture chiffrée non publiée**.
 
 ## 8. Architecture et limites assumées
 
