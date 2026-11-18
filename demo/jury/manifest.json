@@ -16,11 +16,26 @@
       "description": "Article de seconde main pour démonstration jury, caractéristiques à confirmer.",
       "tradeWishes": [],
       "images": [
-        { "file": "assets/don-lampe/01.jpg", "creditId": "PENDING" },
-        { "file": "assets/don-lampe/02.jpg", "creditId": "PENDING" },
-        { "file": "assets/don-lampe/03.jpg", "creditId": "PENDING" },
-        { "file": "assets/don-lampe/04.jpg", "creditId": "PENDING" },
-        { "file": "assets/don-lampe/05.jpg", "creditId": "PENDING" }
+        {
+          "file": "assets/don-lampe/01.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/don-lampe/02.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/don-lampe/03.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/don-lampe/04.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/don-lampe/05.jpg",
+          "creditId": "PENDING"
+        }
       ]
     },
     {
@@ -31,11 +46,26 @@
       "description": "Article de seconde main pour démonstration jury, caractéristiques à confirmer.",
       "tradeWishes": [],
       "images": [
-        { "file": "assets/don-etagere/01.jpg", "creditId": "PENDING" },
-        { "file": "assets/don-etagere/02.jpg", "creditId": "PENDING" },
-        { "file": "assets/don-etagere/03.jpg", "creditId": "PENDING" },
-        { "file": "assets/don-etagere/04.jpg", "creditId": "PENDING" },
-        { "file": "assets/don-etagere/05.jpg", "creditId": "PENDING" }
+        {
+          "file": "assets/don-etagere/01.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/don-etagere/02.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/don-etagere/03.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/don-etagere/04.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/don-etagere/05.jpg",
+          "creditId": "PENDING"
+        }
       ]
     },
     {
@@ -44,13 +74,34 @@
       "operationType": "TRADE",
       "owner": "memberOwner",
       "description": "Article de seconde main pour démonstration jury, caractéristiques à confirmer.",
-      "tradeWishes": ["Roman","Jeu de société","Échiquier","Album illustré","Lampe LED"],
+      "tradeWishes": [
+        "Roman",
+        "Jeu de société",
+        "Échiquier",
+        "Album illustré",
+        "Lampe LED"
+      ],
       "images": [
-        { "file": "assets/troc-sac/01.jpg", "creditId": "PENDING" },
-        { "file": "assets/troc-sac/02.jpg", "creditId": "PENDING" },
-        { "file": "assets/troc-sac/03.jpg", "creditId": "PENDING" },
-        { "file": "assets/troc-sac/04.jpg", "creditId": "PENDING" },
-        { "file": "assets/troc-sac/05.jpg", "creditId": "PENDING" }
+        {
+          "file": "assets/troc-sac/01.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/troc-sac/02.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/troc-sac/03.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/troc-sac/04.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/troc-sac/05.jpg",
+          "creditId": "PENDING"
+        }
       ]
     },
     {
@@ -59,19 +110,53 @@
       "operationType": "TRADE",
       "owner": "memberRequester",
       "description": "Article de seconde main pour démonstration jury, caractéristiques à confirmer.",
-      "tradeWishes": ["Sac à dos","Lampe LED","Porte-plantes","Jeu de cartes","Petite étagère"],
+      "tradeWishes": [
+        "Sac à dos",
+        "Lampe LED",
+        "Porte-plantes",
+        "Jeu de cartes",
+        "Petite étagère"
+      ],
       "images": [
-        { "file": "assets/troc-livres/01.jpg", "creditId": "PENDING" },
-        { "file": "assets/troc-livres/02.jpg", "creditId": "PENDING" },
-        { "file": "assets/troc-livres/03.jpg", "creditId": "PENDING" },
-        { "file": "assets/troc-livres/04.jpg", "creditId": "PENDING" },
-        { "file": "assets/troc-livres/05.jpg", "creditId": "PENDING" }
+        {
+          "file": "assets/troc-livres/01.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/troc-livres/02.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/troc-livres/03.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/troc-livres/04.jpg",
+          "creditId": "PENDING"
+        },
+        {
+          "file": "assets/troc-livres/05.jpg",
+          "creditId": "PENDING"
+        }
       ]
     }
   ],
   "journeys": [
-    { "key": "don-reject", "target": "don-lampe", "outcome": "REJECTED" },
-    { "key": "don-accept", "target": "don-etagere", "outcome": "COMPLETED" },
-    { "key": "trade-complete", "target": "troc-sac", "offered": "troc-livres", "outcome": "COMPLETED" }
+    {
+      "key": "don-reject",
+      "target": "don-lampe",
+      "outcome": "REJECTED"
+    },
+    {
+      "key": "don-accept",
+      "target": "don-etagere",
+      "outcome": "COMPLETED"
+    },
+    {
+      "key": "trade-complete",
+      "target": "troc-sac",
+      "offered": "troc-livres",
+      "outcome": "COMPLETED"
+    }
   ]
 }
