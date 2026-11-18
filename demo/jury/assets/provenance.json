@@ -1,4 +1,205 @@
 {
   "version": 1,
-  "credits": []
+  "credits": [
+    {
+      "id": "wmc-candidate-01",
+      "file": "assets/don-lampe/01.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Model_X_(by_Raphael_Gobeil_Gauthier)_2.jpg",
+      "author": "Raphael Gobeil Gauthier",
+      "licenseOrPermission": "CC BY-SA 4.0",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Raphael Gobeil Gauthier, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-02",
+      "file": "assets/don-lampe/02.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Model_X_(by_Raphael_Gobeil_Gauthier)_3.jpg",
+      "author": "Raphael Gobeil Gauthier",
+      "licenseOrPermission": "CC BY-SA 4.0",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Raphael Gobeil Gauthier, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-03",
+      "file": "assets/don-lampe/03.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Model_X_(By_Raphael_Gobeil_Gauthier).jpg",
+      "author": "Raphael Gobeil Gauthier",
+      "licenseOrPermission": "CC BY-SA 4.0",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Raphael Gobeil Gauthier, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-04",
+      "file": "assets/don-lampe/04.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Model_X_(by_Raphael_Gobeil_Gauthier).jpg",
+      "author": "Raphael Gobeil Gauthier",
+      "licenseOrPermission": "CC BY-SA 4.0",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Raphael Gobeil Gauthier, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-05",
+      "file": "assets/don-lampe/05.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Model_X_(by_Raphael_Gobeil_Gauthier.jpg",
+      "author": "Raphael Gobeil Gauthier",
+      "licenseOrPermission": "CC BY-SA 4.0",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Raphael Gobeil Gauthier, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-06",
+      "file": "assets/don-etagere/01.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Ikea_Ivar_(LRM_20200521_175307).jpg",
+      "author": "Matti Blume",
+      "licenseOrPermission": "CC BY-SA 4.0 sélectionnée parmi les licences proposées sur Commons",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Matti Blume, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-07",
+      "file": "assets/don-etagere/02.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Ikea_Ivar_(LRM_20200521_175543).jpg",
+      "author": "Matti Blume",
+      "licenseOrPermission": "CC BY-SA 4.0 sélectionnée parmi les licences proposées sur Commons",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Matti Blume, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-08",
+      "file": "assets/don-etagere/03.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Ikea_Ivar_(LRM_20200521_175646).jpg",
+      "author": "Matti Blume",
+      "licenseOrPermission": "CC BY-SA 4.0 sélectionnée parmi les licences proposées sur Commons",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Matti Blume, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-09",
+      "file": "assets/don-etagere/04.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Ikea_Ivar_(LRM_20200521_180150).jpg",
+      "author": "Matti Blume",
+      "licenseOrPermission": "CC BY-SA 4.0 sélectionnée parmi les licences proposées sur Commons",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Matti Blume, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-10",
+      "file": "assets/don-etagere/05.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Ikea_Ivar_(LRM_20200521_180227).jpg",
+      "author": "Matti Blume",
+      "licenseOrPermission": "CC BY-SA 4.0 sélectionnée parmi les licences proposées sur Commons",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Matti Blume, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-11",
+      "file": "assets/troc-sac/01.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Benro_Ranger_Pro_400N_2.jpg",
+      "author": "Dalibor Johánek",
+      "licenseOrPermission": "CC BY-SA 3.0 Unported ; Wikimedia VRT ticket #2013112710007237",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Dalibor Johánek, lien vers CC BY-SA 3.0, indication des modifications et partage à l’identique pour les adaptations. Avertissement Commons « personality rights » conservé : usage limité à la démonstration jury, sans suggérer d’endossement ; nouvelle revue requise avant réutilisation publique ou commerciale.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-12",
+      "file": "assets/troc-sac/02.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Benro_Ranger_Pro_400N_2b.jpg",
+      "author": "Dalibor Johánek",
+      "licenseOrPermission": "CC BY-SA 3.0 Unported ; Wikimedia VRT ticket #2013112710007237",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Dalibor Johánek, lien vers CC BY-SA 3.0, indication des modifications et partage à l’identique pour les adaptations. Avertissement Commons « personality rights » conservé : usage limité à la démonstration jury, sans suggérer d’endossement ; nouvelle revue requise avant réutilisation publique ou commerciale.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-13",
+      "file": "assets/troc-sac/03.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Benro_Ranger_Pro_400N_2c.jpg",
+      "author": "Dalibor Johánek",
+      "licenseOrPermission": "CC BY-SA 3.0 Unported ; Wikimedia VRT ticket #2013112710007237",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Dalibor Johánek, lien vers CC BY-SA 3.0, indication des modifications et partage à l’identique pour les adaptations. Avertissement Commons « personality rights » conservé : usage limité à la démonstration jury, sans suggérer d’endossement ; nouvelle revue requise avant réutilisation publique ou commerciale.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-14",
+      "file": "assets/troc-sac/04.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Benro_Ranger_Pro_400N_2d.jpg",
+      "author": "Dalibor Johánek",
+      "licenseOrPermission": "CC BY-SA 3.0 Unported ; Wikimedia VRT ticket #2013112710007237",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Dalibor Johánek, lien vers CC BY-SA 3.0, indication des modifications et partage à l’identique pour les adaptations. Avertissement Commons « personality rights » conservé : usage limité à la démonstration jury, sans suggérer d’endossement ; nouvelle revue requise avant réutilisation publique ou commerciale.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-15",
+      "file": "assets/troc-sac/05.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Benro_Ranger_Pro_400N_2f.jpg",
+      "author": "Dalibor Johánek",
+      "licenseOrPermission": "CC BY-SA 3.0 Unported ; Wikimedia VRT ticket #2013112710007237",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Dalibor Johánek, lien vers CC BY-SA 3.0, indication des modifications et partage à l’identique pour les adaptations. Avertissement Commons « personality rights » conservé : usage limité à la démonstration jury, sans suggérer d’endossement ; nouvelle revue requise avant réutilisation publique ou commerciale.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-16",
+      "file": "assets/troc-livres/01.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Paolo_Monti_-_Serie_fotografica_(Anzola_d'Ossola%2C_1982)_-_BEIC_6331004.jpg",
+      "author": "Paolo Monti / BEIC Foundation",
+      "licenseOrPermission": "CC BY-SA 4.0 ; source Fondo Paolo Monti / BEIC Foundation",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Paolo Monti et à la BEIC/Fondo Paolo Monti, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-17",
+      "file": "assets/troc-livres/02.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Paolo_Monti_-_Serie_fotografica_-_BEIC_6334459.jpg",
+      "author": "Paolo Monti / BEIC Foundation",
+      "licenseOrPermission": "CC BY-SA 4.0 ; source Fondo Paolo Monti / BEIC Foundation",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Paolo Monti et à la BEIC/Fondo Paolo Monti, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-18",
+      "file": "assets/troc-livres/03.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Paolo_Monti_-_Serie_fotografica_-_BEIC_6334462.jpg",
+      "author": "Paolo Monti / BEIC Foundation",
+      "licenseOrPermission": "CC BY-SA 4.0 ; source Fondo Paolo Monti / BEIC Foundation",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Paolo Monti et à la BEIC/Fondo Paolo Monti, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-19",
+      "file": "assets/troc-livres/04.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Paolo_Monti_-_Servizio_fotografico_(Bologna%2C_1971)_-_BEIC_6347021.jpg",
+      "author": "Paolo Monti / BEIC Foundation",
+      "licenseOrPermission": "CC BY-SA 4.0 ; source Fondo Paolo Monti / BEIC Foundation",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Paolo Monti et à la BEIC/Fondo Paolo Monti, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    },
+    {
+      "id": "wmc-candidate-20",
+      "file": "assets/troc-livres/05.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Paolo_Monti_-_Servizio_fotografico_(Bologna%2C_1971)_-_BEIC_6357714.jpg",
+      "author": "Paolo Monti / BEIC Foundation",
+      "licenseOrPermission": "CC BY-SA 4.0 ; source Fondo Paolo Monti / BEIC Foundation",
+      "verifiedAt": "2026-11-18",
+      "conditions": "Attribution à Paolo Monti et à la BEIC/Fondo Paolo Monti, lien vers CC BY-SA 4.0, indication des modifications et partage à l’identique pour les adaptations. Usage prévu : démonstration jury.",
+      "authorizedForDemo": false
+    }
+  ]
 }
