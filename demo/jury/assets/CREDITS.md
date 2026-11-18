@@ -1,31 +1,27 @@
 # Provenance des images du kit jury
 
-## État de la revue — 18 novembre 2026
+## Autorisation finale — 18 novembre 2026
 
-Les 20 fichiers présents dans `demo/jury/assets/` ont été rapprochés de leurs **pages Wikimedia Commons exactes** avant toute autorisation de démonstration.
+Les 20 médias ont été vérifiés individuellement contre leurs pages Wikimedia Commons exactes, puis **explicitement autorisés par le responsable humain du projet pour la démonstration jury** le 18 novembre 2026.
 
-La revue documentaire a confirmé :
+État du kit :
+- 20/20 entrées de provenance présentes et uniques ;
+- 20/20 `authorizedForDemo: true` ;
+- 20/20 `creditId` associés au manifest ;
+- `readiness: READY_FOR_REVIEW` ;
+- validation stricte `--assets` requise par CI avant toute fusion.
 
-- **don-lampe (5/5)** — Raphael Gobeil Gauthier — **CC BY-SA 4.0** — même ensemble de lampes en cuivre Model X ;
-- **don-etagere (5/5)** — Matti Blume — fichier multi-licence permettant de sélectionner **CC BY-SA 4.0** — même série IKEA Ivar / éléments d’étagère ;
-- **troc-sac (5/5)** — Dalibor Johánek — **CC BY-SA 3.0 Unported** — permission archivée sous le ticket Wikimedia VRT **#2013112710007237** ;
-- **troc-livres (5/5)** — Paolo Monti / BEIC Foundation — **CC BY-SA 4.0** — les cinq fichiers figurent dans la catégorie Commons *Books photographed by Paolo Monti*.
+## Séries et licences
 
-### Restriction Benro
+- **don-lampe (5/5)** — Raphael Gobeil Gauthier — **CC BY-SA 4.0** — ensemble Model X / lampes en cuivre ;
+- **don-etagere (5/5)** — Matti Blume — option **CC BY-SA 4.0** sélectionnée parmi les licences proposées — série IKEA Ivar ;
+- **troc-sac (5/5)** — Dalibor Johánek — **CC BY-SA 3.0 Unported** — Wikimedia VRT ticket **#2013112710007237** ;
+- **troc-livres (5/5)** — Paolo Monti / BEIC Foundation — **CC BY-SA 4.0** — catégorie Commons *Books photographed by Paolo Monti*.
 
-Les pages Benro affichent également un avertissement **personality rights**. Il est conservé dans les conditions du registre : l’usage prévu est limité à la démonstration jury, sans suggérer d’endossement ; toute réutilisation publique ou commerciale devra faire l’objet d’une nouvelle revue.
+## Restriction Benro maintenue
 
-## Autorisation encore requise
+Les pages Benro affichent un avertissement **personality rights**. L’autorisation donnée ici est limitée à la **démonstration jury** et ne vaut pas autorisation générale de réutilisation publique ou commerciale. Les conditions enregistrées dans `provenance.json` restent applicables, notamment l’interdiction de suggérer un endossement et l’obligation d’une nouvelle revue avant tout autre usage.
 
-Le registre `demo/jury/assets/provenance.json` contient maintenant les 20 preuves structurées avec leurs sources, auteurs, licences et conditions, mais conserve volontairement :
+## Conditions communes
 
-```json
-"authorizedForDemo": false
-```
-
-L’autorisation finale doit être donnée explicitement par le responsable humain du projet avant de :
-- passer les 20 entrées à `authorizedForDemo: true` ;
-- remplacer les 20 `creditId: PENDING` du manifest ;
-- passer `readiness` à `READY_FOR_REVIEW`.
-
-Le validateur strict reste donc volontairement bloqué jusqu’à cette approbation.
+Pour chaque média, respecter l’attribution indiquée dans `provenance.json`, fournir le lien vers la licence correspondante, indiquer les modifications éventuelles et respecter les obligations de partage à l’identique applicables.
