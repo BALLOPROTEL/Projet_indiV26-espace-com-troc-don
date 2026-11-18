@@ -132,6 +132,12 @@ Archive persistante :
 
 `/Projet_individuel26/Preuves/Final_2026-11-18/accessibility-evidence-pr134.zip`
 
+Preuves d'exploitation complémentaires regroupées dans le même dossier Library :
+- `/Projet_individuel26/Preuves/Final_2026-11-18/lot7-observability-evidence.txt` ;
+- `/Projet_individuel26/Preuves/Final_2026-11-18/lot7-lot9-validation-evidence.txt`.
+
+Le rapport JMeter/HPA brut historique n'est pas recopié artificiellement : ses résultats canoniques et limites sont versionnés dans `docs/13-lot8-performance.md`.
+
 ### Manuel — confirmation propriétaire
 
 Le 18/11/2026, le propriétaire a confirmé :
