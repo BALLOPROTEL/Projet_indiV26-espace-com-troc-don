@@ -2,7 +2,7 @@
 
 Projet individuel pour le bloc **« Superviser et assurer le développement des applications logicielles »**. Le POC de *La Petite Maison de l'Épouvante* démontre une véritable verticale métier DON/TROC avec modération, transactions et exigences d'industrialisation.
 
-> **État au 18 novembre 2026 :** migration microservices M0–M10, frontend V2/V3/V4 et kit de démonstration jury fusionnés dans `main`. Le kit jury contient 20 médias autorisés, 20 crédits de provenance et `READY_FOR_REVIEW` (#56). La validation propriétaire desktop VISITEUR/USER/MODERATOR/ADMIN est acquise ; restent la **recette métier live finale du dataset jury** (#56/#35) et la **recette physique/accessibilité** sur iOS/Android ou appareils équivalents (#71). Le POC n'est pas un service de production et n'a pas de déploiement public permanent certifié.
+> **État au 18 novembre 2026 :** migration microservices M0–M10, frontend V2/V3/V4 et LOT 9B sont terminés. La recette jury finale a été exécutée avec succès sur 4 acteurs, 4 annonces et 20 médias réels ; #56 et #35 sont fermés. La dette CI ECR #80 est également fermée. La seule gate avant LOT 10 est désormais la **recette physique/accessibilité #71** (iPhone/Safari, Android/Chrome, zoom 200 %, clavier/contrastes/reduced-motion et réseau dégradé). Le POC n'est pas un service de production et n'a pas de déploiement public permanent certifié.
 
 ## Fonctionnalités livrées
 
@@ -60,12 +60,12 @@ La CI utilise des environnements Docker/Kind jetables pour éviter de saturer le
 | M5–M7 | **Fusionné** — RabbitMQ/Notification, Compose/Codespaces, Kubernetes multi-services |
 | M8 | **Fusionné** — contrats, E2E microservices, pannes et notifications durables |
 | M9 / LOT 9B-D/E | **Fusionné** — workflow DON/TROC et recette Chrome réelle, PR #54 |
-| LOT 9B-F | **Kit jury READY_FOR_REVIEW** — certification technique + 20 médias autorisés/provenance + runbook fusionnés (#125/#126/#127). Recette métier live finale à consigner (#56/#35) |
+| LOT 9B-F | **TERMINÉ** — kit jury + recette finale Chrome réelle + preuves versionnées (#129/#130). #56/#35 fermés |
 | M10 | **Terminé et fusionné** (#57) — 6 schémas Mermaid, routes, sécurité, limites et runbook |
 | Frontend V2 — F0–F5 | **Terminé et fusionné** — accueil 6 annonces/page, galerie MinIO, dashboard modérateur, API ADMIN et dashboard ADMIN (PR #72–#77) |
 | Frontend V2/V3/V4 | **Code fusionné + validation desktop propriétaire acquise** — accueil, galerie, espace membre, modération, ADMIN, Keycloak et parcours UX V4. Recette physique/accessibilité encore requise (#71) |
 | F6 (facultatif) | **Backlog non bloquant** — nouvelles fonctions sans contrats backend livrés (#70) |
-| LOT 10-A/B | **Backlog** — lancer #58 puis #59 après la recette métier live #56/#35 et la recette physique #71 |
+| LOT 10-A/B | **Backlog bloqué par #71** — lancer #58 puis #59 après la recette physique/accessibilité |
 
 Piloter les travaux via les [issues #35](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/35), [#44](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/44), [#18](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/18), et les tâches [#55](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55), [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56), [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57), [#58](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58) et [#59](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59).
 
@@ -85,13 +85,11 @@ Risques résiduels documentés : absence de NetworkPolicy Kubernetes et de rate 
 
 ## Suite du projet — 18 novembre 2026
 
-1. **[#56 / #35 — validation métier finale jury](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56)** : exécuter le dataset final dans le navigateur (publication/modération, DON refusé, DON accepté + double confirmation, TROC + double confirmation, RBAC/ADMIN) et consigner les preuves.
-2. **[#71 — recette physique/accessibilité](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/71)** : iPhone/Android ou équivalents physiques, zoom 200 %, clavier/focus/contrastes, clavier virtuel et réseau dégradé.
-3. **[#55 — hygiène GitHub/Kanban](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55)** : Project V2 natif à synchroniser dès qu'une connexion autorise ses champs ; branches obsolètes restantes à supprimer. Audit courant : [docs/31-audit-github-2026-11-18.md](docs/31-audit-github-2026-11-18.md).
-4. **[#80 — fiabilité ECR Public](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/80)** : correctif #100 à rafraîchir depuis le `main` courant avant nouvelle validation et éventuelle fusion.
-5. **[#58 — LOT 10-A](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58)** : dossier de preuves après les recettes finales.
-6. **[#59 — LOT 10-B](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59)** : support 20 min, répétition chronométrée et vidéo de secours.
-7. **Post-MVP :** #70 et l'Epic #110 avec #111–#115 restent en Backlog et ne bloquent pas le jury.
+1. **[#71 — recette physique/accessibilité](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/71)** : terminer les contrôles physiques/manuels (iPhone/Safari, Android/Chrome, zoom navigateur 200 %, clavier + contrastes + `prefers-reduced-motion`, réseau dégradé). La PR #134 ajoute des preuves Chrome supplémentaires pour reduced-motion, Slow 3G et un proxy de mise en page équivalent zoom.
+2. **[#55 — GitHub Projects V2](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55)** : seul le déplacement visuel des cartes reste manuel ; branches et PR sont nettoyées.
+3. **[#58 — LOT 10-A](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58)** : dossier de preuves après fermeture de #71.
+4. **[#59 — LOT 10-B](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59)** : support 20 min, répétition chronométrée et vidéo de secours après #58.
+5. **Post-MVP :** #70 et l'Epic #110 avec #111–#115 restent en Backlog et ne bloquent pas le jury.
 
-Le seul tag de snapshot actuel est `baseline-2026-10-19`. Aucune Release GitHub n'est publiée : c'est volontaire tant que les gates finales #56/#71 ne sont pas closes.
+LOT 9B (#35/#56), le bug Keycloak #98 et la dette CI #80 sont fermés. Le tag `baseline-2026-10-19` reste le snapshot historique. Aucune Release finale n'est publiée tant que #71 n'est pas close.
 **Règle de travail :** issue → branche → CI → revue Codex → **accord explicite du propriétaire** → fusion manuelle. Ne jamais activer l'auto-merge. Après lancement de CI, transmettre immédiatement les liens et laisser la conversation disponible ; reprendre le suivi à la demande. Ne jamais nettoyer les volumes Codespaces sans autorisation explicite.
