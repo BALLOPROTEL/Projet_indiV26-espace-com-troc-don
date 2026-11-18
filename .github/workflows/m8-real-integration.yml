@@ -81,9 +81,11 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: m9-browser-visual-${{ github.sha }}
-          path: reports/m9-browser/*.png
+          path: |
+            reports/m9-browser/*.png
+            reports/m9-browser/*.json
           if-no-files-found: warn
-          retention-days: 7
+          retention-days: 30
       - name: Container logs on failure (never dump secrets or full environment)
         if: failure()
         run: |
