@@ -59,19 +59,21 @@ Sur desktop Chrome/Edge/Firefox :
 
 **PASS si :** contenu lisible, actions accessibles, pas de chevauchement bloquant.
 
-### 4. Clavier seul
+### 4. Clavier, contrastes et réduction des animations
 
 Sur desktop :
 
 1. Ne pas utiliser la souris.
 2. `Tab` depuis le haut de page.
-3. Vérifier ordre logique du focus sur navigation, CTA, champs et boutons.
-4. Vérifier focus visible.
-5. Ouvrir/fermer menu si présent.
+3. Vérifier l'ordre logique du focus sur navigation, CTA, champs et boutons.
+4. Vérifier que le focus reste clairement visible.
+5. Ouvrir/fermer le menu si présent.
 6. Se connecter puis parcourir Mon espace.
 7. Vérifier le bouton œil Keycloak au clavier.
+8. Avec l'outil de contraste du navigateur, contrôler les textes/actions représentatifs de l'accueil, d'une fiche, de Mon espace, modération et ADMIN : texte normal >= 4,5:1 ; grand texte / composants graphiques selon le seuil WCAG applicable.
+9. Activer `prefers-reduced-motion: reduce` dans l'OS ou les DevTools Rendering, puis vérifier que les animations non essentielles sont supprimées ou fortement réduites et qu'aucune information ne dépend d'une animation.
 
-**PASS si :** aucune action essentielle inaccessible et aucun piège clavier.
+**PASS si :** aucune action essentielle inaccessible, aucun piège clavier, contrastes conformes sur les écrans représentatifs et préférence `reduced-motion` respectée.
 
 ### 5. Réseau dégradé
 
@@ -93,7 +95,7 @@ Avec DevTools > Network > Slow 3G (ou réseau mobile réellement faible) :
 | iPhone / Safari | À renseigner | ☐ PASS / ☐ FAIL | capture |
 | Android / Chrome | À renseigner | ☐ PASS / ☐ FAIL | capture |
 | Zoom 200 % | À renseigner | ☐ PASS / ☐ FAIL | capture |
-| Clavier seul | À renseigner | ☐ PASS / ☐ FAIL | capture |
+| Clavier + contrastes + reduced-motion | À renseigner | ☐ PASS / ☐ FAIL | capture / relevé contraste |
 | Réseau dégradé | À renseigner | ☐ PASS / ☐ FAIL | capture |
 
 ## Règle de clôture
