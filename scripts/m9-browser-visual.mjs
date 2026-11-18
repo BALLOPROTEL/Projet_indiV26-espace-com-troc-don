@@ -1753,6 +1753,9 @@ async function runFinalAccessibilityAutomation() {
     JSON.stringify(zoomAdmin));
   await journeyScreenshot('f7-zoom-200-proxy-admin');
 
+  let reduced;
+  let slow;
+
   // The app already declares a global prefers-reduced-motion policy. Exercise
   // the real CSS cascade instead of only checking for the source declaration.
   await command('Emulation.setEmulatedMedia', {
@@ -1760,23 +1763,24 @@ async function runFinalAccessibilityAutomation() {
   });
   try {
     await journeyOpen('/', '.home-v2', 'F7 reduced-motion preference');
-    const reduced = await evaluate('(() => {' +
+    await waitUntil('F7 reduced-motion real Catalog card',
+      'document.querySelectorAll(".home-v2__grid .listing-card--interactive").length >= 1', 120);
+    reduced = await evaluate('(() => {' +
       'const card=document.querySelector(".listing-card--interactive");' +
       'const root=getComputedStyle(document.documentElement);' +
-      'const cardCss=card?getComputedStyle(card):null;' +
+      'if(!card)return null;' +
+      'const cardCss=getComputedStyle(card);' +
       'return {matches:matchMedia("(prefers-reduced-motion: reduce)").matches,' +
       'scrollBehavior:root.scrollBehavior,' +
-      'transitionDuration:cardCss?.transitionDuration??null,' +
-      'animationDuration:cardCss?.animationDuration??null};})()');
-    assert.ok(reduced.matches && reduced.scrollBehavior === 'auto',
+      'transitionDuration:cardCss.transitionDuration,' +
+      'animationDuration:cardCss.animationDuration};})()');
+    assert.ok(reduced && reduced.matches && reduced.scrollBehavior === 'auto',
       'Reduced-motion media preference must be active and disable smooth scrolling: ' +
       JSON.stringify(reduced));
-    if (reduced.transitionDuration) {
-      const maxTransition = Math.max(...reduced.transitionDuration.split(',')
-        .map(value => Number.parseFloat(value.trim()) || 0));
-      assert.ok(maxTransition <= 0.01,
-        'Reduced-motion must collapse card transitions: ' + JSON.stringify(reduced));
-    }
+    const maxTransition = Math.max(...reduced.transitionDuration.split(',')
+      .map(value => Number.parseFloat(value.trim()) || 0));
+    assert.ok(maxTransition <= 0.01,
+      'Reduced-motion must collapse card transitions: ' + JSON.stringify(reduced));
     await journeyScreenshot('f7-reduced-motion-home');
   } finally {
     await command('Emulation.setEmulatedMedia', { features: [] });
@@ -1796,7 +1800,7 @@ async function runFinalAccessibilityAutomation() {
     await journeyOpen('/', '.home-v2', 'F7 Slow 3G home');
     await waitUntil('F7 Slow 3G real Catalog cards',
       'document.querySelectorAll(".home-v2__grid .listing-card").length >= 1', 120);
-    const slow = await evaluate('({cards:document.querySelectorAll(".home-v2__grid .listing-card").length,' +
+    slow = await evaluate('({cards:document.querySelectorAll(".home-v2__grid .listing-card").length,' +
       'scroll:document.documentElement.scrollWidth,' +
       'client:document.documentElement.clientWidth,' +
       'body:document.body.innerText.slice(0,500)})');
