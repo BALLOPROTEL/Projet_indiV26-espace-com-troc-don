@@ -1,15 +1,19 @@
+> **Mise à jour post-audit — 18 novembre 2026 :** depuis la photographie initiale ci-dessous, LOT 9B (#35/#56), #80 et #98 ont été fermés. Les branches ont été nettoyées jusqu'à `main` uniquement avant ouverture de #134. La seule gate produit avant LOT 10 est #71 ; le GitHub Projects V2 natif reste le seul blocage de gouvernance #55.
+
 # Audit GitHub et état projet — 18 novembre 2026
 
 ## Verdict
 
 Le cœur applicatif est **livré dans `main`** : architecture microservices M0–M10, parcours DON/TROC, galerie MinIO, modération, RBAC Keycloak, RabbitMQ/Notification, Docker Compose, Kubernetes, observabilité/performance, frontend V2 puis UX V3/V4 et kit jury avec 20 médias autorisés.
 
-Le projet n'est toutefois **pas encore à clôturer**. Les deux gates fonctionnelles restantes sont :
+Le projet n'est toutefois **pas encore à clôturer**. La situation a évolué après cet audit initial :
 
-1. **#56 / #35 — recette métier live finale du dataset jury** : rejouer dans le navigateur publication/modération, DON refusé, DON accepté avec double confirmation, TROC avec double confirmation, puis consigner les statuts et preuves.
-2. **#71 — recette physique/accessibilité** : iPhone/Android ou appareils équivalents, zoom 200 %, clavier/focus/contrastes, clavier virtuel et réseau dégradé.
+- **#56 / #35 sont fermés** : la recette jury finale a été exécutée via #129 et consignée via #130.
+- **#80 est fermé** : le fallback registre a été reconstruit puis fusionné via #131.
+- **#98 est fermé** : le vrai Keycloak a été revalidé desktop/mobile.
+- La seule gate fonctionnelle restante avant LOT 10 est **#71 — recette physique/accessibilité**.
 
-Après ces gates : **#58 dossier de preuves**, puis **#59 support 20 min, répétition et vidéo de secours**.
+Après #71 : **#58 dossier de preuves**, puis **#59 support 20 min, répétition et vidéo de secours**.
 
 ## État du code livré
 
@@ -94,7 +98,7 @@ Classification :
 
 | Branche | Décision |
 | --- | --- |
-| `fix/80-bootstrap-registry-fallback` | **Conserver** tant que #100/#80 n'est pas remplacée ou clôturée |
+| `fix/80-bootstrap-registry-fallback` | **Supprimée après remplacement de #100 par #131** |
 | `docs/github-audit-hygiene-20261113` | **À supprimer** après fermeture de #101 |
 | `feat/56-jury-demo-kit-plan` | **À supprimer** — #84 fermée et kit final livré via #125–#127 |
 | `fix/96-keycloak-password-input-group` | **À supprimer** — supersédée par #99 fusionnée |
@@ -108,20 +112,20 @@ La branche de ce présent audit est temporaire et doit également être supprim�
 - Tag existant : `baseline-2026-10-19` → `8a248fa7366b52341c79ace52cffdb63121c1352`.
 - Releases GitHub : **aucune**.
 
-Cette absence de Release est cohérente : la version jury n'est pas encore finalisée tant que #56/#71 ne sont pas closes. Le prochain tag/release doit correspondre à une version réellement validée, pas à un simple snapshot de travail.
+Cette absence de Release reste cohérente : LOT 9B est fermé mais #71 reste ouverte. Le prochain tag/release doit correspondre à la version réellement validée après recette physique/accessibilité.
 
 ## Issues ouvertes et statut cible
 
 | Issue | Statut cible | Motif |
 | --- | --- | --- |
 | #55 | In Progress | Project V2 natif + dernières branches |
-| #56 | In Progress | recette jury live finale |
-| #35 | In Progress | parent LOT 9B, dépend de #56 |
+| #56 | Done | recette jury finale #129/#130 terminée |
+| #35 | Done | LOT 9B clôturé |
 | #63 | Review | frontend livré, dépend de #71 |
 | #71 | Review | recette physique/accessibilité |
 | #85 | Review | UX livrée, finition humaine |
-| #98 | Review | correctif #99 fusionné, contrôle visuel dédié |
-| #80 | Review technique | #100 à rafraîchir |
+| #98 | Done | Keycloak réel revalidé via recette #129 |
+| #80 | Done | #131 fusionnée, fallback registre intégré |
 | #18 | Backlog | LOT 10 après recettes |
 | #58 | Backlog | dossier de preuves |
 | #59 | Backlog | support/répétition/vidéo |
@@ -137,8 +141,8 @@ Cette absence de Release est cohérente : la version jury n'est pas encore final
 
 Matrice attendue :
 
-- **In Progress** : #55, #56, #35.
-- **Review** : #63, #71, #85, #98, #80.
+- **In Progress** : #55 uniquement (Project V2 natif).
+- **Review** : #63, #71, #85.
 - **Backlog** : #18, #58, #59, #70, #110–#115.
 - **Done** : tous les lots et sous-issues déjà fermés/fusionnés, notamment M0–M10, F0–F5, développement F7 automatisé, UX V4 #104 et sécurité #102.
 
@@ -158,13 +162,11 @@ Les limites M10 restent assumées : Legacy fallback, PostgreSQL partagé en labo
 
 ## Ordre de travail recommandé
 
-1. Terminer **#56/#35** : recette navigateur finale du kit jury et GO.
-2. Terminer **#71** : recette physique/accessibilité.
-3. Rafraîchir **#80/#100** si l'on veut éliminer la dette ECR avant le gel jury.
-4. Constituer **#58** : dossier de preuves.
-5. Préparer **#59** : présentation, répétition, vidéo de secours.
-6. Créer seulement alors un tag/release de version jury validée.
-7. Traiter le backlog post-MVP #70/#110–#115 après la soutenance.
+1. Terminer **#71** : recette physique/accessibilité.
+2. Constituer **#58** : dossier de preuves.
+3. Préparer **#59** : présentation, répétition, vidéo de secours.
+4. Créer seulement alors un tag/release de version jury validée.
+5. Traiter le backlog post-MVP #70/#110–#115 après la soutenance.
 
 ## Mutations effectuées pendant cet audit
 
