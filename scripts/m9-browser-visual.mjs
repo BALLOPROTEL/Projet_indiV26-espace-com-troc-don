@@ -1726,6 +1726,116 @@ async function runFrontV2HomeJourney() {
   console.log('[FRONT-V2/F1] Chrome: true Catalog ≥7; six per page; page 2 distinct; DON filter; live search; mobile: PASS');
 }
 
+
+async function runFinalAccessibilityAutomation() {
+  assert.equal(process.env.FRONT_V2_RUN_A11Y_FINAL, 'true');
+
+  // 200% browser zoom on a 1280px desktop yields roughly a 640 CSS-pixel
+  // layout viewport. This is an automated layout proxy, not a substitute for
+  // the final manual browser-zoom check required by #71.
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 640, height: 900, deviceScaleFactor: 2, mobile: false,
+  });
+  await journeyOpen('/', '.home-v2', 'F7 200-percent zoom layout proxy');
+  const zoomHome = await evaluate('({scroll:document.documentElement.scrollWidth,' +
+    'client:document.documentElement.clientWidth,' +
+    'menu:!!document.querySelector(".site-header__menu-toggle")})');
+  assert.ok(zoomHome.scroll <= zoomHome.client + 2,
+    '200% zoom proxy must not overflow home horizontally: ' + JSON.stringify(zoomHome));
+  await journeyScreenshot('f7-zoom-200-proxy-home');
+
+  await journeyOpen('/admin', '.admin-v2__stats', 'F7 200-percent zoom ADMIN proxy');
+  const zoomAdmin = await evaluate('({scroll:document.documentElement.scrollWidth,' +
+    'client:document.documentElement.clientWidth,' +
+    'metrics:document.querySelectorAll(".admin-v2__metric strong").length})');
+  assert.ok(zoomAdmin.scroll <= zoomAdmin.client + 2 && zoomAdmin.metrics === 4,
+    '200% zoom proxy must keep ADMIN readable without horizontal overflow: ' +
+    JSON.stringify(zoomAdmin));
+  await journeyScreenshot('f7-zoom-200-proxy-admin');
+
+  let reduced;
+  let slow;
+
+  // The app already declares a global prefers-reduced-motion policy. Exercise
+  // the real CSS cascade instead of only checking for the source declaration.
+  await command('Emulation.setEmulatedMedia', {
+    features: [{ name: 'prefers-reduced-motion', value: 'reduce' }],
+  });
+  try {
+    await journeyOpen('/', '.home-v2', 'F7 reduced-motion preference');
+    await waitUntil('F7 reduced-motion real Catalog card',
+      'document.querySelectorAll(".home-v2__grid .listing-card--interactive").length >= 1', 120);
+    reduced = await evaluate('(() => {' +
+      'const card=document.querySelector(".listing-card--interactive");' +
+      'const root=getComputedStyle(document.documentElement);' +
+      'if(!card)return null;' +
+      'const cardCss=getComputedStyle(card);' +
+      'return {matches:matchMedia("(prefers-reduced-motion: reduce)").matches,' +
+      'scrollBehavior:root.scrollBehavior,' +
+      'transitionDuration:cardCss.transitionDuration,' +
+      'animationDuration:cardCss.animationDuration};})()');
+    assert.ok(reduced && reduced.matches && reduced.scrollBehavior === 'auto',
+      'Reduced-motion media preference must be active and disable smooth scrolling: ' +
+      JSON.stringify(reduced));
+    const maxTransition = Math.max(...reduced.transitionDuration.split(',')
+      .map(value => Number.parseFloat(value.trim()) || 0));
+    assert.ok(maxTransition <= 0.01,
+      'Reduced-motion must collapse card transitions: ' + JSON.stringify(reduced));
+    await journeyScreenshot('f7-reduced-motion-home');
+  } finally {
+    await command('Emulation.setEmulatedMedia', { features: [] });
+  }
+
+  // Slow-3G-style throttling: prove that a real Catalog-backed home remains
+  // usable and eventually renders real cards instead of a fake success state.
+  await command('Network.enable');
+  await command('Network.emulateNetworkConditions', {
+    offline: false,
+    latency: 400,
+    downloadThroughput: 64 * 1024,
+    uploadThroughput: 32 * 1024,
+    connectionType: 'cellular3g',
+  });
+  try {
+    await journeyOpen('/', '.home-v2', 'F7 Slow 3G home');
+    await waitUntil('F7 Slow 3G real Catalog cards',
+      'document.querySelectorAll(".home-v2__grid .listing-card").length >= 1', 120);
+    slow = await evaluate('({cards:document.querySelectorAll(".home-v2__grid .listing-card").length,' +
+      'scroll:document.documentElement.scrollWidth,' +
+      'client:document.documentElement.clientWidth,' +
+      'body:document.body.innerText.slice(0,500)})');
+    assert.ok(slow.cards >= 1 && slow.scroll <= slow.client + 2,
+      'Slow network must recover to a usable real Catalog view: ' + JSON.stringify(slow));
+    await journeyScreenshot('f7-slow-3g-home');
+  } finally {
+    await command('Network.emulateNetworkConditions', {
+      offline: false,
+      latency: 0,
+      downloadThroughput: -1,
+      uploadThroughput: -1,
+      connectionType: 'none',
+    });
+    await command('Network.disable');
+  }
+
+  writeFileSync(join(output, 'a11y-final-report.json'), JSON.stringify({
+    sha: process.env.GITHUB_SHA ?? null,
+    zoom200LayoutProxy: {
+      home: zoomHome,
+      admin: zoomAdmin,
+      result: 'PASS',
+      note: 'Automated CSS-layout proxy; manual real browser zoom 200% remains required by #71.',
+    },
+    reducedMotion: { ...reduced, result: 'PASS' },
+    slow3g: { cards: slow.cards, scroll: slow.scroll, client: slow.client, result: 'PASS' },
+  }, null, 2) + '\n');
+
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false,
+  });
+  console.log('[FRONT-V2/F7] Automated #71 evidence: zoom proxy + reduced-motion + Slow 3G PASS');
+}
+
 async function runAdminDashboardBrowser() {
   assert.equal(process.env.FRONT_V2_RUN_ADMIN, 'true');
   const adminToken = await browserToken('demo-admin');
@@ -1846,6 +1956,7 @@ try {
     if (process.env.LOT9BF_RUN_BROWSER === 'true') await runEnrichedBrowserJourneys();
     if (process.env.FRONT_V2_RUN_HOME === 'true') await runFrontV2HomeJourney();
     if (process.env.FRONT_V2_RUN_ADMIN === 'true') await runAdminDashboardBrowser();
+    if (process.env.FRONT_V2_RUN_A11Y_FINAL === 'true') await runFinalAccessibilityAutomation();
   }
 } finally {
   if (socket && socket.readyState === WebSocket.OPEN) socket.close();
