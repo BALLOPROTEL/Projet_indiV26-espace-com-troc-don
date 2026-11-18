@@ -1814,6 +1814,18 @@ async function runFinalAccessibilityAutomation() {
     await command('Network.disable');
   }
 
+  writeFileSync(join(output, 'a11y-final-report.json'), JSON.stringify({
+    sha: process.env.GITHUB_SHA ?? null,
+    zoom200LayoutProxy: {
+      home: zoomHome,
+      admin: zoomAdmin,
+      result: 'PASS',
+      note: 'Automated CSS-layout proxy; manual real browser zoom 200% remains required by #71.',
+    },
+    reducedMotion: { ...reduced, result: 'PASS' },
+    slow3g: { cards: slow.cards, scroll: slow.scroll, client: slow.client, result: 'PASS' },
+  }, null, 2) + '\n');
+
   await command('Emulation.setDeviceMetricsOverride', {
     width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false,
   });
