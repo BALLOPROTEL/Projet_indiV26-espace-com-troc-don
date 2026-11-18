@@ -1,30 +1,31 @@
 # Provenance des images du kit jury
 
-Le registre **machine** `demo/jury/assets/provenance.json` est la source de vérité de la gate stricte. Initialement `credits: []` : aucune image autorisée n'a encore été fournie.
+## État de la revue — 18 novembre 2026
 
-Pour chacune des 20 photos, enregistrer **une entrée unique** :
+Les 20 fichiers présents dans `demo/jury/assets/` ont été rapprochés de leurs **pages Wikimedia Commons exactes** avant toute autorisation de démonstration.
+
+La revue documentaire a confirmé :
+
+- **don-lampe (5/5)** — Raphael Gobeil Gauthier — **CC BY-SA 4.0** — même ensemble de lampes en cuivre Model X ;
+- **don-etagere (5/5)** — Matti Blume — fichier multi-licence permettant de sélectionner **CC BY-SA 4.0** — même série IKEA Ivar / éléments d’étagère ;
+- **troc-sac (5/5)** — Dalibor Johánek — **CC BY-SA 3.0 Unported** — permission archivée sous le ticket Wikimedia VRT **#2013112710007237** ;
+- **troc-livres (5/5)** — Paolo Monti / BEIC Foundation — **CC BY-SA 4.0** — les cinq fichiers figurent dans la catégorie Commons *Books photographed by Paolo Monti*.
+
+### Restriction Benro
+
+Les pages Benro affichent également un avertissement **personality rights**. Il est conservé dans les conditions du registre : l’usage prévu est limité à la démonstration jury, sans suggérer d’endossement ; toute réutilisation publique ou commerciale devra faire l’objet d’une nouvelle revue.
+
+## Autorisation encore requise
+
+Le registre `demo/jury/assets/provenance.json` contient maintenant les 20 preuves structurées avec leurs sources, auteurs, licences et conditions, mais conserve volontairement :
+
 ```json
-{
-  "id": "credit-verifie-unique",
-  "file": "assets/don-lampe/01.jpg",
-  "source": "URL ou référence originale vérifiable",
-  "author": "Auteur ou titulaire des droits",
-  "licenseOrPermission": "Licence exacte ou référence d'autorisation écrite",
-  "verifiedAt": "2026-10-16",
-  "conditions": "Conditions de démonstration et de redistribution",
-  "authorizedForDemo": true
-}
+"authorizedForDemo": false
 ```
 
-Les champs de cet exemple ne sont **pas des droits réellement vérifiés**. Le validateur exige le chemin exact, l'identifiant associé, la date et les champs de preuve mais ne peut **pas juridiquement certifier** l'authenticité d'une licence. L'humain doit examiner les autorisations avant toute démonstration.
+L’autorisation finale doit être donnée explicitement par le responsable humain du projet avant de :
+- passer les 20 entrées à `authorizedForDemo: true` ;
+- remplacer les 20 `creditId: PENDING` du manifest ;
+- passer `readiness` à `READY_FOR_REVIEW`.
 
-Les images doivent être de vrais fichiers réguliers non vides avec une signature JPEG/PNG/WebP attendue. La signature de fichier est un filtre de base, pas une preuve que l'image se décode correctement : ouvrir les images dans la recette réelle.
-
-Ne pas utiliser de photo internet sans droits de réutilisation vérifiés ; ne pas stocker de données personnelles.
-
-
-## Catalogue de candidats
-
-`demo/jury/assets/sources.json` contient 20 **candidats à examiner**, issus de Wikimedia Commons. Les champs `expectedAuthor` et `expectedLicense` servent au contrôle humain ; ils ne constituent pas à eux seuls une certification.
-
-Le script `pnpm jury:assets:fetch` télécharge les fichiers pour revue mais **n'ajoute aucun crédit** à `provenance.json` et ne change aucun `creditId`. Une entrée de provenance ne doit être créée qu'après ouverture du fichier, vérification de la page source, de l'auteur, de la licence/permission, des éventuelles restrictions complémentaires et de la cohérence avec l'objet de démonstration.
+Le validateur strict reste donc volontairement bloqué jusqu’à cette approbation.
