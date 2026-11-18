@@ -46,7 +46,7 @@ Le Bootstrap post-fusion #568 est **SUCCESS** sur `7f553afd03f870da9f01ba5b650c6
 | RBAC USER/MODERATOR/ADMIN | **PASS** | M8/F5/#129 | ADMIN autorisé ; USER refusé UI + backend HTTP 403 |
 | Frontend V2/V3/V4 | **PASS** | #63/#85 fermés | validation propriétaire + parcours réels |
 | Accessibilité / appareils | **PASS** | #71 fermé + #134 | iPhone/Safari, Android/Chrome, zoom 200 %, clavier/contrastes, reduced-motion |
-| Réseau dégradé | **PASS** | #134 | Slow 3G CDP, vraies cartes Catalog, récupération sans faux succès |
+| Réseau dégradé | **EN COURS** | #134 + #137 | #134 prouve l’accueil ; #137 complète fiche/galerie, Mon espace, panne Catalog et récupération |
 | Kit jury | **PASS** | #125/#126/#127 | 4 acteurs, 4 annonces, 20 médias autorisés/provenance |
 | Recette jury finale | **PASS** | #129 | run `44333998288` SUCCESS |
 | Journal jury | **PASS** | #130 | docs/27 + docs/28, IDs/statuts réels |
@@ -122,7 +122,7 @@ Résultats :
 - forced-colors / High Contrast ;
 - proxy layout équivalent zoom 200 % : accueil + ADMIN sans overflow ;
 - `prefers-reduced-motion: reduce` réellement actif ;
-- Slow 3G : vraies cartes Catalog chargées et interface utilisable.
+- Slow 3G #134 : accueil Catalog utilisable ; preuve réseau complète en cours via #137 (fiche/galerie, Mon espace, panne + récupération).
 
 Artifact :
 - ID : `14473385412`;
@@ -231,7 +231,7 @@ Limites à présenter au jury :
 
 État acquis :
 - LOT 9B #35/#56 : fermé ;
-- frontend/accessibilité #71/#63/#85 : fermé ;
+- frontend/accessibilité #71/#63/#85 : réouverts temporairement jusqu’à validation réseau complète #137 ;
 - Keycloak #98 : fermé ;
 - robustesse CI #80 : fermé ;
 - synchronisation GitHub/Kanban #55 : fermée ;
@@ -252,7 +252,7 @@ Ces archives complètent les preuves #129/#134 mais ne remplacent pas les runs f
 
 **READY TO CLOSE après merge de la présente consolidation.**
 
-Les prérequis fonctionnels, UX, accessibilité, sécurité, CI et gouvernance nécessaires au dossier de preuves sont satisfaits. Les deux artifacts critiques ont été exportés vers une archive persistante.
+Les prérequis fonctionnels, UX, sécurité, CI et gouvernance sont satisfaits. La validation accessibilité/réseau attend encore la preuve complète #137 ; le dossier reste Draft jusqu’à son succès. Les artifacts critiques déjà disponibles ont été exportés vers une archive persistante.
 
 Après fusion de cette documentation et contrôle CI/Codex :
 1. fermer #58 ;
