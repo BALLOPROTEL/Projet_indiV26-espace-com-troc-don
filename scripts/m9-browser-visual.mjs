@@ -1292,6 +1292,22 @@ async function juryRecentNotifications() {
   return response.json();
 }
 
+async function waitForJuryRejectedNotification(proposalId) {
+  let latest = [];
+  for (let attempt = 0; attempt < 80; attempt++) {
+    latest = await juryRecentNotifications();
+    const matches = latest.filter(item =>
+      item?.event?.type === 'proposal.rejected' &&
+      item?.event?.data?.proposalId === proposalId);
+    if (matches.length === 1) return latest;
+    if (matches.length > 1) {
+      throw new Error('Duplicate persisted proposal.rejected events for ' + proposalId);
+    }
+    await sleep(500);
+  }
+  throw new Error('Timed out waiting for persisted proposal.rejected event ' + proposalId);
+}
+
 async function runJuryFinalBrowserJourneys() {
   assert.equal(juryFinalRun, true);
   const manifest = JSON.parse(readFileSync('demo/jury/manifest.json', 'utf8'));
@@ -1429,7 +1445,7 @@ async function runJuryFinalBrowserJourneys() {
     assert.equal(record.availabilityStatus, availability);
   }
 
-  const recent = await juryRecentNotifications();
+  const recent = await waitForJuryRejectedNotification(rejectedProposal.id);
   const rejectedEvents = recent.filter(item =>
     item?.event?.type === 'proposal.rejected' &&
     item?.event?.data?.proposalId === rejectedProposal.id);
