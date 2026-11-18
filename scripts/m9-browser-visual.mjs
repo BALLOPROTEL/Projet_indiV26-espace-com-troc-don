@@ -11,12 +11,20 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-assert.equal(process.env.COMPOSE_PROJECT_NAME, 'projet-indiv26-m6-ci');
-assert.equal(process.env.M9_RUN_WORKFLOWS, 'true');
-const id = readFileSync('.m6-smoke/m9-browser-listing-id', 'utf8').trim();
-assert.match(id, /^m9-don-[0-9a-f-]+$/);
+const juryFinalRun = process.env.JURY_FINAL_RUN === 'true';
+if (juryFinalRun) {
+  assert.match(process.env.COMPOSE_PROJECT_NAME ?? '', /^projet-indiv26-jury-[a-f0-9]{8}$/,
+    'Jury final browser run must target an isolated jury Compose project');
+} else {
+  assert.equal(process.env.COMPOSE_PROJECT_NAME, 'projet-indiv26-m6-ci');
+  assert.equal(process.env.M9_RUN_WORKFLOWS, 'true');
+}
+const id = juryFinalRun
+  ? null
+  : readFileSync('.m6-smoke/m9-browser-listing-id', 'utf8').trim();
+if (!juryFinalRun) assert.match(id, /^m9-don-[0-9a-f-]+$/);
 const base = process.env.WEB_PUBLIC_URL ?? 'http://localhost:13001';
-const output = 'reports/m9-browser';
+const output = juryFinalRun ? 'reports/jury-final-browser' : 'reports/m9-browser';
 mkdirSync(output, { recursive: true });
 
 const chrome = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser']
@@ -288,6 +296,15 @@ assert.equal(new Set(Object.values(browserIds).map(id => id.slice(0, 8))).size, 
   'All M9 browser fixture IDs must have unique rendered eight-character prefixes');
 const browserGateway = 'http://127.0.0.1:' + (process.env.GATEWAY_HOST_PORT ?? '13000');
 
+function browserPassword(username) {
+  const password = username === 'demo-requester'
+    ? process.env.JURY_REQUESTER_PASSWORD
+    : username + '-local';
+  assert.ok(typeof password === 'string' && password.length >= 14,
+    'Missing safe local credential for ' + username);
+  return password;
+}
+
 async function browserToken(username) {
   const issuer = process.env.KEYCLOAK_PUBLIC_URL ?? 'http://localhost:18081';
   const response = await fetch(issuer + '/realms/projet-indiv26/protocol/openid-connect/token', {
@@ -295,14 +312,19 @@ async function browserToken(username) {
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'password', client_id: 'cli',
-      username, password: username + '-local',
+      username, password: browserPassword(username),
     }),
     signal: AbortSignal.timeout(12000),
   });
   assert.equal(response.status, 200, 'Could not get fixture token for ' + username);
   const data = await response.json();
   const claims = JSON.parse(Buffer.from(data.access_token.split('.')[1], 'base64url'));
-  return { value: data.access_token, sub: claims.sub };
+  return {
+    value: data.access_token,
+    sub: claims.sub,
+    username: claims.preferred_username,
+    roles: claims.realm_access?.roles ?? [],
+  };
 }
 
 async function browserApi(token, path) {
@@ -562,7 +584,7 @@ async function journeySwitchUser(username) {
   assert.equal(await evaluate(logout), true, 'Missing real browser logout');
   await waitUntil('Keycloak logout and app return',
     'location.origin===' + JSON.stringify(new URL(base).origin) +
-    '&& !document.body.innerText.includes("Demo User") && !document.body.innerText.includes("Demo Moderator")', 120);
+    '&& ![...document.querySelectorAll("header button")].some(el=>el.textContent?.trim()==="Sortir")', 120);
   await journeyOpen('/espace', '.gate-card button', 'member sign-in after logout');
   assert.equal(await evaluate('(() => {const b=document.querySelector(".gate-card button");if(!b)return false;b.click();return true;})()'),
     true, 'Missing sign-in button');
@@ -619,13 +641,14 @@ async function journeySwitchUser(username) {
     'const form=user?.closest("form")??document.querySelector("#kc-form-login");' +
     'if(!user||!pass||!form)return false;' +
     'user.value=' + JSON.stringify(username) + ';' +
-    'pass.value=' + JSON.stringify(username + '-local') + ';' +
+    'pass.value=' + JSON.stringify(browserPassword(username)) + ';' +
     'user.dispatchEvent(new Event("input",{bubbles:true}));' +
     'pass.dispatchEvent(new Event("input",{bubbles:true}));' +
     'form.requestSubmit();return true;})()';
   assert.equal(await evaluate(signIn), true, 'Unable to submit Keycloak login for ' + username);
   const display = {
     'demo-user': 'Demo User',
+    'demo-requester': 'Demo Requester',
     'demo-moderator': 'Demo Moderator',
     'demo-admin': 'Demo Admin',
   }[username];
@@ -886,12 +909,12 @@ function enrichedFiles(slug) {
   });
 }
 
-async function enrichedCreateListing(username, type, label) {
+async function enrichedCreateListing(username, type, label, options = {}) {
   const slug = randomUUID().slice(0, 8);
-  const title = '9BF Chrome ' + label + ' ' + slug;
-  const expectedWishes = type === 'TRADE'
+  const title = options.title ?? ('9BF Chrome ' + label + ' ' + slug);
+  const expectedWishes = options.tradeWishes ?? (type === 'TRADE'
     ? Array.from({ length: 5 }, (_, i) => '9BF contrepartie ' + (i + 1))
-    : [];
+    : []);
   const memberToken = await browserToken(username);
   await journeyOpen('/espace', '.form-panel form.listing-form',
     'authenticated listing editor for ' + username);
@@ -952,7 +975,8 @@ async function enrichedCreateListing(username, type, label) {
   }
   await fillReactField('.form-panel form.listing-form label.field input', title);
   await fillReactField('.form-panel form.listing-form label.field textarea',
-    'Certification LOT 9B-F, publication réelle avec cinq photographies de test indépendantes.');
+    options.description ??
+      'Certification LOT 9B-F, publication réelle avec cinq photographies de test indépendantes.');
   if (type === 'TRADE') {
     for (let index = 0; index < 5; index++) {
       await fillReactField('.form-panel form.listing-form .wish-editor input',
@@ -973,7 +997,9 @@ async function enrichedCreateListing(username, type, label) {
     selector: '.form-panel form.listing-form input[type=file]',
   });
   assert.ok(input.nodeId, 'Missing publication input[type=file]');
-  const paths = enrichedFiles(slug);
+  const paths = options.photoPaths ?? enrichedFiles(slug);
+  assert.equal(paths.length, 5, 'Exactly five files are required for the browser publication');
+  for (const file of paths) assert.ok(existsSync(file), 'Missing browser publication media: ' + file);
   await command('DOM.setFileInputFiles', { nodeId: input.nodeId, files: paths });
   await waitUntil('Five image previews in React publication form',
     '(() => {const f=document.querySelector(".form-panel form.listing-form");' +
@@ -1210,6 +1236,250 @@ async function runEnrichedBrowserJourneys() {
   console.log('[LOT9B-F Chrome] Real Chrome: 3 listings, 15 photos, private moderation, DON/TROC two confirmations, COMPLETED: PASS');
 }
 
+
+
+async function journeyInitialLogin(username) {
+  await journeyOpen('/espace', '.gate-card button', 'initial member sign-in');
+  assert.equal(await evaluate('(() => {const b=document.querySelector(".gate-card button");if(!b)return false;b.click();return true;})()'),
+    true, 'Missing initial sign-in button');
+  await waitUntil('initial Keycloak sign-in form for ' + username,
+    '!!document.querySelector("#username") && !!document.querySelector("#password")', 120);
+  const signIn = '(() => {' +
+    'const user=document.querySelector("#username"),pass=document.querySelector("#password");' +
+    'const form=user?.closest("form")??document.querySelector("#kc-form-login");' +
+    'if(!user||!pass||!form)return false;' +
+    'user.value=' + JSON.stringify(username) + ';' +
+    'pass.value=' + JSON.stringify(browserPassword(username)) + ';' +
+    'user.dispatchEvent(new Event("input",{bubbles:true}));' +
+    'pass.dispatchEvent(new Event("input",{bubbles:true}));' +
+    'form.requestSubmit();return true;})()';
+  assert.equal(await evaluate(signIn), true, 'Unable to submit initial Keycloak login for ' + username);
+  const display = {
+    'demo-user': 'Demo User',
+    'demo-requester': 'Demo Requester',
+    'demo-moderator': 'Demo Moderator',
+    'demo-admin': 'Demo Admin',
+  }[username];
+  assert.ok(display, 'Unsupported jury Keycloak identity: ' + username);
+  await waitUntil('initial authenticated dashboard for ' + username,
+    'location.origin===' + JSON.stringify(new URL(base).origin) +
+    '&&document.body.innerText.includes(' + JSON.stringify(display) + ')' +
+    '&&!!document.querySelector(".marketplace-dashboard")', 120);
+  console.log('[JURY FINAL] Initial browser login ' + username + ': PASS');
+}
+
+function juryManifestListing(manifest, key) {
+  const listing = manifest.listings.find(item => item.key === key);
+  assert.ok(listing, 'Missing jury manifest listing ' + key);
+  return listing;
+}
+
+function juryListingOptions(listing) {
+  return {
+    title: listing.title,
+    description: listing.description,
+    tradeWishes: listing.tradeWishes,
+    photoPaths: listing.images.map(image => join(process.cwd(), 'demo/jury', image.file)),
+  };
+}
+
+async function juryRecentNotifications() {
+  const port = process.env.NOTIFICATION_HOST_PORT ?? '13103';
+  const response = await fetch('http://127.0.0.1:' + port + '/notifications/recent', {
+    signal: AbortSignal.timeout(12000),
+  });
+  assert.equal(response.status, 200, 'Notification recent endpoint must be readable in the isolated stack');
+  return response.json();
+}
+
+async function runJuryFinalBrowserJourneys() {
+  assert.equal(juryFinalRun, true);
+  const manifest = JSON.parse(readFileSync('demo/jury/manifest.json', 'utf8'));
+  assert.equal(manifest.readiness, 'READY_FOR_REVIEW');
+  assert.deepEqual(manifest.actors, {
+    memberOwner: 'demo-user',
+    memberRequester: 'demo-requester',
+    moderator: 'demo-moderator',
+    admin: 'demo-admin',
+  });
+
+  const ownerToken = await browserToken('demo-user');
+  const requesterToken = await browserToken('demo-requester');
+  const moderatorToken = await browserToken('demo-moderator');
+  const adminToken = await browserToken('demo-admin');
+  assert.ok(ownerToken.roles.includes('USER') && !ownerToken.roles.includes('ADMIN'));
+  assert.ok(requesterToken.roles.includes('USER') &&
+    !requesterToken.roles.includes('MODERATOR') && !requesterToken.roles.includes('ADMIN'));
+  assert.ok(moderatorToken.roles.includes('MODERATOR') && !moderatorToken.roles.includes('ADMIN'));
+  assert.ok(adminToken.roles.includes('ADMIN'));
+
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 1440, height: 1024, deviceScaleFactor: 1, mobile: false,
+  });
+  await journeyInitialLogin('demo-user');
+
+  const lampSpec = juryManifestListing(manifest, 'don-lampe');
+  const shelfSpec = juryManifestListing(manifest, 'don-etagere');
+  const bagSpec = juryManifestListing(manifest, 'troc-sac');
+  const booksSpec = juryManifestListing(manifest, 'troc-livres');
+
+  const lamp = await enrichedCreateListing('demo-user', 'DONATION', 'jury-don-lampe',
+    juryListingOptions(lampSpec));
+  const shelf = await enrichedCreateListing('demo-user', 'DONATION', 'jury-don-etagere',
+    juryListingOptions(shelfSpec));
+  const bag = await enrichedCreateListing('demo-user', 'TRADE', 'jury-troc-sac',
+    juryListingOptions(bagSpec));
+
+  await journeySwitchUser('demo-requester');
+  const books = await enrichedCreateListing('demo-requester', 'TRADE', 'jury-troc-livres',
+    juryListingOptions(booksSpec));
+
+  await journeySwitchUser('demo-moderator');
+  for (const listing of [lamp, shelf, bag, books]) {
+    await enrichedModerate(listing, moderatorToken);
+  }
+
+  // Prove all 20 authorized files survived browser upload and public publication byte-for-byte.
+  for (const listing of [lamp, shelf, bag, books]) {
+    const published = await browserApi(moderatorToken, '/api/listings/' + listing.id);
+    assert.equal(published.status, 'APPROVED');
+    assert.equal(published.availabilityStatus, 'AVAILABLE');
+    assert.equal(published.images.length, 5);
+    for (const [index, image] of published.images.entries()) {
+      const response = await fetch(browserGateway + '/api/listings/' + listing.id +
+        '/images/' + image.id + '/content', { signal: AbortSignal.timeout(12000) });
+      assert.equal(response.status, 200, 'Public jury media must be readable');
+      const actual = Buffer.from(await response.arrayBuffer());
+      assert.deepEqual(actual, readFileSync(listing.photoPaths[index]),
+        'Jury media bytes changed after upload: ' + listing.id + ' #' + (index + 1));
+    }
+  }
+  await journeyScreenshot('jury-20-media-approved');
+
+  await journeySwitchUser('demo-requester');
+  await journeyOffer(lamp.id, null, 'jury-don-reject', undefined, undefined, lamp.title);
+  await journeyOffer(shelf.id, null, 'jury-don-accept', undefined, undefined, shelf.title);
+  await journeyOffer(bag.id, books.id, 'jury-trade-complete', books.title,
+    'jury-trade-comparison', bag.title);
+  await journeyOpen('/espace', '.marketplace-dashboard', 'jury requester pending proposals');
+  for (const listing of [lamp, shelf, bag]) await journeyWaitCard(listing.id, 'En attente');
+  let outgoing = await browserApi(requesterToken, '/api/proposals/me');
+  const lampProposal = browserFindProposal(outgoing, lamp.id, 'PENDING');
+  browserFindProposal(outgoing, shelf.id, 'PENDING');
+  browserFindProposal(outgoing, bag.id, 'PENDING');
+  await journeyScreenshot('jury-requester-three-pending');
+
+  await journeySwitchUser('demo-user');
+  await journeyWaitAction(lamp.id, 'Refuser');
+  await journeyClick('Refuser', lamp.id);
+  await journeyWaitCard(lamp.id, 'Refusée');
+  const receivedAfterReject = await browserApi(ownerToken, '/api/proposals/received');
+  const rejectedProposal = browserFindProposal(receivedAfterReject, lamp.id, 'REJECTED');
+  assert.equal(rejectedProposal.id, lampProposal.id);
+
+  for (const listing of [shelf, bag]) {
+    await journeyWaitAction(listing.id, 'Accepter');
+    await journeyClick('Accepter', listing.id);
+    await journeyWaitCard(listing.id, 'Acceptée');
+    browserFindTransaction(await browserApi(ownerToken, '/api/transactions/me'),
+      listing.id, 'IN_PROGRESS');
+  }
+  await journeyScreenshot('jury-owner-reject-and-accept');
+
+  for (const listing of [shelf, bag]) {
+    await journeyWaitAction(listing.id, 'Confirmer la remise');
+    await journeyClick('Confirmer la remise', listing.id);
+    await journeyWaitConfirmation(listing.id);
+    const tx = browserFindTransaction(await browserApi(ownerToken, '/api/transactions/me'),
+      listing.id, 'IN_PROGRESS');
+    assert.ok(tx.ownerConfirmedAt && !tx.requesterConfirmedAt,
+      'Owner-only confirmation must keep transaction IN_PROGRESS');
+  }
+  await journeyScreenshot('jury-owner-first-confirmations');
+
+  await journeySwitchUser('demo-requester');
+  for (const listing of [shelf, bag]) {
+    await journeyWaitAction(listing.id, 'Confirmer la remise');
+    await journeyClick('Confirmer la remise', listing.id);
+    await waitUntil('jury completed transaction ' + listing.id,
+      '(() => [...document.querySelectorAll(".marketplace-transactions .marketplace-entry")]' +
+      '.some(c=>[...c.querySelectorAll("a[href]")].some(a=>a.getAttribute("href")===' +
+      JSON.stringify('/annonces/' + listing.id) + ')&&c.innerText.includes("Terminé")))()', 120);
+  }
+  await journeyScreenshot('jury-requester-completed-don-troc');
+
+  const finalTransactions = await browserApi(requesterToken, '/api/transactions/me');
+  for (const listing of [shelf, bag]) {
+    const tx = browserFindTransaction(finalTransactions, listing.id, 'COMPLETED');
+    assert.ok(tx.ownerConfirmedAt && tx.requesterConfirmedAt && tx.completedAt);
+  }
+  outgoing = await browserApi(requesterToken, '/api/proposals/me');
+  browserFindProposal(outgoing, lamp.id, 'REJECTED');
+  browserFindProposal(outgoing, shelf.id, 'ACCEPTED');
+  browserFindProposal(outgoing, bag.id, 'ACCEPTED');
+
+  for (const [listing, availability] of [
+    [lamp, 'AVAILABLE'],
+    [shelf, 'COMPLETED'],
+    [bag, 'COMPLETED'],
+    [books, 'COMPLETED'],
+  ]) {
+    const record = await browserApi(requesterToken, '/api/listings/' + listing.id);
+    assert.equal(record.status, 'APPROVED');
+    assert.equal(record.availabilityStatus, availability);
+  }
+
+  const recent = await juryRecentNotifications();
+  const rejectedEvents = recent.filter(item =>
+    item?.event?.type === 'proposal.rejected' &&
+    item?.event?.data?.proposalId === rejectedProposal.id);
+  assert.equal(rejectedEvents.length, 1,
+    'Exactly one persisted proposal.rejected event is expected for the refused jury donation');
+  assert.equal(new Set(recent.map(item => item?.event?.eventId).filter(Boolean)).size,
+    recent.filter(item => item?.event?.eventId).length,
+    'Notification recent inbox must not expose duplicate eventId values');
+
+  await journeySwitchUser('demo-admin');
+  const summary = await browserApi(adminToken, '/api/admin/catalog/summary');
+  assert.ok(summary.total >= 4 && summary.byStatus.approved >= 4,
+    'ADMIN summary must include the four final jury listings');
+  await journeyOpen('/admin', '.admin-v2__stats', 'jury ADMIN dashboard');
+  await waitUntil('jury ADMIN metrics visible',
+    'document.querySelectorAll(".admin-v2__metric strong").length===4', 120);
+  await journeyScreenshot('jury-admin-dashboard');
+
+  await journeySwitchUser('demo-user');
+  await journeyOpen('/admin', '.gate-card--denied', 'jury USER forbidden from ADMIN');
+  assert.equal(await evaluate('document.body.innerText.includes("Accès réservé aux administrateurs")'),
+    true, 'USER must be denied from the ADMIN dashboard');
+  await journeyScreenshot('jury-user-admin-denied');
+
+  const report = {
+    sha: process.env.GITHUB_SHA ?? null,
+    readiness: manifest.readiness,
+    listings: {
+      'don-lampe': lamp.id,
+      'don-etagere': shelf.id,
+      'troc-sac': bag.id,
+      'troc-livres': books.id,
+    },
+    proposals: {
+      rejected: rejectedProposal.id,
+      donationAccepted: browserFindProposal(outgoing, shelf.id, 'ACCEPTED').id,
+      tradeAccepted: browserFindProposal(outgoing, bag.id, 'ACCEPTED').id,
+    },
+    outcomes: {
+      donationRejected: 'REJECTED',
+      donationAccepted: 'COMPLETED',
+      trade: 'COMPLETED',
+      adminRbac: 'PASS',
+      media: '20/20 byte-identical after browser upload',
+      notificationRejectedUnique: 'PASS',
+    },
+  };
+  writeFileSync(join(output, 'jury-final-report.json'), JSON.stringify(report, null, 2) + '\n');
+  console.log('[JURY FINAL] Real Chrome: 4 listings, 20 authorized media, DON reject, DON complete, TROC complete, ADMIN/USER RBAC: PASS');
+}
 
 async function runFrontV2HomeJourney() {
   assert.equal(process.env.FRONT_V2_RUN_HOME, 'true');
@@ -1533,23 +1803,27 @@ async function runAdminDashboardBrowser() {
 
 try {
   await startCdp(await waitForPort());
-  await capture('/annonces/' + encodeURIComponent(id), 1440, 1000,
-    'don-detail-desktop', 'M9 live donation refusal', '.marketplace-action');
-  await capture('/annonces/' + encodeURIComponent(id), 390, 844,
-    'don-detail-mobile', 'Cette trouvaille vous intéresse ?', '.marketplace-action');
-  await capture('/espace', 1440, 900,
-    'espace-login-desktop', 'Votre étagère vous attend.', '.gate-card');
-  await loginAsDemoOwner();
-  await capture('/espace', 1440, 980,
-    'espace-owner-inbox-desktop', 'Refusée', '.marketplace-dashboard');
-  await loginAsDemoRequester();
-  await capture('/espace', 1440, 980,
-    'espace-requester-outbox-desktop', 'Mes demandes envoyées', '.marketplace-dashboard');
-  console.log('[M9 Browser] Chrome desktop/mobile + both authenticated user roles: PASS');
-  await runRealBrowserJourneys();
-  if (process.env.LOT9BF_RUN_BROWSER === 'true') await runEnrichedBrowserJourneys();
-  if (process.env.FRONT_V2_RUN_HOME === 'true') await runFrontV2HomeJourney();
-  if (process.env.FRONT_V2_RUN_ADMIN === 'true') await runAdminDashboardBrowser();
+  if (juryFinalRun) {
+    await runJuryFinalBrowserJourneys();
+  } else {
+    await capture('/annonces/' + encodeURIComponent(id), 1440, 1000,
+      'don-detail-desktop', 'M9 live donation refusal', '.marketplace-action');
+    await capture('/annonces/' + encodeURIComponent(id), 390, 844,
+      'don-detail-mobile', 'Cette trouvaille vous intéresse ?', '.marketplace-action');
+    await capture('/espace', 1440, 900,
+      'espace-login-desktop', 'Votre étagère vous attend.', '.gate-card');
+    await loginAsDemoOwner();
+    await capture('/espace', 1440, 980,
+      'espace-owner-inbox-desktop', 'Refusée', '.marketplace-dashboard');
+    await loginAsDemoRequester();
+    await capture('/espace', 1440, 980,
+      'espace-requester-outbox-desktop', 'Mes demandes envoyées', '.marketplace-dashboard');
+    console.log('[M9 Browser] Chrome desktop/mobile + both authenticated user roles: PASS');
+    await runRealBrowserJourneys();
+    if (process.env.LOT9BF_RUN_BROWSER === 'true') await runEnrichedBrowserJourneys();
+    if (process.env.FRONT_V2_RUN_HOME === 'true') await runFrontV2HomeJourney();
+    if (process.env.FRONT_V2_RUN_ADMIN === 'true') await runAdminDashboardBrowser();
+  }
 } finally {
   if (socket && socket.readyState === WebSocket.OPEN) socket.close();
   for (const task of pending.values()) clearTimeout(task.timeout);
