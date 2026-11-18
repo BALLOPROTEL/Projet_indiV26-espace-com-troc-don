@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "readiness": "DRAFT_NOT_READY",
+  "readiness": "READY_FOR_REVIEW",
   "actors": {
     "memberOwner": "demo-user",
     "memberRequester": "demo-requester",
@@ -18,23 +18,23 @@
       "images": [
         {
           "file": "assets/don-lampe/01.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-01"
         },
         {
           "file": "assets/don-lampe/02.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-02"
         },
         {
           "file": "assets/don-lampe/03.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-03"
         },
         {
           "file": "assets/don-lampe/04.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-04"
         },
         {
           "file": "assets/don-lampe/05.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-05"
         }
       ]
     },
@@ -48,23 +48,23 @@
       "images": [
         {
           "file": "assets/don-etagere/01.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-06"
         },
         {
           "file": "assets/don-etagere/02.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-07"
         },
         {
           "file": "assets/don-etagere/03.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-08"
         },
         {
           "file": "assets/don-etagere/04.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-09"
         },
         {
           "file": "assets/don-etagere/05.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-10"
         }
       ]
     },
@@ -84,23 +84,23 @@
       "images": [
         {
           "file": "assets/troc-sac/01.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-11"
         },
         {
           "file": "assets/troc-sac/02.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-12"
         },
         {
           "file": "assets/troc-sac/03.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-13"
         },
         {
           "file": "assets/troc-sac/04.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-14"
         },
         {
           "file": "assets/troc-sac/05.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-15"
         }
       ]
     },
@@ -120,23 +120,23 @@
       "images": [
         {
           "file": "assets/troc-livres/01.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-16"
         },
         {
           "file": "assets/troc-livres/02.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-17"
         },
         {
           "file": "assets/troc-livres/03.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-18"
         },
         {
           "file": "assets/troc-livres/04.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-19"
         },
         {
           "file": "assets/troc-livres/05.jpg",
-          "creditId": "PENDING"
+          "creditId": "wmc-candidate-20"
         }
       ]
     }
