@@ -250,7 +250,7 @@ Ces archives complètent les preuves #129/#134 mais ne remplacent pas les runs f
 
 ## 11. Verdict #58
 
-**READY TO CLOSE après merge de la présente consolidation.**
+**DRAFT — bloqué uniquement par la validation finale de #137.**
 
 Les prérequis fonctionnels, UX, sécurité, CI et gouvernance sont satisfaits. La validation accessibilité/réseau attend encore la preuve complète #137 ; le dossier reste Draft jusqu’à son succès. Les artifacts critiques déjà disponibles ont été exportés vers une archive persistante.
 
