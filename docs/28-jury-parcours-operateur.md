@@ -1,6 +1,6 @@
 # LOT 9B-F — Runbook opérateur : démonstration jury DON/TROC
 
-> **Plan de recette, PAS preuve de démonstration effectuée.** Le jeu de données de `demo/jury/manifest.json` est `DRAFT_NOT_READY` : le second utilisateur n'est pas provisionné dans la session cible et les vingt fichiers médias avec leur provenance ne sont pas encore livrés. Arrêt obligatoire avant publication si un prérequis échoue.
+> **Runbook opérationnel, mais PAS preuve de démonstration live déjà effectuée.** Depuis la fusion de la PR #126 le 18/11/2026, `demo/jury/manifest.json` est `READY_FOR_REVIEW`, le second USER est certifié et les 20 médias disposent de leur provenance et de l'autorisation de démonstration. L'exécution navigateur finale du scénario reste à consigner dans le journal ci-dessous. Arrêt obligatoire si un prérequis de la session cible échoue.
 
 ## 1. Périmètre et garde-fous
 
@@ -23,7 +23,7 @@ pnpm jury:plan:test
 pnpm jury:assets:check
 ```
 
-Le premier contrôle vérifie le schéma ; le deuxième les tests de validation hors ligne. **Le troisième doit échouer tant que les images, crédits, deux acteurs réellement distincts et statut `READY_FOR_REVIEW` ne sont pas prêts.** Ne pas désactiver ni contourner cette gate pour obtenir du vert.
+Le premier contrôle vérifie le schéma ; le deuxième les tests de validation hors ligne. **Sur le `main` issu de la PR #126, le troisième doit réussir** : les images, crédits, acteurs déclarés et le statut `READY_FOR_REVIEW` sont présents. Si cette gate échoue dans la session du jury, considérer le kit comme NO GO et ne pas la contourner.
 
 ### Stack jury parallèle automatisée
 
@@ -96,14 +96,20 @@ La commande doit retourner **4/4** pour ouvrir la recette ; si `memberRequester`
 
 | Contrôle | Preuve à saisir | GO/NO GO |
 | --- | --- | --- |
-| Environnement isolé et propriété des données | URL non sensible, SHA et cible vérifiés | À faire |
-| Deux membres USER différents et test de connexion | Identifiants publics de démonstration et réponse autorisée | À faire |
-| Compte MODERATOR et compte ADMIN avec RBAC API | Réponses 200/403 anonymisées | À faire |
-| Quatre annonces et 20 photos autorisées | Résultat de `pnpm jury:assets:check` + revue juridique | À faire |
-| Médias MinIO / URLs privées et publiques | Preuves d'autorisation d'accès, sans jetons | À faire |
-| Scénarios et procédure de secours expliqués | Relecteur et date | À faire |
+| Environnement isolé et propriété des données | URL non sensible, SHA et cible vérifiés | À revalider à chaque session |
+| Deux membres USER différents et test de connexion | Identifiants publics de démonstration et réponse autorisée | Certifié techniquement ; reconnexion live à faire |
+| Compte MODERATOR et compte ADMIN avec RBAC API | Réponses 200/403 anonymisées | À revalider live |
+| Quatre annonces et 20 photos autorisées | `pnpm jury:assets:check` + provenance | GO documentaire au 18/11/2026 |
+| Médias MinIO / URLs privées et publiques | Preuves d'autorisation d'accès, sans jetons | À constater live |
+| Scénarios et procédure de secours expliqués | Runbook versionné + relecteur/date | Runbook prêt ; exécution live à consigner |
 
-## 3. Parcours oral et preuve attendue
+## 3. État de recette documentaire au 18 novembre 2026
+
+Le kit a franchi les contrôles documentaires et automatisés suivants avant fusion : validation stricte média/provenance, Jury demo offline #52, Bootstrap #545 et revue Codex sans finding non résolu sur le HEAD `055be475924eeb49aaf0c7c00b5c7cd4a3560355`. La PR #126 a ensuite été fusionnée dans `main` au commit `4f67984150dae84c9fd122382a9487a6020b0fd8`.
+
+Cette validation signifie que le **kit est prêt à être exécuté**, pas que le scénario navigateur final ci-dessous a déjà été rejoué avec ces données. Les lignes du journal restent donc à renseigner pendant la recette live.
+
+## 4. Parcours oral et preuve attendue
 
 Exécuter les actions **dans cet ordre** pour ne pas immobiliser une annonce nécessaire à une étape ultérieure. Les noms/logiques doivent correspondre à `demo/jury/manifest.json`.
 
@@ -124,7 +130,7 @@ Exécuter les actions **dans cet ordre** pour ne pas immobiliser une annonce né
 
 À chaque passage : vérifier le changement d'état **dans les API**, pas seulement dans un toast de succès. Distinguer explicitement **proposition**, **transaction** et **annonce** : leur statut ne progresse pas de la même façon. La notification `proposal.rejected` est un **événement interne persistant**, non une notification consultable dans une boîte de réception personnelle ; constater l'événement dans les preuves techniques autorisées, sans inventer de route ni d'écran utilisateur. Vérifier l'absence de doublons d'événements persistés, la visibilité des propositions par le bon propriétaire et le refus des accès tiers (401/403/409 selon le contrat). Les données du tableau ne sont pas des résultats déjà observés.
 
-## 4. Journal de preuve à remplir en direct
+## 5. Journal de preuve à remplir en direct
 
 | Parcours | Identifiant annonce / proposition | Statut constaté API | Capture / journal (sans secret) | Résultat |
 | --- | --- | --- | --- | --- |
@@ -135,7 +141,7 @@ Exécuter les actions **dans cet ordre** pour ne pas immobiliser une annonce né
 
 Conserver SHA, horodatage et version de l'image applicative avec le compte rendu ; masquer tokens, mots de passe, e-mails privés, cookies, URL signées et identifiants de session.
 
-## 5. Plan de secours et sortie
+## 6. Plan de secours et sortie
 
 - Si compte, photo/licence, RBAC, ordre de réservation ou environnement cible n'est pas certain : **STOP**. Ne pas trafiquer les valeurs du manifeste ni forcer un état métier en base.
 - Si la session est interrompue, conserver les identifiants d'annonces et propositions **hors du dépôt**. Reprendre à partir de l'état constaté ; ne pas rejouer une acceptation ou une confirmation déjà validée.
