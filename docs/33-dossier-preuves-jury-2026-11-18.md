@@ -161,6 +161,20 @@ Références versionnées :
 
 Les gates actuelles couvrent notamment :
 
+Artifact sécurité Bootstrap #569 :
+- ID : `14474009386` ;
+- nom : `security-reports-e886d457053ad33771374663e043ef61820ba3eb` ;
+- digest GitHub : `sha256:a131addcbecdb080b767faa75f4a7e8952d1b2893deea50118d38bc822f8aff9` ;
+- archive Library : `/Projet_individuel26/Preuves/Final_2026-11-18/security-reports-e886d457.zip`.
+
+Lecture du rapport :
+- Trivy image API : **0 vulnérabilité détectée** ;
+- `pnpm audit` : **0 HIGH / 0 CRITICAL**, mais **2 advisories MODERATE** sur Next.js 16.4.1 ;
+- les primitives citées dans ces advisories (`unstable_cache`, `'use cache'`, `next/root-params`) ne sont pas utilisées dans le dépôt au moment de cette preuve ;
+- la mise à niveau Next.js reste toutefois à réaliser dans le backlog sécurité post-jury #115.
+
+Les gates actuelles couvrent notamment :
+
 - lint / typecheck / tests unitaires ;
 - intégration PostgreSQL ;
 - E2E HTTP ;
