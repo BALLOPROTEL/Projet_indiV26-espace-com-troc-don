@@ -2,7 +2,7 @@
 
 Projet individuel pour le bloc **« Superviser et assurer le développement des applications logicielles »**. Le POC de *La Petite Maison de l'Épouvante* démontre une véritable verticale métier DON/TROC avec modération, transactions et exigences d'industrialisation.
 
-> **État au 16 octobre 2026 :** migration microservices M0–M10 et frontend V2 F0–F5/F7 fusionnés dans `main` (dont PR #79 et #82). La recette automatisée navigateur est validée, mais la validation sur **vrais appareils iOS/Android** reste à réaliser (#71), ainsi que le kit de démonstration jury réinitialisable (#56). Le POC n'est pas un service de production et n'a pas de déploiement public permanent certifié.
+> **État au 18 novembre 2026 :** migration microservices M0–M10, frontend V2/V3/V4 et kit de démonstration jury fusionnés dans `main`. Le kit jury contient 20 médias autorisés, 20 crédits de provenance et `READY_FOR_REVIEW` (#56). La validation propriétaire desktop VISITEUR/USER/MODERATOR/ADMIN est acquise ; restent la **recette métier live finale du dataset jury** (#56/#35) et la **recette physique/accessibilité** sur iOS/Android ou appareils équivalents (#71). Le POC n'est pas un service de production et n'a pas de déploiement public permanent certifié.
 
 ## Fonctionnalités livrées
 
@@ -48,7 +48,7 @@ Ouvrir le port `3001` via l'onglet **PORTS** ; Keycloak utilise le port `8081`. 
 
 La CI utilise des environnements Docker/Kind jetables pour éviter de saturer le Codespace. **Ne pas effacer les PVC ni lancer de nettoyage destructeur automatiquement.** Voir [guide Codespaces](docs/18-codespaces.md).
 
-## État des lots (16 octobre 2026)
+## État des lots (18 novembre 2026)
 
 | Lot / jalon | Résultat |
 | --- | --- |
@@ -60,12 +60,12 @@ La CI utilise des environnements Docker/Kind jetables pour éviter de saturer le
 | M5–M7 | **Fusionné** — RabbitMQ/Notification, Compose/Codespaces, Kubernetes multi-services |
 | M8 | **Fusionné** — contrats, E2E microservices, pannes et notifications durables |
 | M9 / LOT 9B-D/E | **Fusionné** — workflow DON/TROC et recette Chrome réelle, PR #54 |
-| LOT 9B-F | **Certification technique fusionnée** — 3 annonces, 15 images réelles, modération privée et DON/TROC Chrome. Kit de données jury restant (#56) |
+| LOT 9B-F | **Kit jury READY_FOR_REVIEW** — certification technique + 20 médias autorisés/provenance + runbook fusionnés (#125/#126/#127). Recette métier live finale à consigner (#56/#35) |
 | M10 | **Terminé et fusionné** (#57) — 6 schémas Mermaid, routes, sécurité, limites et runbook |
 | Frontend V2 — F0–F5 | **Terminé et fusionné** — accueil 6 annonces/page, galerie MinIO, dashboard modérateur, API ADMIN et dashboard ADMIN (PR #72–#77) |
-| Frontend V2 — F7 | **Code et qualité fusionnés** — skills Emil Kowalski et ergonomie mobile, états sans photo (PR #78, #79, #82). Recette sur vrais appareils encore requise (#71) |
+| Frontend V2/V3/V4 | **Code fusionné + validation desktop propriétaire acquise** — accueil, galerie, espace membre, modération, ADMIN, Keycloak et parcours UX V4. Recette physique/accessibilité encore requise (#71) |
 | F6 (facultatif) | **Backlog non bloquant** — nouvelles fonctions sans contrats backend livrés (#70) |
-| LOT 10-A/B | **En attente** — commencer le dossier de preuves #58 et la soutenance #59 seulement après recette physique #71 et kit de démonstration jury #56 |
+| LOT 10-A/B | **Backlog** — lancer #58 puis #59 après la recette métier live #56/#35 et la recette physique #71 |
 
 Piloter les travaux via les [issues #35](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/35), [#44](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/44), [#18](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/18), et les tâches [#55](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55), [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56), [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57), [#58](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58) et [#59](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59).
 
@@ -75,6 +75,7 @@ Piloter les travaux via les [issues #35](https://github.com/BALLOPROTEL/Projet_i
 - Sur le dernier HEAD M9 `7a5e353` : [Bootstrap CI](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618276), [Contrats](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618272), [E2E Chrome](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618298) et [Web](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618285) : **4/4 SUCCESS**.
 - Sur `main` après fusion : [Bootstrap CI #38091686672](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38091686672) **SUCCESS**, y compris tests, Compose, Kubernetes kind, Trivy et publication GHCR.
 - [PR #61](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/61) : [Bootstrap #38313602241](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38313602241) et [E2E Chrome #38313602213](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38313602213) SUCCESS sur le dernier HEAD revu par Codex. Les 35 captures M9/9B-F sont archivées indépendamment dans la bibliothèque privée ChatGPT. Les anciennes preuves M9 (16 PNG) le sont aussi.
+- Kit jury final : PR #125 (provenance), #126 (20 médias autorisés + `READY_FOR_REVIEW`) et #127 (compte rendu/runbook) fusionnées les 18/11 ; Jury offline #52, Bootstrap #545/#546/#547 et Codex des HEAD correspondants réussis.
 
 ## Qualité, performance et limites
 
@@ -82,14 +83,15 @@ Le seuil de couverture métier, les validations lint/typecheck et les gates de s
 
 Risques résiduels documentés : absence de NetworkPolicy Kubernetes et de rate limiting distribué, images tierces pas toutes épinglées par digest, fallback legacy encore présent, effets externes SMS/e-mail non garantis exactly-once. Pas de paiement réel, de chat complet ni de certification RGAA exhaustive.
 
-## Suite du projet — 16 octobre 2026
+## Suite du projet — 18 novembre 2026
 
-1. **Frontend V2 code intégré :** F0–F5 et F7 ont été fusionnés, notamment [#79](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/79) et [#82](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/82). La recette physique iPhone/Android, clavier et zoom à 200 % reste à réaliser dans [#71](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/71).
-2. **[#56 — LOT 9B-F](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56)** : constituer le kit de démonstration jury, avec données réinitialisables et scénario métier DON/TROC complet ; l'E2E technique existant n'est pas ce kit.
-3. **[#55 — pilotage](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55)** : synchroniser visuellement les colonnes du GitHub Projects V2 ; la présente documentation ne change pas ces colonnes.
-4. **[#58 — LOT 10-A](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58)** : dossier de preuves, après la recette frontend et le kit de démonstration.
-5. **[#59 — LOT 10-B](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59)** : support de soutenance et vidéo de secours.
+1. **[#56 / #35 — validation métier finale jury](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56)** : exécuter le dataset final dans le navigateur (publication/modération, DON refusé, DON accepté + double confirmation, TROC + double confirmation, RBAC/ADMIN) et consigner les preuves.
+2. **[#71 — recette physique/accessibilité](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/71)** : iPhone/Android ou équivalents physiques, zoom 200 %, clavier/focus/contrastes, clavier virtuel et réseau dégradé.
+3. **[#55 — hygiène GitHub/Kanban](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55)** : Project V2 natif à synchroniser dès qu'une connexion autorise ses champs ; branches obsolètes restantes à supprimer. Audit courant : [docs/31-audit-github-2026-11-18.md](docs/31-audit-github-2026-11-18.md).
+4. **[#80 — fiabilité ECR Public](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/80)** : correctif #100 à rafraîchir depuis le `main` courant avant nouvelle validation et éventuelle fusion.
+5. **[#58 — LOT 10-A](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58)** : dossier de preuves après les recettes finales.
+6. **[#59 — LOT 10-B](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59)** : support 20 min, répétition chronométrée et vidéo de secours.
+7. **Post-MVP :** #70 et l'Epic #110 avec #111–#115 restent en Backlog et ne bloquent pas le jury.
 
-Le POC n'est pas une plateforme haute disponibilité certifiée. La fiabilité des pulls ECR Public dans Actions reste suivie dans [#80](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/80).
-
+Le seul tag de snapshot actuel est `baseline-2026-10-19`. Aucune Release GitHub n'est publiée : c'est volontaire tant que les gates finales #56/#71 ne sont pas closes.
 **Règle de travail :** issue → branche → CI → revue Codex → **accord explicite du propriétaire** → fusion manuelle. Ne jamais activer l'auto-merge. Après lancement de CI, transmettre immédiatement les liens et laisser la conversation disponible ; reprendre le suivi à la demande. Ne jamais nettoyer les volumes Codespaces sans autorisation explicite.
