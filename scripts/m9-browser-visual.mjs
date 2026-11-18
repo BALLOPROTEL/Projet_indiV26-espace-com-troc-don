@@ -1817,28 +1817,53 @@ async function runFinalAccessibilityAutomation() {
 
     await journeyOpen('/annonces/' + encodeURIComponent(networkGalleryTarget.id),
       '.product-gallery__main img', 'F7 Slow 3G listing detail with gallery');
-    await waitUntil('F7 Slow 3G gallery has at least five thumbnails',
-      'document.querySelectorAll(".product-gallery__thumbnails button").length >= 5', 120);
-    const slowDetail = await evaluate('({photos:document.querySelectorAll(".product-gallery__thumbnails button").length,' +
-      'scroll:document.documentElement.scrollWidth,' +
-      'client:document.documentElement.clientWidth,' +
-      'mainLoaded:!!document.querySelector(".product-gallery__main img")})');
+    await waitUntil('F7 Slow 3G gallery images loaded from MinIO',
+      '(() => {' +
+      'const buttons=[...document.querySelectorAll(".product-gallery__thumbnails button")];' +
+      'const thumbs=[...document.querySelectorAll(".product-gallery__thumbnails img")];' +
+      'const lead=document.querySelector(".product-gallery__main img");' +
+      'return buttons.length>=5 && thumbs.length>=5 &&' +
+      'thumbs.every(img=>img.complete&&img.naturalWidth>0)&&' +
+      'lead?.complete&&lead.naturalWidth>0;})()', 120);
+    const slowDetail = await evaluate('(() => {' +
+      'const thumbs=[...document.querySelectorAll(".product-gallery__thumbnails img")];' +
+      'const lead=document.querySelector(".product-gallery__main img");' +
+      'return {photos:thumbs.length,loadedPhotos:thumbs.filter(img=>img.complete&&img.naturalWidth>0).length,' +
+      'scroll:document.documentElement.scrollWidth,client:document.documentElement.clientWidth,' +
+      'mainLoaded:!!lead&&lead.complete&&lead.naturalWidth>0};})()');
     assert.ok(slowDetail.mainLoaded && slowDetail.photos >= 5 &&
+      slowDetail.loadedPhotos === slowDetail.photos &&
       slowDetail.scroll <= slowDetail.client + 2,
-      'Slow 3G detail/gallery must remain usable: ' + JSON.stringify(slowDetail));
+      'Slow 3G detail/gallery must load real MinIO pixels and remain usable: ' +
+      JSON.stringify(slowDetail));
     await journeyScreenshot('f7-slow-3g-detail-gallery');
 
     await journeyOpen('/espace', '.marketplace-dashboard', 'F7 Slow 3G personal space');
-    await waitUntil('F7 Slow 3G personal listings settled',
-      '!!document.querySelector("#mes-articles")' +
-      '&&!document.querySelector("#mes-articles .page-loading")', 120);
-    const slowSpace = await evaluate('({scroll:document.documentElement.scrollWidth,' +
-      'client:document.documentElement.clientWidth,' +
-      'dashboard:!!document.querySelector(".marketplace-dashboard"),' +
-      'error:document.querySelector("#mes-articles .notice--error")?.textContent??null})');
-    assert.ok(slowSpace.dashboard && !slowSpace.error &&
+    await waitUntil('F7 Slow 3G personal space and exchanges settled',
+      '(() => {' +
+      'const dashboard=document.querySelector(".marketplace-dashboard");' +
+      'const exchangeLoading=[...document.querySelectorAll(".marketplace-dashboard [role=status]")]' +
+      '.some(el=>el.textContent?.includes("Actualisation de vos demandes"));' +
+      'const exchangeError=dashboard?.querySelector("[role=alert]");' +
+      'const listingLoading=document.querySelector("#mes-articles .page-loading");' +
+      'return !!document.querySelector("#mes-articles")&&!!dashboard&&!listingLoading' +
+      '&&!exchangeLoading&&!exchangeError;})()', 120);
+    const slowSpace = await evaluate('(() => {' +
+      'const dashboard=document.querySelector(".marketplace-dashboard");' +
+      'const counts=[...document.querySelectorAll(".marketplace-dashboard__shortcuts span")]' +
+      '.map(el=>el.textContent?.trim());' +
+      'const exchangeLoading=[...document.querySelectorAll(".marketplace-dashboard [role=status]")]' +
+      '.some(el=>el.textContent?.includes("Actualisation de vos demandes"));' +
+      'return {scroll:document.documentElement.scrollWidth,' +
+      'client:document.documentElement.clientWidth,dashboard:!!dashboard,' +
+      'listingError:document.querySelector("#mes-articles .notice--error")?.textContent??null,' +
+      'exchangeError:dashboard?.querySelector("[role=alert]")?.textContent??null,' +
+      'exchangeLoading,counts};})()');
+    assert.ok(slowSpace.dashboard && !slowSpace.listingError &&
+      !slowSpace.exchangeError && !slowSpace.exchangeLoading &&
+      slowSpace.counts.length === 3 && slowSpace.counts.every(value => value !== '…') &&
       slowSpace.scroll <= slowSpace.client + 2,
-      'Slow 3G personal space must settle without a false success/error state: ' +
+      'Slow 3G personal space/exchanges must fully settle without false success: ' +
       JSON.stringify(slowSpace));
     await journeyScreenshot('f7-slow-3g-personal-space');
 
