@@ -29,7 +29,7 @@ Référence fonctionnelle au démarrage de la consolidation :
 - #71/#63/#85 : frontend/UX/accessibilité fermés ;
 - #80/#98 : fermés.
 
-Le Bootstrap post-fusion #568 est **SUCCESS** sur `7f553afd03f870da9f01ba5b650c6da83917cd0b`. Le Bootstrap #569 sur `e886d457…` a été lancé automatiquement après fusion #134 et doit rester une vérification post-fusion, sans invalider les preuves PR déjà vertes.
+Le Bootstrap post-fusion #568 est **SUCCESS** sur `7f553afd03f870da9f01ba5b650c6da83917cd0b`. Le Bootstrap #569 est également **SUCCESS** sur `e886d457053ad33771374663e043ef61820ba3eb`.
 
 ## 3. Matrice de traçabilité
 
@@ -134,7 +134,8 @@ Archive persistante :
 
 Preuves d'exploitation complémentaires regroupées dans le même dossier Library :
 - `/Projet_individuel26/Preuves/Final_2026-11-18/lot7-observability-evidence.txt` ;
-- `/Projet_individuel26/Preuves/Final_2026-11-18/lot7-lot9-validation-evidence.txt`.
+- `/Projet_individuel26/Preuves/Final_2026-11-18/lot7-lot9-validation-evidence.txt` ;
+- `/Projet_individuel26/Preuves/Final_2026-11-18/security-reports-e886d457.zip`.
 
 Le rapport JMeter/HPA brut historique n'est pas recopié artificiellement : ses résultats canoniques et limites sont versionnés dans `docs/13-lot8-performance.md`.
 
@@ -175,9 +176,26 @@ Les gates actuelles couvrent notamment :
 
 ### Couverture de tests
 
-Le dépôt ne conserve pas de **rapport de couverture chiffré autonome** (LCOV/Codecov ou pourcentage final) dans `main`. Les tests unitaires, d’intégration, de contrats et E2E sont des gates CI, mais aucun pourcentage de couverture ne doit être inventé ou présenté au jury.
+Bootstrap #569 (`main` `e886d457053ad33771374663e043ef61820ba3eb`) publie l'artifact GitHub :
 
-Pour #58, la collecte est donc considérée complète avec cette limite explicitement documentée : **résultats de tests disponibles, couverture chiffrée non publiée**.
+- ID : `14472463019`;
+- nom : `api-coverage-e886d457053ad33771374663e043ef61820ba3eb`;
+- digest GitHub : `sha256:ec29463f36812a6513a024fba769855d2d8cf53ec4cfb5025bbfc4211eb477a4`;
+- contenu : `coverage-summary.json`, `lcov.info` et rapport HTML ;
+- archive Library persistante : `/Projet_individuel26/Preuves/Final_2026-11-18/api-coverage-e886d457.zip`.
+
+Résultat du `coverage-summary.json` :
+- lignes : **96,44 %** (163/169) ;
+- statements : **96,61 %** (171/177) ;
+- fonctions : **100 %** (42/42) ;
+- branches : **93,51 %** (101/108).
+
+**Périmètre à ne pas sur-vendre :** cette couverture concerne uniquement les trois fichiers API configurés dans la gate Jest de couverture :
+- `apps/api/src/listings/image-file.validator.ts` ;
+- `apps/api/src/listings/listing-images.service.ts` ;
+- `apps/api/src/listings/listings.service.ts`.
+
+Elle ne constitue donc pas un pourcentage de couverture global de tous les microservices ni du frontend. Les autres couches sont couvertes par leurs tests unitaires, contrats, intégration et E2E sans agrégation chiffrée globale.
 
 ## 8. Architecture et limites assumées
 
