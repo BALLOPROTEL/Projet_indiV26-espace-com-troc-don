@@ -2,13 +2,13 @@
 
 **Runbook opérateur et journal de recette :** [docs/28-jury-parcours-operateur.md](28-jury-parcours-operateur.md). Aucun scénario du runbook n'est réputé exécuté tant que ses preuves ne sont pas renseignées.
 
-**État : DRAFT. Deuxième USER certifié, pas de seed/reset destructif, médias définitifs non encore certifiés.** Ceci est un scénario préparatoire pour l'issue [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56), distinct des fixtures jetables certifiées en CI par la PR #61.
+**État au 18/11/2026 : READY_FOR_REVIEW. Deuxième USER certifié, 20 médias autorisés et reliés à leur provenance, pas de seed/reset destructif.** La PR #126 a été fusionnée dans `main` au commit `4f67984150dae84c9fd122382a9487a6020b0fd8`. Le kit reste distinct des fixtures jetables certifiées en CI par la PR #61 : l'exécution navigateur finale avec ce dataset doit encore être consignée avant de déclarer la recette métier live terminée.
 
 ## Vérifications faites sur le dépôt
 
 `demo-user` (USER), `demo-requester` (USER), `demo-moderator` (MODERATOR) et `demo-admin` (ADMIN) sont désormais les quatre acteurs déclarés. `demo-requester` a été validé dans une stack jury Compose isolée : authentification OIDC/JWT `USER` uniquement puis connexion navigateur réelle sans accès Modération/Administration. Le workflow `jury:stack:*` reste la procédure reproductible pour recréer une session jetable sans toucher aux volumes du Codespace courant.
 
-Le manifeste réserve **quatre annonces** : deux dons (lampe, étagère) et deux annonces de troc (sac et livres), chacune avec **cinq photos à fournir**. Ces vingt chemins d'images ne pointent pas encore vers un lot certifié. Un catalogue de **20 candidats Wikimedia Commons** est versionné dans `demo/jury/assets/sources.json`, mais chaque entrée reste `CANDIDATE_NOT_AUTHORIZED`. **Télécharger un candidat ne vaut ni validation visuelle, ni validation juridique, ni autorisation de démonstration.**
+Le manifeste réserve **quatre annonces** : deux dons (lampe, étagère) et deux annonces de troc (sac et livres), chacune avec **cinq photos**. Les vingt fichiers sont désormais présents, les 20 `creditId` sont liés et les 20 entrées de provenance portent `authorizedForDemo: true`. Le catalogue d'acquisition `demo/jury/assets/sources.json` reste volontairement non autoritatif avec `CANDIDATE_NOT_AUTHORIZED` : l'autorisation finale est portée par `provenance.json` + `manifest.json`, et non par le catalogue de téléchargement.
 
 ## Démonstration prévue une fois les données préparées
 
@@ -47,9 +47,9 @@ Après téléchargement, l'opérateur doit ouvrir les 20 images, vérifier que c
 ## Contrôles sûrs (aucune connexion à la base)
 
 ```bash
-pnpm jury:plan:check   # Vérifie le schéma : doit avertir que le kit reste incomplet
+pnpm jury:plan:check   # Vérifie le schéma et la cohérence du manifeste
 pnpm jury:plan:test    # Tests natifs Node, sans dépendance serveur
-pnpm jury:assets:check # Gate bloquante tant que membre, médias ou crédits manquent
+pnpm jury:assets:check # Gate stricte : doit réussir sur le kit READY_FOR_REVIEW
 ```
 
 Fournir uniquement des images réutilisables légalement. Compléter le `creditId` de chaque photo et une entrée **correspondante** dans le registre structuré `demo/jury/assets/provenance.json` (source, auteur, licence/autorisation, date, conditions, droit de démonstration), en suivant `demo/jury/assets/CREDITS.md`. Ce contrôle informatique ne remplace pas la vérification humaine des licences. En outre, la gate refuse les répertoires, les fichiers vides, les signatures média invalides, les textes hors limites API et les scénarios DON/TROC incohérents. Avant le contrôle strict, un responsable doit marquer explicitement le manifeste `READY_FOR_REVIEW`. Ne jamais intégrer mots de passe, tokens ni données personnelles dans Git.
@@ -60,14 +60,25 @@ Fournir uniquement des images réutilisables légalement. Compléter le `creditI
 - Créer et valider les données uniquement dans un **environnement de démonstration explicitement choisi**, jamais via un seed silencieux en production ni une réinitialisation du Codespace courant.
 - Relever les identifiants des annonces et propositions dans des notes de session non versionnées ; ne pas les inventer.
 - **Codespaces : interdiction absolue** de `docker compose down -v`, `docker system prune`, supprimer les volumes/PVC, purger la base ou réinitialiser des données utilisateur. Aucune exception, même avec sauvegarde ou accord. Une procédure de reconstruction ne peut être envisagée que dans un **environnement éphémère externe distinct**, avec plan de retour arrière vérifié.
-- Préparer une procédure de démonstration et un mode de secours après validation des vraies données ; les captures Chrome CI ne doivent pas être présentées comme un essai physique ou une preuve de démo live.
+- Utiliser le runbook `docs/28-jury-parcours-operateur.md` pour la démonstration, la relance non destructive et le mode de secours. Les captures Chrome CI ne doivent pas être présentées comme un essai physique ou une preuve de démo live.
+
+## Compte rendu de recette — état au 18 novembre 2026
+
+- PR #126 fusionnée dans `main` au SHA `4f67984150dae84c9fd122382a9487a6020b0fd8`.
+- 20/20 médias présents, 20/20 `authorizedForDemo: true`, 20/20 `creditId` liés, `readiness: READY_FOR_REVIEW`.
+- Gate stricte média/provenance : SUCCESS sur le HEAD de #126.
+- Jury demo offline #52 : SUCCESS.
+- Bootstrap pré-fusion #545 : SUCCESS.
+- Revue Codex sur `055be475924eeb49aaf0c7c00b5c7cd4a3560355` : terminée sans finding non résolu.
+- Ce compte rendu **ne prétend pas** qu'une exécution navigateur live du parcours DON/TROC avec le dataset final a déjà été réalisée : cette preuve reste à consigner dans le journal du runbook.
 
 ## Critères restants avant clôture
 
 - [x] Deuxième USER réellement provisionné et RBAC vérifié (`demo-requester`).
-- [ ] 20 fichiers images réels disponibles et droits vérifiés.
-- [ ] Création, publication, DON/TROC et double confirmation réellement testés depuis l'interface avec ce dataset.
-- [ ] Procédure de réinitialisation **non destructive**, rapport de recette, preuve des statuts finaux.
+- [x] 20 fichiers images réels disponibles, provenance liée et autorisation de démonstration enregistrée.
+- [x] Procédure de relance/répétition **non destructive** et mode de secours documentés.
+- [x] Compte rendu de recette technique/documentaire produit.
+- [ ] Création, publication, DON/TROC et double confirmation réellement testés depuis l'interface avec ce dataset final, avec preuve des statuts finaux.
 - [ ] Validation explicite pour fermer #56/#35.
 
 Les preuves LOT 10-A et les slides LOT 10-B attendront la réussite de cette phase et de la recette physique mobile #71.
