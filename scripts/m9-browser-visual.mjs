@@ -1455,6 +1455,13 @@ async function runJuryFinalBrowserJourneys() {
     recent.filter(item => item?.event?.eventId).length,
     'Notification recent inbox must not expose duplicate eventId values');
 
+  const deniedAdminApi = await fetch(browserGateway + '/api/admin/catalog/summary', {
+    headers: { authorization: 'Bearer ' + ownerToken.value },
+    signal: AbortSignal.timeout(12000),
+  });
+  assert.equal(deniedAdminApi.status, 403,
+    'USER token must be rejected by the ADMIN Catalog API guard');
+
   await journeySwitchUser('demo-admin');
   const summary = await browserApi(adminToken, '/api/admin/catalog/summary');
   assert.ok(summary.total >= 4 && summary.byStatus.approved >= 4,
