@@ -1786,8 +1786,16 @@ async function runFinalAccessibilityAutomation() {
     await command('Emulation.setEmulatedMedia', { features: [] });
   }
 
-  // Slow-3G-style throttling: prove that a real Catalog-backed home remains
-  // usable and eventually renders real cards instead of a fake success state.
+  // Full degraded-network journey: home -> real 5+ image detail/gallery ->
+  // authenticated personal space, then a targeted Catalog API outage and
+  // recovery through the real Home "Réessayer" control.
+  const networkAdminToken = await browserToken('demo-admin');
+  const networkListings = await browserApi(networkAdminToken, '/api/listings');
+  const networkGalleryTarget = networkListings.find(item =>
+    Array.isArray(item.images) && item.images.length >= 5);
+  assert.ok(networkGalleryTarget,
+    'F7 degraded-network journey requires one real approved listing with at least 5 images');
+
   await command('Network.enable');
   await command('Network.emulateNetworkConditions', {
     offline: false,
@@ -1800,14 +1808,42 @@ async function runFinalAccessibilityAutomation() {
     await journeyOpen('/', '.home-v2', 'F7 Slow 3G home');
     await waitUntil('F7 Slow 3G real Catalog cards',
       'document.querySelectorAll(".home-v2__grid .listing-card").length >= 1', 120);
-    slow = await evaluate('({cards:document.querySelectorAll(".home-v2__grid .listing-card").length,' +
+    const slowHome = await evaluate('({cards:document.querySelectorAll(".home-v2__grid .listing-card").length,' +
+      'scroll:document.documentElement.scrollWidth,' +
+      'client:document.documentElement.clientWidth})');
+    assert.ok(slowHome.cards >= 1 && slowHome.scroll <= slowHome.client + 2,
+      'Slow 3G home must remain usable: ' + JSON.stringify(slowHome));
+    await journeyScreenshot('f7-slow-3g-home');
+
+    await journeyOpen('/annonces/' + encodeURIComponent(networkGalleryTarget.id),
+      '.product-gallery__main img', 'F7 Slow 3G listing detail with gallery');
+    await waitUntil('F7 Slow 3G gallery has at least five thumbnails',
+      'document.querySelectorAll(".product-gallery__thumbnails button").length >= 5', 120);
+    const slowDetail = await evaluate('({photos:document.querySelectorAll(".product-gallery__thumbnails button").length,' +
       'scroll:document.documentElement.scrollWidth,' +
       'client:document.documentElement.clientWidth,' +
-      'body:document.body.innerText.slice(0,500)})');
-    assert.ok(slow.cards >= 1 && slow.scroll <= slow.client + 2,
-      'Slow network must recover to a usable real Catalog view: ' + JSON.stringify(slow));
-    await journeyScreenshot('f7-slow-3g-home');
-  } finally {
+      'mainLoaded:!!document.querySelector(".product-gallery__main img")})');
+    assert.ok(slowDetail.mainLoaded && slowDetail.photos >= 5 &&
+      slowDetail.scroll <= slowDetail.client + 2,
+      'Slow 3G detail/gallery must remain usable: ' + JSON.stringify(slowDetail));
+    await journeyScreenshot('f7-slow-3g-detail-gallery');
+
+    await journeyOpen('/espace', '.marketplace-dashboard', 'F7 Slow 3G personal space');
+    await waitUntil('F7 Slow 3G personal listings settled',
+      '!!document.querySelector("#mes-articles")' +
+      '&&!document.querySelector("#mes-articles .page-loading")', 120);
+    const slowSpace = await evaluate('({scroll:document.documentElement.scrollWidth,' +
+      'client:document.documentElement.clientWidth,' +
+      'dashboard:!!document.querySelector(".marketplace-dashboard"),' +
+      'error:document.querySelector("#mes-articles .notice--error")?.textContent??null})');
+    assert.ok(slowSpace.dashboard && !slowSpace.error &&
+      slowSpace.scroll <= slowSpace.client + 2,
+      'Slow 3G personal space must settle without a false success/error state: ' +
+      JSON.stringify(slowSpace));
+    await journeyScreenshot('f7-slow-3g-personal-space');
+
+    // Restore normal transport, then simulate a scoped Catalog/API outage.
+    // This keeps the app shell available so we can assert the actual error UI.
     await command('Network.emulateNetworkConditions', {
       offline: false,
       latency: 0,
@@ -1815,7 +1851,52 @@ async function runFinalAccessibilityAutomation() {
       uploadThroughput: -1,
       connectionType: 'none',
     });
-    await command('Network.disable');
+    await command('Network.setBlockedURLs', { urls: ['*/api/listings*'] });
+    await journeyOpen('/', '.home-v2', 'F7 Catalog API outage state');
+    await waitUntil('F7 Catalog API error is visible',
+      '!!document.querySelector(".home-v2__error[role=alert]")' +
+      '&&document.querySelector(".home-v2__error")?.innerText.includes("Impossible de charger le catalogue")' +
+      '&&[...document.querySelectorAll(".home-v2__error button")].some(b=>b.textContent?.trim()==="Réessayer")', 120);
+    const outage = await evaluate('({alert:document.querySelector(".home-v2__error")?.innerText??null,' +
+      'cards:document.querySelectorAll(".home-v2__grid .listing-card").length})');
+    assert.ok(outage.alert?.includes('Impossible de charger le catalogue') && outage.cards === 0,
+      'Catalog outage must expose a real error state without stale success cards: ' +
+      JSON.stringify(outage));
+    await journeyScreenshot('f7-network-outage-error');
+
+    await command('Network.setBlockedURLs', { urls: [] });
+    assert.equal(await evaluate('(() => {' +
+      'const retry=[...document.querySelectorAll(".home-v2__error button")]' +
+      '.find(b=>b.textContent?.trim()==="Réessayer");if(!retry)return false;' +
+      'retry.click();return true;})()'), true,
+    'Home error state must expose a usable retry control');
+    await waitUntil('F7 network recovery reloads real Catalog cards',
+      'document.querySelectorAll(".home-v2__grid .listing-card").length >= 1' +
+      '&&!document.querySelector(".home-v2__error")', 120);
+    const recovery = await evaluate('({cards:document.querySelectorAll(".home-v2__grid .listing-card").length,' +
+      'scroll:document.documentElement.scrollWidth,' +
+      'client:document.documentElement.clientWidth})');
+    assert.ok(recovery.cards >= 1 && recovery.scroll <= recovery.client + 2,
+      'Catalog recovery must restore a usable real view: ' + JSON.stringify(recovery));
+    await journeyScreenshot('f7-network-recovery');
+
+    slow = {
+      home: slowHome,
+      detailGallery: slowDetail,
+      personalSpace: slowSpace,
+      outage,
+      recovery,
+    };
+  } finally {
+    await command('Network.setBlockedURLs', { urls: [] }).catch(() => {});
+    await command('Network.emulateNetworkConditions', {
+      offline: false,
+      latency: 0,
+      downloadThroughput: -1,
+      uploadThroughput: -1,
+      connectionType: 'none',
+    }).catch(() => {});
+    await command('Network.disable').catch(() => {});
   }
 
   writeFileSync(join(output, 'a11y-final-report.json'), JSON.stringify({
@@ -1827,13 +1908,13 @@ async function runFinalAccessibilityAutomation() {
       note: 'Automated CSS-layout proxy; manual real browser zoom 200% remains required by #71.',
     },
     reducedMotion: { ...reduced, result: 'PASS' },
-    slow3g: { cards: slow.cards, scroll: slow.scroll, client: slow.client, result: 'PASS' },
+    slow3g: { ...slow, result: 'PASS' },
   }, null, 2) + '\n');
 
   await command('Emulation.setDeviceMetricsOverride', {
     width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false,
   });
-  console.log('[FRONT-V2/F7] Automated #71 evidence: zoom proxy + reduced-motion + Slow 3G PASS');
+  console.log('[FRONT-V2/F7] Automated #71 evidence: zoom proxy + reduced-motion + full Slow 3G/outage recovery PASS');
 }
 
 async function runAdminDashboardBrowser() {
