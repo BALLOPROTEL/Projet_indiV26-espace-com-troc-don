@@ -134,14 +134,30 @@ Exécuter les actions **dans cet ordre** pour ne pas immobiliser une annonce né
 
 | Parcours | Identifiant annonce / proposition | Statut constaté API | Capture / journal (sans secret) | Résultat |
 | --- | --- | --- | --- | --- |
-| DON refusé | À renseigner | À renseigner | À renseigner | Non testé |
-| DON accepté et double-confirmé | À renseigner | À renseigner | À renseigner | Non testé |
-| TROC accepté et double-confirmé | À renseigner | À renseigner | À renseigner | Non testé |
-| RBAC ADMIN/USER, médias et événements persistés | À renseigner | À renseigner | À renseigner | Non testé |
+| DON refusé | annonce `cmwm9s4700000oq07zeh8ave5` / proposition `cmwm9sibw0000mn07jt9fk4at` | proposition `REJECTED`, annonce `AVAILABLE` | run jury final #2 `44333998288` ; captures artifact `14441750513` | **PASS** |
+| DON accepté et double-confirmé | annonce `cmwm9s5b30006oq07p9rq0l9m` / proposition `cmwm9sjb90001mn07k0byov8t` | proposition `ACCEPTED`, transaction + annonce `COMPLETED` | `jury-requester-completed-don-troc.png` + rapport JSON | **PASS** |
+| TROC accepté et double-confirmé | cible `cmwm9s6rq000coq07u2iom3x8`, contrepartie `cmwm9s9ox000noq07tdh4k1r8` / proposition `cmwm9skcn0002mn07o4lfl6eg` | proposition `ACCEPTED`, transaction `COMPLETED`, deux annonces `COMPLETED` | `jury-trade-comparison.png`, `jury-requester-completed-don-troc.png` + rapport JSON | **PASS** |
+| RBAC ADMIN/USER, médias et événements persistés | 4 acteurs distincts / 20 médias | ADMIN API 200, USER API 403 ; 20/20 byte-identiques ; un seul `proposal.rejected` pour le DON refusé | `jury-admin-dashboard.png`, `jury-user-admin-denied.png`, `jury-20-media-approved.png` + rapport JSON | **PASS** |
 
 Conserver SHA, horodatage et version de l'image applicative avec le compte rendu ; masquer tokens, mots de passe, e-mails privés, cookies, URL signées et identifiants de session.
 
-## 6. Plan de secours et sortie
+## 6. Certification finale exécutée — 18 novembre 2026
+
+La recette ci-dessus a été exécutée dans **Chrome réel automatisé** contre une stack Compose jury isolée et jetable. Toutes les mutations métier (publication, modération, propositions, refus/acceptations, confirmations) ont été réalisées via l'interface ; les GET API ont servi uniquement à vérifier les états persistés.
+
+- PR #129, HEAD final : `66fc61cb3bf8f498aaf4cd2a2c9cfd2b5fb4d155`.
+- Jury final browser recette #2 : run `44333998288` — **SUCCESS**.
+- M8 Real Microservice E2E #199 : **SUCCESS**.
+- Bootstrap #552 : **SUCCESS**.
+- Codex : finding RBAC backend corrigé (USER → API ADMIN = 403), nouvelle revue du HEAD final sans problème majeur, thread résolu.
+- Artifact : `jury-final-browser-1993ea8dc4d4eb3581841794959b24c65ddf60cf` / ID `14441750513`.
+- Le rapport de l'artifact porte le SHA de merge temporaire GitHub Actions `1993ea8dc4d4eb3581841794959b24c65ddf60cf` ; le **HEAD de PR certifié** reste `66fc61cb3bf8f498aaf4cd2a2c9cfd2b5fb4d155`.
+- PR #129 fusionnée ensuite dans `main` : `b17da30e01f4d96c393d37ff237f04bc26c1d3ad`.
+- Résultat : **4 acteurs, 4 annonces, 20 médias, DON refusé, DON terminé, TROC terminé, RBAC ADMIN/USER et notification persistée unique : PASS**.
+
+Cette preuve certifie une recette navigateur réelle automatisée dans un environnement isolé. Elle ne prétend pas remplacer une répétition humaine devant le jury ni la recette physique mobile/accessibilité suivie séparément dans #71.
+
+## 7. Plan de secours et sortie
 
 - Si compte, photo/licence, RBAC, ordre de réservation ou environnement cible n'est pas certain : **STOP**. Ne pas trafiquer les valeurs du manifeste ni forcer un état métier en base.
 - Si la session est interrompue, conserver les identifiants d'annonces et propositions **hors du dépôt**. Reprendre à partir de l'état constaté ; ne pas rejouer une acceptation ou une confirmation déjà validée.
