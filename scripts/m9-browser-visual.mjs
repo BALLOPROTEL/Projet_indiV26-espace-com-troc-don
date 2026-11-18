@@ -1797,6 +1797,7 @@ async function runFinalAccessibilityAutomation() {
     'F7 degraded-network journey requires one real approved listing with at least 5 images');
 
   await command('Network.enable');
+  await command('Network.setCacheDisabled', { cacheDisabled: true });
   await command('Network.emulateNetworkConditions', {
     offline: false,
     latency: 400,
@@ -1914,6 +1915,7 @@ async function runFinalAccessibilityAutomation() {
     };
   } finally {
     await command('Network.setBlockedURLs', { urls: [] }).catch(() => {});
+    await command('Network.setCacheDisabled', { cacheDisabled: false }).catch(() => {});
     await command('Network.emulateNetworkConditions', {
       offline: false,
       latency: 0,
