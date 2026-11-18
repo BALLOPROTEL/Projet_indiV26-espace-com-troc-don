@@ -1,0 +1,134 @@
+name: Jury final browser recette
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/m9-browser-visual.mjs'
+      - 'scripts/jury-*.mjs'
+      - 'scripts/jury-stack-*.sh'
+      - 'demo/jury/**'
+      - 'compose.yaml'
+      - 'apps/**'
+      - 'infra/keycloak/**'
+      - '.github/workflows/jury-final-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  jury-final-browser:
+    name: 4 actors · 4 listings · 20 media · DON/TROC · RBAC
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.24.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+
+      - name: Validate final jury kit and browser script
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/m9-browser-visual.mjs
+          pnpm jury:plan:check
+          pnpm jury:plan:test
+          pnpm jury:assets:check
+
+      - name: Preload Docker build bases with controlled fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          for spec in postgres:16-alpine rabbitmq:4.1-management-alpine node:24.20.0-alpine3.24 alpine:3.24.1; do
+            loaded=false
+            for source in "public.ecr.aws/docker/library/${spec}" "${spec}"; do
+              for attempt in 1 2 3; do
+                if docker pull "${source}"; then
+                  docker tag "${source}" "${spec}"
+                  loaded=true
+                  break 2
+                fi
+                echo "[WARN] Pull failed (${attempt}/3): ${source}"
+                sleep "$(( attempt * 4 ))"
+              done
+            done
+            if [ "${loaded}" != true ]; then
+              echo "[FAIL] Cannot preload ${spec} from either registry."
+              exit 1
+            fi
+          done
+
+      - name: Prepare isolated jury stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          requester_password="$(openssl rand -hex 18)"
+          echo "::add-mask::${requester_password}"
+          export JURY_REQUESTER_PASSWORD="${requester_password}"
+          export JURY_ENVIRONMENT_CONFIRMED=isolated
+          output="$(pnpm jury:stack:prepare)"
+          printf '%s\n' "${output}"
+          env_file="$(printf '%s\n' "${output}" | sed -n 's/^Environment file: //p' | tail -n 1)"
+          test -n "${env_file}"
+          test -f "${env_file}"
+          echo "JURY_REQUESTER_PASSWORD=${requester_password}" >> "${GITHUB_ENV}"
+          echo "JURY_ENVIRONMENT_CONFIRMED=isolated" >> "${GITHUB_ENV}"
+          echo "JURY_STACK_ENV_FILE=${env_file}" >> "${GITHUB_ENV}"
+          cat "${env_file}" >> "${GITHUB_ENV}"
+
+      - name: Start isolated jury stack
+        run: pnpm jury:stack:up
+
+      - name: Verify isolated stack and requester RBAC
+        run: pnpm jury:stack:check
+
+      - name: Execute final jury workflow through real Chrome
+        env:
+          JURY_FINAL_RUN: 'true'
+        run: node scripts/m9-browser-visual.mjs
+
+      - name: Upload final jury screenshots and report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: jury-final-browser-${{ github.sha }}
+          path: |
+            reports/jury-final-browser/*.png
+            reports/jury-final-browser/jury-final-report.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Safe diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          if [ -n "${JURY_STACK_ENV_FILE:-}" ] && [ -f "${JURY_STACK_ENV_FILE}" ]; then
+            docker compose \
+              --env-file "${JURY_STACK_ENV_FILE}" \
+              --project-name "${COMPOSE_PROJECT_NAME}" \
+              -f compose.yaml -f demo/jury/compose.jury.yml ps -a
+            docker compose \
+              --env-file "${JURY_STACK_ENV_FILE}" \
+              --project-name "${COMPOSE_PROJECT_NAME}" \
+              -f compose.yaml -f demo/jury/compose.jury.yml \
+              logs --no-color --tail 80 gateway catalog-service marketplace-service notification-service web
+          fi
+
+      - name: Stop isolated jury stack without deleting volumes
+        if: always()
+        run: |
+          if [ -n "${JURY_STACK_ENV_FILE:-}" ] && [ -f "${JURY_STACK_ENV_FILE}" ]; then
+            pnpm jury:stack:down
+          fi
