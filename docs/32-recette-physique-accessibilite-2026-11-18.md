@@ -92,14 +92,31 @@ Avec DevTools > Network > Slow 3G (ou réseau mobile réellement faible) :
 
 | Test | Appareil / navigateur | Résultat | Preuve |
 | --- | --- | --- | --- |
-| iPhone / Safari | À renseigner | ☐ PASS / ☐ FAIL | capture |
-| Android / Chrome | À renseigner | ☐ PASS / ☐ FAIL | capture |
-| Zoom 200 % | À renseigner | ☐ PASS / ☐ FAIL | capture |
-| Clavier + contrastes + reduced-motion | À renseigner | ☐ PASS / ☐ FAIL | capture / relevé contraste |
-| Réseau dégradé | À renseigner | ☐ PASS / ☐ FAIL | capture |
+| iPhone / Safari | Appareil/version non consignés | **PASS** | confirmation explicite du propriétaire le 18/11/2026 |
+| Android / Chrome | Appareil/version non consignés | **PASS** | confirmation explicite du propriétaire le 18/11/2026 |
+| Zoom navigateur 200 % | Navigateur/version non consignés | **PASS** | confirmation explicite du propriétaire le 18/11/2026 |
+| Clavier + contrastes | Navigateur/version non consignés | **PASS** | confirmation explicite du propriétaire le 18/11/2026 |
+| `prefers-reduced-motion: reduce` | Chrome réel automatisé | **PASS** | PR #134, run M8 `44400092787`, artifact #14473385412 |
+| Réseau dégradé / Slow 3G | Chrome CDP | **PASS** | PR #134, run M8 `44400092787`, artifact #14473385412 |
+
+### Complément automatisé #134
+
+PR #134 a été fusionnée au commit `e886d457053ad33771374663e043ef61820ba3eb`.
+
+Résultats automatiques :
+- proxy layout équivalent zoom 200 % : accueil et ADMIN sans overflow ;
+- `prefers-reduced-motion: reduce` : préférence réellement active, `scroll-behavior: auto`, transitions/animations réduites ;
+- Slow 3G : vraies cartes Catalog chargées et interface récupérable ;
+- M8 réel, recette jury et structure : **SUCCESS** ;
+- Codex final : clean.
+
+Artifact GitHub : #14473385412  
+SHA-256 : `02f4b39b6d16e746c7e0edb6eba1723c6baadd52a9098132f4edcb3be9f8953f`
+
+Archive durable : `/Projet_individuel26/Preuves/Final_2026-11-18/accessibility-evidence-pr134.zip`.
 
 ## Règle de clôture
 
-#71 et son parent #63 peuvent être fermés lorsque les 5 lignes ci-dessus sont PASS ou lorsqu'une anomalie découverte a été corrigée puis revalidée.
+#71, #63 et #85 ont été fermés le 18/11/2026 après confirmation des quatre contrôles humains PASS et succès des preuves automatiques complémentaires #134.
 
 Cette recette ne demande **aucun reset de données**, aucune suppression de volume et aucune nouvelle fonctionnalité.
