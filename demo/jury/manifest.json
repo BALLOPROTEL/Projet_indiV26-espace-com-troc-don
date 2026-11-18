@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "readiness": "DRAFT_NOT_READY",
+  "readiness": "READY_FOR_REVIEW",
   "actors": {
     "memberOwner": "demo-user",
     "memberRequester": "demo-requester",
@@ -10,70 +10,70 @@
   "listings": [
     {
       "key": "don-lampe",
-      "title": "Lampe de bureau articulée",
+      "title": "Ensemble de lampes décoratives en cuivre",
       "operationType": "DONATION",
       "owner": "memberOwner",
-      "description": "Article de seconde main pour démonstration jury, caractéristiques à confirmer.",
+      "description": "Ensemble décoratif de trois lampes en cuivre présenté sous plusieurs angles pour la démonstration jury.",
       "tradeWishes": [],
       "images": [
         {
           "file": "assets/don-lampe/01.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-01"
         },
         {
           "file": "assets/don-lampe/02.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-02"
         },
         {
           "file": "assets/don-lampe/03.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-03"
         },
         {
           "file": "assets/don-lampe/04.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-04"
         },
         {
           "file": "assets/don-lampe/05.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-05"
         }
       ]
     },
     {
       "key": "don-etagere",
-      "title": "Étagère de rangement",
+      "title": "Lot de tablettes et éléments d’étagère Ivar",
       "operationType": "DONATION",
       "owner": "memberOwner",
-      "description": "Article de seconde main pour démonstration jury, caractéristiques à confirmer.",
+      "description": "Lot de panneaux et éléments d’étagère en bois de la gamme Ivar, présenté sous plusieurs angles pour la démonstration jury.",
       "tradeWishes": [],
       "images": [
         {
           "file": "assets/don-etagere/01.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-06"
         },
         {
           "file": "assets/don-etagere/02.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-07"
         },
         {
           "file": "assets/don-etagere/03.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-08"
         },
         {
           "file": "assets/don-etagere/04.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-09"
         },
         {
           "file": "assets/don-etagere/05.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-10"
         }
       ]
     },
     {
       "key": "troc-sac",
-      "title": "Sac à dos de randonnée",
+      "title": "Sac photo Benro Ranger Pro 400N",
       "operationType": "TRADE",
       "owner": "memberOwner",
-      "description": "Article de seconde main pour démonstration jury, caractéristiques à confirmer.",
+      "description": "Sac à dos photo Benro Ranger Pro 400N présenté de face, de dos, de profil et avec ses usages pour la démonstration jury.",
       "tradeWishes": [
         "Roman",
         "Jeu de société",
@@ -84,32 +84,32 @@
       "images": [
         {
           "file": "assets/troc-sac/01.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-11"
         },
         {
           "file": "assets/troc-sac/02.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-12"
         },
         {
           "file": "assets/troc-sac/03.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-13"
         },
         {
           "file": "assets/troc-sac/04.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-14"
         },
         {
           "file": "assets/troc-sac/05.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-15"
         }
       ]
     },
     {
       "key": "troc-livres",
-      "title": "Lot de romans illustrés",
+      "title": "Lot de livres et ouvrages illustrés",
       "operationType": "TRADE",
       "owner": "memberRequester",
-      "description": "Article de seconde main pour démonstration jury, caractéristiques à confirmer.",
+      "description": "Lot démonstratif de livres et ouvrages illustrés, présenté au travers de plusieurs vues de couvertures et pages intérieures.",
       "tradeWishes": [
         "Sac à dos",
         "Lampe LED",
@@ -120,23 +120,23 @@
       "images": [
         {
           "file": "assets/troc-livres/01.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-16"
         },
         {
           "file": "assets/troc-livres/02.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-17"
         },
         {
           "file": "assets/troc-livres/03.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-18"
         },
         {
           "file": "assets/troc-livres/04.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-19"
         },
         {
           "file": "assets/troc-livres/05.jpg",
-          "creditId": "PENDING"
+          "creditId": "credit-candidate-20"
         }
       ]
     }
