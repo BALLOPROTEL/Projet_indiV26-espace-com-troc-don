@@ -70,7 +70,11 @@ Fournir uniquement des images réutilisables légalement. Compléter le `creditI
 - Jury demo offline #52 : SUCCESS.
 - Bootstrap pré-fusion #545 : SUCCESS.
 - Revue Codex sur `055be475924eeb49aaf0c7c00b5c7cd4a3560355` : terminée sans finding non résolu.
-- Ce compte rendu **ne prétend pas** qu'une exécution navigateur live du parcours DON/TROC avec le dataset final a déjà été réalisée : cette preuve reste à consigner dans le journal du runbook.
+- **Recette navigateur finale exécutée le 18/11/2026** sur une stack Compose jury isolée via la PR #129, HEAD revu `66fc61cb3bf8f498aaf4cd2a2c9cfd2b5fb4d155`.
+- Gate dédiée **Jury final browser recette #2** (run `44333998288`) : **SUCCESS**. M8 réel #199 : **SUCCESS**. Bootstrap #552 : **SUCCESS**. Codex final : clean, 0 finding non résolu.
+- Artifact de preuve : `jury-final-browser-1993ea8dc4d4eb3581841794959b24c65ddf60cf` (artifact GitHub `14441750513`, rétention 30 jours), contenant captures et `jury-final-report.json`.
+- Résultats constatés : DON refusé `REJECTED`, DON accepté `COMPLETED`, TROC `COMPLETED`, 20/20 médias byte-identiques après upload navigateur, événement `proposal.rejected` persistant unique, RBAC ADMIN positif + USER refusé HTTP 403 sur l'API ADMIN.
+- PR #129 fusionnée dans `main` au commit `b17da30e01f4d96c393d37ff237f04bc26c1d3ad`.
 
 ## Critères restants avant clôture
 
@@ -78,7 +82,7 @@ Fournir uniquement des images réutilisables légalement. Compléter le `creditI
 - [x] 20 fichiers images réels disponibles, provenance liée et autorisation de démonstration enregistrée.
 - [x] Procédure de relance/répétition **non destructive** et mode de secours documentés.
 - [x] Compte rendu de recette technique/documentaire produit.
-- [ ] Création, publication, DON/TROC et double confirmation réellement testés depuis l'interface avec ce dataset final, avec preuve des statuts finaux.
-- [ ] Validation explicite pour fermer #56/#35.
+- [x] Création, publication, DON/TROC et double confirmation réellement testés depuis l'interface avec ce dataset final, avec preuve des statuts finaux.
+- [ ] Validation explicite du propriétaire pour fermer #56/#35.
 
 Les preuves LOT 10-A et les slides LOT 10-B attendront la réussite de cette phase et de la recette physique mobile #71.
