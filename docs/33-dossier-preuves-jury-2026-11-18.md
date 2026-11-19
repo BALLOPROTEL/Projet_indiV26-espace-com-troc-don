@@ -179,7 +179,7 @@ Artifact sécurité Bootstrap #569 :
 - archive Library : `/Projet_individuel26/Preuves/Final_2026-11-18/security-reports-e886d457.zip`.
 
 Lecture du rapport :
-- Trivy image API : **0 vulnérabilité détectée** ;
+- Trivy image API : **0 vulnérabilité HIGH/CRITICAL détectée** ; les sévérités LOW/MEDIUM ne font pas partie du rapport/gate Trivy #569 ;
 - `pnpm audit` : **0 HIGH / 0 CRITICAL**, mais **2 advisories MODERATE** sur Next.js 16.4.1 ;
 - les primitives citées dans ces advisories (`unstable_cache`, `'use cache'`, `next/root-params`) ne sont pas utilisées dans le dépôt au moment de cette preuve ;
 - la mise à niveau Next.js reste toutefois à réaliser dans le backlog sécurité post-jury #115.
