@@ -351,6 +351,7 @@ export class ListingsService {
     const recentCount = await this.prisma.listing.count({
       where: {
         ownerId,
+        status: ListingStatus.PENDING,
         createdAt: { gte: createdSince },
       },
     });
@@ -360,7 +361,7 @@ export class ListingsService {
         {
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
           message:
-            'Trop d’annonces créées récemment. Réessayez dans quelques minutes.',
+            'Trop d’annonces sont déjà en attente de modération. Réessayez après traitement de vos annonces.',
           retryAfterSeconds: Math.ceil(windowMs / 1000),
         },
         HttpStatus.TOO_MANY_REQUESTS,
