@@ -125,6 +125,7 @@ describe('ListingsService', () => {
     expect(listingApi.count).toHaveBeenCalledWith({
       where: {
         ownerId: 'owner-1',
+        status: ListingStatus.PENDING,
         createdAt: { gte: expect.any(Date) },
       },
     });
