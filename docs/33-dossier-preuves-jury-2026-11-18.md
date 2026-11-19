@@ -46,7 +46,7 @@ Le Bootstrap post-fusion #568 est **SUCCESS** sur `7f553afd03f870da9f01ba5b650c6
 | RBAC USER/MODERATOR/ADMIN | **PASS** | M8/F5/#129 | ADMIN autorisé ; USER refusé UI + backend HTTP 403 |
 | Frontend V2/V3/V4 | **PASS** | #63/#85 fermés | validation propriétaire + parcours réels |
 | Accessibilité / appareils | **PASS** | #71 fermé + #134 | iPhone/Safari, Android/Chrome, zoom 200 %, clavier/contrastes, reduced-motion |
-| Réseau dégradé | **EN COURS** | #134 + #137 | #134 prouve l’accueil ; #137 complète fiche/galerie, Mon espace, panne Catalog et récupération |
+| Réseau dégradé | **PASS** | #134 + #137 | accueil + fiche/galerie MinIO hors cache + Mon espace + panne/récupération certifiés |
 | Kit jury | **PASS** | #125/#126/#127 | 4 acteurs, 4 annonces, 20 médias autorisés/provenance |
 | Recette jury finale | **PASS** | #129 | run `44333998288` SUCCESS |
 | Journal jury | **PASS** | #130 | docs/27 + docs/28, IDs/statuts réels |
@@ -122,7 +122,7 @@ Résultats :
 - forced-colors / High Contrast ;
 - proxy layout équivalent zoom 200 % : accueil + ADMIN sans overflow ;
 - `prefers-reduced-motion: reduce` réellement actif ;
-- Slow 3G #134 : accueil Catalog utilisable ; preuve réseau complète en cours via #137 (fiche/galerie, Mon espace, panne + récupération).
+- Slow 3G #137 : accueil, fiche/galerie MinIO hors cache, Mon espace stabilisé, panne Catalog et récupération via `Réessayer` : PASS.
 
 Artifact :
 - ID : `14473385412`;
@@ -131,6 +131,17 @@ Artifact :
 Archive persistante :
 
 `/Projet_individuel26/Preuves/Final_2026-11-18/accessibility-evidence-pr134.zip`
+
+### Preuve réseau complète #137
+
+- HEAD certifié : `9291b85856f245fcefd4c3ff3a4ec9618e0b723c` ;
+- fusion `main` : `e7179555f643524e27591c05f22251c8d1541e0a` ;
+- run M8 : `44409560702` — **SUCCESS** ;
+- artifact : `14477287192` ;
+- digest GitHub : `sha256:7fbb39b26ccd2b8153e426a7037f386ccb80f9b29832abc7673e603e402df2c6` ;
+- archive Library : `/Projet_individuel26/Preuves/Final_2026-11-18/network-degraded-final-pr137.zip`.
+
+Le test désactive le cache Chrome avant throttling, attend les pixels MinIO réels, attend Listings + MarketplaceDashboard, simule une panne Catalog, contrôle l’état d’erreur puis la récupération via `Réessayer`.
 
 Preuves d'exploitation complémentaires regroupées dans le même dossier Library :
 - `/Projet_individuel26/Preuves/Final_2026-11-18/lot7-observability-evidence.txt` ;
@@ -231,7 +242,7 @@ Limites à présenter au jury :
 
 État acquis :
 - LOT 9B #35/#56 : fermé ;
-- frontend/accessibilité #71/#63/#85 : réouverts temporairement jusqu’à validation réseau complète #137 ;
+- frontend/accessibilité #71/#63/#85 : fermés définitivement après validation #137 ;
 - Keycloak #98 : fermé ;
 - robustesse CI #80 : fermé ;
 - synchronisation GitHub/Kanban #55 : fermée ;
@@ -250,9 +261,9 @@ Ces archives complètent les preuves #129/#134 mais ne remplacent pas les runs f
 
 ## 11. Verdict #58
 
-**DRAFT — bloqué uniquement par la validation finale de #137.**
+**READY TO CLOSE après CI/Codex verts de la présente consolidation.**
 
-Les prérequis fonctionnels, UX, sécurité, CI et gouvernance sont satisfaits. La validation accessibilité/réseau attend encore la preuve complète #137 ; le dossier reste Draft jusqu’à son succès. Les artifacts critiques déjà disponibles ont été exportés vers une archive persistante.
+Les prérequis fonctionnels, UX, accessibilité, réseau, sécurité, CI et gouvernance sont satisfaits. #137 est fusionnée et certifie la dernière preuve réseau. Les artifacts critiques ont été exportés vers une archive persistante.
 
 Après fusion de cette documentation et contrôle CI/Codex :
 1. fermer #58 ;
