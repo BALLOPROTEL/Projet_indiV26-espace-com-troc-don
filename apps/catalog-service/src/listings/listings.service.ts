@@ -2,6 +2,8 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -66,6 +68,8 @@ export class ListingsService {
     ownerId: string,
     input: CreateListingDto,
   ): Promise<ListingView> {
+    await this.assertWithinCreationRateLimit(ownerId);
+
     const tradeWishes = this.marketplaceRules.validateTradeWishes(
       input.operationType,
       input.tradeWishes ?? [],
@@ -335,6 +339,34 @@ export class ListingsService {
     }
 
     return this.toView(await this.requireListing(id));
+  }
+
+  private async assertWithinCreationRateLimit(
+    ownerId: string,
+  ): Promise<void> {
+    const windowMs = 10 * 60 * 1000;
+    const maxListings = 5;
+    const createdSince = new Date(Date.now() - windowMs);
+
+    const recentCount = await this.prisma.listing.count({
+      where: {
+        ownerId,
+        status: ListingStatus.PENDING,
+        createdAt: { gte: createdSince },
+      },
+    });
+
+    if (recentCount >= maxListings) {
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          message:
+            'Trop d’annonces sont déjà en attente de modération. Réessayez après traitement de vos annonces.',
+          retryAfterSeconds: Math.ceil(windowMs / 1000),
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
   }
 
   private async requireListing(

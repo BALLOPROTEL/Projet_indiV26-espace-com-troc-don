@@ -17,6 +17,7 @@ import { ListingsService } from './listings.service';
 describe('ListingsService', () => {
   const listingApi = {
     create: jest.fn(),
+    count: jest.fn(),
     findMany: jest.fn(),
     findFirst: jest.fn(),
     findUnique: jest.fn(),
@@ -77,6 +78,7 @@ describe('ListingsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    listingApi.count.mockResolvedValue(0);
     listingApi.updateMany.mockResolvedValue({
       count: 1,
     });
@@ -107,6 +109,27 @@ describe('ListingsService', () => {
         }),
       }),
     );
+  });
+
+  it('rate-limits listing creation per authenticated owner', async () => {
+    listingApi.count.mockResolvedValue(5);
+
+    await expect(
+      service.create('owner-1', {
+        title: pendingListing.title,
+        description: pendingListing.description,
+        operationType: ListingOperationType.DONATION,
+      }),
+    ).rejects.toMatchObject({ status: 429 });
+
+    expect(listingApi.count).toHaveBeenCalledWith({
+      where: {
+        ownerId: 'owner-1',
+        status: ListingStatus.PENDING,
+        createdAt: { gte: expect.any(Date) },
+      },
+    });
+    expect(listingApi.create).not.toHaveBeenCalled();
   });
 
   it('rejects a TRADE listing with fewer than 5 distinct wishes', async () => {
