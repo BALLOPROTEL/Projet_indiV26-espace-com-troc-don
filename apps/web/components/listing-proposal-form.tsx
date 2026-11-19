@@ -95,7 +95,7 @@ export function ListingProposalForm({ listing }: { listing: Listing }) {
     <section className="marketplace-action" aria-label="Faire une proposition">
       <span className="eyebrow">Échange entre membres</span>
       <h2>{listing.operationType === 'DONATION' ? 'Demander ce don' : 'Proposer un troc'}</h2>
-      <form className="listing-form" onSubmit={(event) => void submit(event)}>
+      <form className="listing-form" aria-busy={busy} onSubmit={(event) => void submit(event)}>
         {listing.operationType === 'TRADE' ? (
           <label className="field">
             <span>Votre objet proposé en échange</span>
