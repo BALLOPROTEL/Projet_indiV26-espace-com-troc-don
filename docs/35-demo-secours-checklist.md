@@ -190,7 +190,7 @@ Après la répétition finale :
 - [ ] temps total <= 20 min ;
 - [ ] démo <= 6 min ;
 - [ ] aucune slide > 2 min 30 ;
-- [ ] introduction < 1 min ;
+- [ ] introduction <= 1 min ;
 - [ ] limites expliquées sans se dévaloriser ;
 - [ ] Plan B testé ;
 - [ ] Plan C testé ;
