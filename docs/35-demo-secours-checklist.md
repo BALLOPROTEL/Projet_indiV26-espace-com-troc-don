@@ -61,10 +61,14 @@ Durée cible : **5 à 6 minutes maximum**.
 
 ### Étape C — Propriétaire (60–90 s)
 - changer réellement de compte ;
-- accepter ou refuser ;
-- montrer la transition de statut.
+- **accepter la proposition retenue** ;
+- vérifier la transition vers ACCEPTED / réservation et la création de la transaction ;
+- ne pas choisir « Refuser » dans ce parcours live, sinon aucune transaction n’existe pour l’étape suivante.
+
+Le parcours de refus reste démontrable via la preuve certifiée du DON refusé (artifact jury principal). Si l’on choisit volontairement de montrer un refus live, on **saute l’étape D** et on bascule ensuite sur cette preuve certifiée pour la double confirmation.
 
 ### Étape D — Confirmation (60–90 s)
+- prérequis : proposition acceptée et transaction créée ;
 - une première confirmation → IN_PROGRESS ;
 - seconde confirmation depuis l’autre compte → COMPLETED.
 
