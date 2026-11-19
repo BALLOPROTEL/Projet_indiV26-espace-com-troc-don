@@ -55,7 +55,7 @@ Le Bootstrap post-fusion #568 est **SUCCESS** sur `7f553afd03f870da9f01ba5b650c6
 | Docker Compose | **PASS** | M6 | stack isolée et smokes CI |
 | Kubernetes | **PASS laboratoire** | `docs/20-m7-kubernetes-microservices.md` | déploiements/services, probes/resources, kind/Minikube, HPA Gateway |
 | Performance / HPA | **PASS laboratoire** | `docs/13-lot8-performance.md` | stress 35 962 requêtes, 0,067 % erreurs, p95 399 ms, HPA Gateway jusqu’à 4 réplicas |
-| Observabilité | **PASS laboratoire** | `docs/12-lot7-observability.md` | Prometheus/Grafana, métriques, logs JSON, health/readiness |
+| Observabilité | **PASS laboratoire** | `docs/12-lot7-observability.md` + M10 | Prometheus/Grafana sur le Gateway, logs JSON, health/readiness ; les autres services disposent de probes mais ne sont pas tous scrutés par Prometheus |
 | Sécurité dépendances/images | **PASS gates actuelles** | `docs/14-lot9-security-audit.md` + Bootstrap | audit prod HIGH/CRITICAL + Trivy HIGH/CRITICAL + registre des risques résiduels |
 | Gouvernance GitHub | **PASS** | #55 fermé | README/roadmap/audit, branches, PR, Kanban V2 alignés |
 | Robustesse registre ECR | **PASS** | #80/#131 | retries + fallback officiel ECR Public → Docker Hub |
@@ -231,8 +231,9 @@ Références :
 Limites à présenter au jury :
 
 - la stratégie Strangler conserve encore un fallback Legacy documenté ;
-- les domaines possèdent leur ownership logique mais certains composants de laboratoire partagent encore l’infrastructure physique ;
-- l’outbox n’est pas généralisée à tous les domaines ;
+- les domaines possèdent leur ownership logique, mais PostgreSQL reste partagé et les schémas métier ainsi que la base Keycloak Minikube utilisent encore un principal commun : ce n’est pas une isolation SQL forte ;
+- l’outbox n’est pas généralisée à tous les événements/domaines ;
+- Prometheus scrute le Gateway seulement dans l’architecture M10 ; les probes des autres services ne constituent pas une couverture métrique complète ;
 - le realm Keycloak et le dataset de jury sont des environnements de démonstration ;
 - Kubernetes, HPA, observabilité et performances sont prouvés en environnement laboratoire, pas comme SLO de production ;
 - HTTPS durable, conformité légale, SEO, anti-spam et autres durcissements publics restent dans le backlog post-jury #110–#115 ;
