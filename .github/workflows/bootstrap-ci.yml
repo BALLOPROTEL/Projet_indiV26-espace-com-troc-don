@@ -35,6 +35,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Audit frontend public configuration
+        shell: bash
+        run: node scripts/security-web-audit.mjs
+
 
       # Native job.services pull before checkout, where no retry or fallback
       # logic can run. Start equivalent disposable services after checkout.

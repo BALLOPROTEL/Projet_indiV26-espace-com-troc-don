@@ -20,6 +20,7 @@ import { ProposalsService } from './proposals.service';
 describe('ProposalsService', () => {
   const proposalApi = {
     create: jest.fn(),
+    count: jest.fn(),
     findMany: jest.fn(),
     findUnique: jest.fn(),
     findUniqueOrThrow: jest.fn(),
@@ -88,6 +89,7 @@ describe('ProposalsService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    proposalApi.count.mockResolvedValue(0);
     proposalApi.create.mockImplementation(async ({ data }) => ({
       id: 'proposal-1',
       ...data,
@@ -132,6 +134,27 @@ describe('ProposalsService', () => {
         requesterId: 'requester-1',
       }),
     );
+  });
+
+  it('rate-limits proposal creation per authenticated requester', async () => {
+    proposalApi.count.mockResolvedValue(10);
+
+    await expect(
+      service.create('requester-1', {
+        targetListingId: 'target-1',
+        type: ProposalType.DONATION_REQUEST,
+      }),
+    ).rejects.toMatchObject({ status: 429 });
+
+    expect(proposalApi.count).toHaveBeenCalledWith({
+      where: {
+        requesterId: 'requester-1',
+        createdAt: { gte: expect.any(Date) },
+      },
+    });
+    expect(catalog.getListing).not.toHaveBeenCalled();
+    expect(proposalApi.create).not.toHaveBeenCalled();
+    expect(events.publish).not.toHaveBeenCalled();
   });
 
   it('rejects an offered listing on donation requests', async () => {
