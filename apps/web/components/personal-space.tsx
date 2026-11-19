@@ -420,10 +420,10 @@ export function PersonalSpace() {
 
           <div className="feedback-stack" aria-live="polite">
             {feedback ? (
-              <div className="notice notice--success">{feedback}</div>
+              <div className="notice notice--success" role="status">{feedback}</div>
             ) : null}
             {error ? (
-              <div className="notice notice--error">{error}</div>
+              <div className="notice notice--error" role="alert">{error}</div>
             ) : null}
           </div>
 
@@ -616,7 +616,7 @@ function ListingForm({
   }
 
   return (
-    <form className="listing-form" onSubmit={(event) => {
+    <form className="listing-form" aria-busy={disabled} onSubmit={(event) => {
       if (wizard && step < PUBLICATION_STEPS.length - 1) {
         event.preventDefault();
         advance();
