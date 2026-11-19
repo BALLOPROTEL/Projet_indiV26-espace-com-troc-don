@@ -97,7 +97,7 @@ Avec DevTools > Network > Slow 3G (ou réseau mobile réellement faible) :
 | Zoom navigateur 200 % | Navigateur/version non consignés | **PASS** | confirmation explicite du propriétaire le 18/11/2026 |
 | Clavier + contrastes | Navigateur/version non consignés | **PASS** | confirmation explicite du propriétaire le 18/11/2026 |
 | `prefers-reduced-motion: reduce` | Chrome réel automatisé | **PASS** | PR #134, run M8 `44400092787`, artifact #14473385412 |
-| Réseau dégradé / Slow 3G | Chrome CDP | **EN COURS** | #134 prouve l’accueil ; PR #137 complète fiche/galerie, Mon espace, panne Catalog et récupération |
+| Réseau dégradé / Slow 3G | Chrome CDP | **PASS** | PR #137, run `44409560702`, artifact #14477287192 |
 
 ### Complément automatisé #134
 
@@ -106,7 +106,7 @@ PR #134 a été fusionnée au commit `e886d457053ad33771374663e043ef61820ba3eb`.
 Résultats automatiques :
 - proxy layout équivalent zoom 200 % : accueil et ADMIN sans overflow ;
 - `prefers-reduced-motion: reduce` : préférence réellement active, `scroll-behavior: auto`, transitions/animations réduites ;
-- Slow 3G #134 : accueil Catalog prouvé ; couverture complète du parcours réseau en cours via #137 ;
+- Slow 3G complet #137 : accueil, fiche/galerie MinIO hors cache, Mon espace stabilisé, panne Catalog puis récupération via `Réessayer` : PASS ;
 - M8 réel, recette jury et structure : **SUCCESS** ;
 - Codex final : clean.
 
@@ -117,6 +117,6 @@ Archive durable : `/Projet_individuel26/Preuves/Final_2026-11-18/accessibility-e
 
 ## Règle de clôture
 
-#71, #63 et #85 restent temporairement ouverts jusqu’à validation de #137. Les quatre contrôles humains restent PASS ; seule la preuve réseau dégradé complète est encore en cours.
+#71, #63 et #85 sont définitivement fermés après validation de #137. Les quatre contrôles humains et les preuves automatiques sont PASS.
 
 Cette recette ne demande **aucun reset de données**, aucune suppression de volume et aucune nouvelle fonctionnalité.
