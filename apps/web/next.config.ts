@@ -1,6 +1,18 @@
 import type { NextConfig } from 'next';
 
 const securityHeaders = [
+  ...(process.env.NODE_ENV === 'production'
+    ? [
+        {
+          key: 'Strict-Transport-Security',
+          value: 'max-age=31536000; includeSubDomains',
+        },
+      ]
+    : []),
+  {
+    key: 'X-DNS-Prefetch-Control',
+    value: 'off',
+  },
   {
     key: 'X-Content-Type-Options',
     value: 'nosniff',
