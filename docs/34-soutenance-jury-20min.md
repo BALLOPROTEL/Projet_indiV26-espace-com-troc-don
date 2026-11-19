@@ -22,18 +22,20 @@ Ne jamais présenter une capacité de laboratoire comme une garantie de producti
 
 | Temps | Partie | Objectif |
 | --- | --- | --- |
+| Temps | Partie | Objectif |
+| --- | --- | --- |
 | 00:00–01:00 | Introduction | Problème, solution, promesse |
-| 01:00–02:30 | Besoin métier | DON/TROC, rôles, contraintes |
-| 02:30–05:00 | Architecture | Microservices, flux, Strangler |
-| 05:00–06:30 | Sécurité / identité | Keycloak, JWT, RBAC |
-| 06:30–08:00 | CI/CD et qualité | GitHub Actions, gates, Trivy, couverture |
-| 08:00–09:30 | Observabilité / performance | Prometheus/Grafana, JMeter/HPA |
-| 09:30–15:30 | Démo métier | DON/TROC + rôles + galerie |
-| 15:30–17:30 | Résilience et limites | Outbox partielle, SQL partagé, Legacy, labo |
-| 17:30–19:00 | Résultats / preuves | Runs, artifacts, chiffres clés |
-| 19:00–20:00 | Conclusion | Bilan, apprentissages, suite |
+| 01:00–02:15 | Besoin métier | DON/TROC, rôles, contraintes |
+| 02:15–04:45 | Architecture + flux | Microservices, Strangler, cycle DON/TROC |
+| 04:45–06:00 | Sécurité / identité | Keycloak, JWT, RBAC |
+| 06:00–07:15 | CI/CD et qualité | GitHub Actions, gates, Trivy, couverture |
+| 07:15–08:30 | Observabilité / performance | Prometheus/Grafana, JMeter/HPA |
+| 08:30–14:30 | Démo métier | DON/TROC + rôles + galerie |
+| 14:30–16:15 | Résilience et limites | Outbox partielle, SQL partagé, Legacy, labo |
+| 16:15–17:45 | Résultats / preuves | Runs, artifacts, chiffres clés |
+| 17:45–18:30 | Conclusion | Bilan, apprentissages, suite |
 
-Objectif réel : finir le corps de présentation vers **19:15** pour garder une marge de respiration.
+Budget cible : **18 min 30**, soit **1 min 30 de marge** avant le plafond des 20 minutes. Les slides 3 et 4 partagent explicitement le même créneau Architecture + flux de 2 min 30.
 
 ---
 
@@ -64,7 +66,7 @@ Contraintes métier importantes :
 - double confirmation avant clôture ;
 - séparation des droits.
 
-Durée : **1 min 30**.
+Durée : **1 min 15**.
 
 ### Slide 3 — Architecture finale
 
@@ -84,7 +86,7 @@ Prometheus/Grafana en laboratoire
 - Notification consomme les événements RabbitMQ ;
 - Legacy reste partiellement présent dans une stratégie Strangler.
 
-Durée : **2 min 30**.
+Durée : **1 min 45**.
 
 ### Slide 4 — Flux DON/TROC
 
@@ -99,7 +101,7 @@ Pour un TROC :
 - deux annonces sont réservées ;
 - compensation best effort si la seconde réservation échoue.
 
-Durée : **1 min**.
+Durée : **45 s**. Cette slide partage le créneau Architecture + flux avec la slide 3.
 
 ### Slide 5 — Sécurité et identité
 
@@ -115,7 +117,7 @@ Nuance :
 - pas de mTLS/service mesh démontré ;
 - principal PostgreSQL encore partagé en laboratoire.
 
-Durée : **1 min 30**.
+Durée : **1 min 15**.
 
 ### Slide 6 — CI/CD et qualité
 
@@ -139,7 +141,7 @@ Chiffres de couverture API Bootstrap #569 :
 Précision obligatoire :
 - ces pourcentages concernent **3 fichiers API configurés**, pas tout le projet.
 
-Durée : **1 min 30**.
+Durée : **1 min 15**.
 
 ### Slide 7 — Observabilité et performance
 
@@ -157,7 +159,7 @@ Observabilité :
 - logs corrélés ;
 - Prometheus scrute réellement le **Gateway**, pas tous les microservices.
 
-Durée : **1 min 30**.
+Durée : **1 min 15**.
 
 ### Slide 8 — Démo live
 
@@ -167,8 +169,8 @@ Parcours recommandé :
 1. catalogue public + galerie ;
 2. compte USER demandeur ;
 3. création/consultation d’une demande DON ou TROC ;
-4. compte propriétaire : acceptation/refus ;
-5. double confirmation si le temps le permet ;
+4. compte propriétaire : **accepter** la proposition retenue pour créer la transaction ;
+5. double confirmation obligatoire sur ce parcours live : première confirmation → IN_PROGRESS, seconde → COMPLETED ;
 6. ADMIN : indicateurs ;
 7. USER : refus ADMIN.
 
@@ -211,7 +213,7 @@ Dire explicitement :
 
 Cette slide est importante : elle montre la maîtrise technique plutôt qu’une promesse irréaliste.
 
-Durée : **2 min**.
+Durée : **1 min 45**.
 
 ### Slide 11 — Conclusion
 
@@ -226,7 +228,7 @@ Phrase de fermeture :
 
 > « Mon objectif n’était pas seulement de faire fonctionner une application, mais de pouvoir expliquer, tester et prouver son comportement de bout en bout. »
 
-Durée : **45 s à 1 min**.
+Durée : **45 s**.
 
 ---
 
@@ -236,49 +238,49 @@ Durée : **45 s à 1 min**.
 
 « Mon projet s’appelle La Petite Maison de l’Épouvante. C’est une plateforme de don et de troc d’objets. Mon objectif a été de partir d’un POC existant et de le faire évoluer vers une architecture microservices testable, observable et démontrable devant un jury. Je vais vous présenter le besoin métier, l’architecture, les choix de sécurité et de qualité, puis vous montrer le parcours réel dans l’application. »
 
-### 01:00–02:30 — Métier
+### 01:00–02:15 — Métier
 
 « Le parcours repose sur quatre rôles. Un visiteur consulte le catalogue. Un utilisateur peut publier un objet, demander un don ou proposer un troc. Un modérateur vérifie les annonces avant leur publication. Un administrateur accède aux indicateurs réservés. Une transaction n’est considérée terminée qu’après confirmation des deux participants. »
 
-### 02:30–05:00 — Architecture
+### 02:15–04:45 — Architecture + flux DON/TROC
 
-« L’entrée principale est l’API Gateway. Le Catalog Service gère les annonces, les images MinIO, les souhaits de troc et la modération. Le Marketplace Service gère les propositions, réservations, transactions et confirmations. Le Notification Service reçoit les événements via RabbitMQ. Keycloak porte l’identité et les rôles. PostgreSQL stocke les données métier dans plusieurs schémas. Le Legacy reste partiellement actif dans une stratégie Strangler : je ne le présente donc pas comme totalement supprimé. »
+« L’entrée principale est l’API Gateway. Le Catalog Service gère les annonces, les images MinIO, les souhaits de troc et la modération. Le Marketplace Service gère les propositions, réservations, transactions et confirmations. Le Notification Service reçoit les événements via RabbitMQ. Keycloak porte l’identité et les rôles. PostgreSQL stocke les données métier dans plusieurs schémas. Le Legacy reste partiellement actif dans une stratégie Strangler. Côté métier, une annonce passe de PENDING à APPROVED après modération ; une proposition acceptée réserve les ressources, crée une transaction IN_PROGRESS, puis les deux confirmations terminent la transaction en COMPLETED. »
 
-### 05:00–06:30 — Sécurité
+### 04:45–06:00 — Sécurité
 
 « L’authentification repose sur Keycloak avec OIDC et PKCE. Les services métier valident le JWT et appliquent les règles de rôles et de propriété. Nous avons une preuve réelle qu’un ADMIN peut appeler l’API d’administration tandis qu’un USER reçoit un 403. Les médias d’une annonce en attente restent privés. En revanche, le laboratoire utilise encore un principal PostgreSQL partagé : ce n’est pas une séparation de sécurité suffisante pour une production. »
 
-### 06:30–08:00 — CI/CD
+### 06:00–07:15 — CI/CD
 
 « La qualité n’est pas vérifiée uniquement à la main. GitHub Actions exécute lint, typecheck, tests unitaires, intégration, contrats, E2E, Chrome réel et scans de sécurité. Le Bootstrap certifié publie aussi une couverture API : 96,44 % des lignes et 93,51 % des branches, mais seulement sur trois fichiers explicitement ciblés. Je ne généralise donc pas ce chiffre à toute l’application. »
 
-### 08:00–09:30 — Performance / observabilité
+### 07:15–08:30 — Performance / observabilité
 
 « En laboratoire, le stress test a traité 35 962 requêtes à environ 300 requêtes par seconde, avec 0,067 % d’erreurs et un p95 de 399 ms. Le HPA du Gateway est monté jusqu’à quatre réplicas. Prometheus et Grafana permettent de suivre le Gateway et les health checks, mais je n’affirme pas une observabilité complète de tous les services ni des SLO de production. »
 
-### 09:30–15:30 — Démo
+### 08:30–14:30 — Démo
 
 Parler très peu. Annoncer chaque changement d’acteur et chaque statut.
 
 Phrases utiles :
 - « Je suis maintenant connecté avec le compte demandeur. »
 - « La proposition passe ici à PENDING. »
-- « Je bascule sur le propriétaire ; il peut accepter ou refuser. »
+- « Je bascule sur le propriétaire ; pour ce parcours live, j’accepte la proposition afin de créer la transaction. Le refus est déjà certifié séparément dans les preuves. »
 - « Une première confirmation ne termine pas la transaction. »
 - « Après la seconde confirmation, la transaction et l’annonce sont COMPLETED. »
 - « Ici, un ADMIN voit le tableau de bord ; avec un USER, la même fonction est refusée. »
 
 Ne pas commenter chaque clic.
 
-### 15:30–17:30 — Résilience et limites
+### 14:30–16:15 — Résilience et limites
 
 « Le projet comporte aussi des choix qui restent volontairement imparfaits. L’outbox n’est pas généralisée à tous les événements. Certaines transitions distribuées reposent sur une compensation best effort. Le Legacy n’est pas entièrement retiré. La base PostgreSQL est partagée. Prometheus scrute surtout le Gateway. Ce sont des limites que j’ai documentées parce qu’une architecture crédible doit aussi expliquer ses zones de risque. »
 
-### 17:30–19:00 — Preuves
+### 16:15–17:45 — Preuves
 
 « La recette jury automatisée a validé quatre acteurs, quatre annonces et vingt médias autorisés. Les vingt médias ont été vérifiés byte-à-byte après upload. Le DON refusé, le DON accepté, le TROC, la double confirmation et le RBAC sont tous certifiés. Un second parcours a validé l’application sous Slow 3G, y compris les pixels MinIO hors cache, Mon espace, une panne Catalog et la récupération. »
 
-### 19:00–20:00 — Conclusion
+### 17:45–18:30 — Conclusion
 
 « Le résultat est une plateforme fonctionnelle et surtout explicable : chaque affirmation importante peut être reliée à un test, un run, un artifact ou une limite documentée. Pour aller vers la production, je renforcerais l’isolation SQL, la sécurité réseau, l’outbox, l’observabilité de tous les services et la haute disponibilité. »
 
