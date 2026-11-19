@@ -55,6 +55,7 @@ export function PersonalSpace() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const loadMine = useCallback(async () => {
     if (!authenticated) {
@@ -166,6 +167,11 @@ export function PersonalSpace() {
 
   async function createListing(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (savingRef.current) {
+      return;
+    }
+
     setFeedback(null);
     setError(null);
 
@@ -180,6 +186,7 @@ export function PersonalSpace() {
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
     let draftId = pendingCreateId;
 
@@ -229,6 +236,7 @@ export function PersonalSpace() {
         );
       }
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -261,7 +269,7 @@ export function PersonalSpace() {
   async function saveEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!editing) {
+    if (!editing || savingRef.current) {
       return;
     }
 
@@ -279,6 +287,7 @@ export function PersonalSpace() {
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
 
     try {
@@ -319,6 +328,7 @@ export function PersonalSpace() {
       await loadMine();
       setError(mutationError);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
