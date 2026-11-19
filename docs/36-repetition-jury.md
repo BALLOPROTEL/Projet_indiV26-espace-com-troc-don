@@ -14,16 +14,16 @@
 | Partie | Cible | Réel répétition 1 | Réel répétition 2 | Statut |
 | --- | ---: | ---: | ---: | --- |
 | Introduction | 1:00 | — | — | À faire |
-| Métier | 1:30 | — | — | À faire |
-| Architecture | 2:30 | — | — | À faire |
-| Sécurité | 1:30 | — | — | À faire |
-| CI/CD | 1:30 | — | — | À faire |
-| Performance/observabilité | 1:30 | — | — | À faire |
+| Métier | 1:15 | — | — | À faire |
+| Architecture + flux | 2:30 | — | — | À faire |
+| Sécurité | 1:15 | — | — | À faire |
+| CI/CD | 1:15 | — | — | À faire |
+| Performance/observabilité | 1:15 | — | — | À faire |
 | Démo | 6:00 | — | — | À faire |
-| Limites | 2:00 | — | — | À faire |
+| Limites | 1:45 | — | — | À faire |
 | Preuves | 1:30 | — | — | À faire |
-| Conclusion | 1:00 | — | — | À faire |
-| **Total** | **20:00 max** | — | — | À faire |
+| Conclusion | 0:45 | — | — | À faire |
+| **Total** | **18:30 cible / 20:00 max** | — | — | À faire |
 
 ## 3. Points à noter après chaque répétition
 
