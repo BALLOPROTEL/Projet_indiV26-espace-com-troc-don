@@ -22,8 +22,6 @@ Ne jamais présenter une capacité de laboratoire comme une garantie de producti
 
 | Temps | Partie | Objectif |
 | --- | --- | --- |
-| Temps | Partie | Objectif |
-| --- | --- | --- |
 | 00:00–01:00 | Introduction | Problème, solution, promesse |
 | 01:00–02:15 | Besoin métier | DON/TROC, rôles, contraintes |
 | 02:15–04:45 | Architecture + flux | Microservices, Strangler, cycle DON/TROC |
