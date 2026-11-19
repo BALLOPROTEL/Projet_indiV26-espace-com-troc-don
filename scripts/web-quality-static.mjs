@@ -23,7 +23,10 @@ async function collect(dir) {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       files.push(...await collect(full));
-    } else if (['.ts', '.tsx'].includes(extname(entry.name))) {
+    } else if (
+      ['.ts', '.tsx'].includes(extname(entry.name)) &&
+      !/\.(test|spec)\.[tj]sx?$/.test(entry.name)
+    ) {
       files.push(full);
     }
   }
