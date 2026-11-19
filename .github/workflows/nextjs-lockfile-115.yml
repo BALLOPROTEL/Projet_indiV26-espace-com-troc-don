@@ -6,17 +6,21 @@ on:
       - security/115-nextjs-16-4-6
     paths:
       - apps/web/package.json
+      - .github/workflows/nextjs-lockfile-115.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   lockfile:
+    if: "!contains(github.event.head_commit.message, '[skip lockfile]')"
     name: Generate pnpm lockfile
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: security/115-nextjs-16-4-6
 
       - name: Setup pnpm
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -36,10 +40,16 @@ jobs:
           grep -q "next@16.4.6" pnpm-lock.yaml
           grep -q "eslint-config-next@16.4.6" pnpm-lock.yaml
 
-      - name: Upload lockfile
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: nextjs-16-4-6-lockfile
-          path: pnpm-lock.yaml
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit generated lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "Lockfile already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "chore(#115): régénérer le lockfile Next.js [skip lockfile]"
+          git push origin HEAD:security/115-nextjs-16-4-6
