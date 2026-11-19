@@ -2,6 +2,8 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -30,6 +32,8 @@ export class ProposalsService {
   ) {}
 
   async create(requesterId: string, input: CreateProposalInput) {
+    await this.assertWithinCreationRateLimit(requesterId);
+
     const targetListingId = this.requiredId(
       input.targetListingId,
       'targetListingId',
@@ -277,6 +281,33 @@ export class ProposalsService {
       }
 
       throw error;
+    }
+  }
+
+  private async assertWithinCreationRateLimit(
+    requesterId: string,
+  ): Promise<void> {
+    const windowMs = 5 * 60 * 1000;
+    const maxProposals = 10;
+    const createdSince = new Date(Date.now() - windowMs);
+
+    const recentCount = await this.prisma.proposal.count({
+      where: {
+        requesterId,
+        createdAt: { gte: createdSince },
+      },
+    });
+
+    if (recentCount >= maxProposals) {
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          message:
+            'Trop de propositions envoyées. Réessayez dans quelques minutes.',
+          retryAfterSeconds: Math.ceil(windowMs / 1000),
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
   }
 
