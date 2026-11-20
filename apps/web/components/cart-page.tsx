@@ -77,7 +77,10 @@ export function CartPage() {
     subject: string;
     cart: Cart;
   } | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadErrorState, setLoadErrorState] = useState<{
+    subject: string;
+    message: string;
+  } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -85,6 +88,10 @@ export function CartPage() {
   const currentCart =
     subject && cartState?.subject === subject
       ? cartState.cart
+      : null;
+  const loadError =
+    subject && loadErrorState?.subject === subject
+      ? loadErrorState.message
       : null;
   const loading =
     ready &&
@@ -109,16 +116,18 @@ export function CartPage() {
             subject: currentSubject,
             cart,
           });
-          setLoadError(null);
+          setLoadErrorState(null);
         }
       })
       .catch((reason: unknown) => {
         if (active) {
-          setLoadError(
-            reason instanceof Error
-              ? reason.message
-              : 'Impossible de charger votre panier.',
-          );
+          setLoadErrorState({
+            subject: currentSubject,
+            message:
+              reason instanceof Error
+                ? reason.message
+                : 'Impossible de charger votre panier.',
+          });
         }
       });
 
