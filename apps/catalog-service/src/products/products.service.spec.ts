@@ -31,6 +31,17 @@ function product(overrides: Record<string, unknown> = {}) {
         updatedAt: new Date('2026-11-20T20:00:00.000Z'),
       },
     ],
+    images: [
+      {
+        id: 'image-1',
+        productId: 'product-1',
+        objectKey: 'products/product-1/image.png',
+        mimeType: 'image/png',
+        sizeBytes: 128,
+        position: 0,
+        createdAt: new Date('2026-11-20T20:00:00.000Z'),
+      },
+    ],
     ...overrides,
   };
 }
@@ -76,6 +87,11 @@ describe('ProductsService', () => {
         slug: 'product-one',
         fromPriceCents: 2500,
         availableStock: 4,
+        images: [
+          expect.objectContaining({
+            contentUrl: '/api/products/product-1/images/image-1/content',
+          }),
+        ],
       }),
     );
     expect('status' in result[0]).toBe(false);
@@ -153,6 +169,17 @@ describe('ProductsService', () => {
           },
         ],
       }),
+    );
+
+    await expect(
+      service.publish('product-1'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.product.update).not.toHaveBeenCalled();
+  });
+
+  it('refuses to publish a product without a real image', async () => {
+    (prisma.product.findUnique as jest.Mock).mockResolvedValue(
+      product({ images: [] }),
     );
 
     await expect(

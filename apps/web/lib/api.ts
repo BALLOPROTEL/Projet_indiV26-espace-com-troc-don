@@ -93,12 +93,16 @@ async function requestBlob(
   return response.blob();
 }
 
-export function listingAssetUrl(path: string): string {
+export function apiAssetUrl(path: string): string {
   if (!API_ORIGIN || !path.startsWith('/')) {
     return path;
   }
 
   return `${API_ORIGIN}${path}`;
+}
+
+export function listingAssetUrl(path: string): string {
+  return apiAssetUrl(path);
 }
 
 export const productsApi = {

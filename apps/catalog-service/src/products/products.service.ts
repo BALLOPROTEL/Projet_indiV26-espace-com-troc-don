@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   Product,
+  ProductImage,
   ProductStatus,
   ProductVariant,
 } from '../../generated/prisma';
@@ -15,8 +16,30 @@ import { ProductSearchDto } from './dto/product-search.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateProductVariantDto } from './dto/update-product-variant.dto';
 
-type ProductWithVariants = Product & {
+type ProductWithAssets = Product & {
   variants: ProductVariant[];
+  images: ProductImage[];
+};
+
+export type AdminProductImageView = {
+  id: string;
+  position: number;
+  mimeType: string;
+  sizeBytes: number;
+};
+
+export type AdminProductView = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  currency: string;
+  status: ProductStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  variants: PublicProductVariantView[];
+  images: AdminProductImageView[];
 };
 
 export type PublicProductVariantView = {
@@ -26,6 +49,14 @@ export type PublicProductVariantView = {
   priceCents: number;
   stock: number;
   active: boolean;
+};
+
+export type PublicProductImageView = {
+  id: string;
+  position: number;
+  mimeType: string;
+  sizeBytes: number;
+  contentUrl: string;
 };
 
 export type PublicProductView = {
@@ -38,10 +69,37 @@ export type PublicProductView = {
   fromPriceCents: number;
   availableStock: number;
   variants: PublicProductVariantView[];
+  images: PublicProductImageView[];
 };
 
 const publicVariantOrder = {
   priceCents: 'asc' as const,
+};
+
+const adminInclude = {
+  variants: {
+    orderBy: [
+      { createdAt: 'asc' as const },
+      { id: 'asc' as const },
+    ],
+  },
+  images: {
+    orderBy: {
+      position: 'asc' as const,
+    },
+  },
+};
+
+const publicInclude = {
+  variants: {
+    where: { active: true },
+    orderBy: publicVariantOrder,
+  },
+  images: {
+    orderBy: {
+      position: 'asc' as const,
+    },
+  },
 };
 
 @Injectable()
@@ -59,6 +117,9 @@ export class ProductsService {
         status: ProductStatus.PUBLISHED,
         variants: {
           some: { active: true },
+        },
+        images: {
+          some: {},
         },
         ...(category
           ? {
@@ -87,12 +148,7 @@ export class ProductsService {
             }
           : {}),
       },
-      include: {
-        variants: {
-          where: { active: true },
-          orderBy: publicVariantOrder,
-        },
-      },
+      include: publicInclude,
       orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
     });
 
@@ -109,13 +165,11 @@ export class ProductsService {
         variants: {
           some: { active: true },
         },
-      },
-      include: {
-        variants: {
-          where: { active: true },
-          orderBy: publicVariantOrder,
+        images: {
+          some: {},
         },
       },
+      include: publicInclude,
     });
 
     if (!product) {
@@ -125,24 +179,22 @@ export class ProductsService {
     return this.toPublic(product);
   }
 
-  async findAdmin(): Promise<ProductWithVariants[]> {
-    return this.prisma.product.findMany({
-      include: {
-        variants: {
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        },
-      },
+  async findAdmin(): Promise<AdminProductView[]> {
+    const products = await this.prisma.product.findMany({
+      include: adminInclude,
       orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
     });
+
+    return products.map((product) => this.toAdmin(product));
   }
 
   async create(
     input: CreateProductDto,
-  ): Promise<ProductWithVariants> {
+  ): Promise<AdminProductView> {
     this.assertUniqueSkus(input.variants.map((variant) => variant.sku));
 
     try {
-      return await this.prisma.product.create({
+      const product = await this.prisma.product.create({
         data: {
           slug: input.slug,
           name: input.name,
@@ -160,12 +212,10 @@ export class ProductsService {
             })),
           },
         },
-        include: {
-          variants: {
-            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-          },
-        },
+        include: adminInclude,
       });
+
+      return this.toAdmin(product);
     } catch (error) {
       this.rethrowUniqueConflict(error);
     }
@@ -174,7 +224,7 @@ export class ProductsService {
   async update(
     id: string,
     input: UpdateProductDto,
-  ): Promise<ProductWithVariants> {
+  ): Promise<AdminProductView> {
     if (
       input.slug === undefined &&
       input.name === undefined &&
@@ -195,7 +245,7 @@ export class ProductsService {
     }
 
     try {
-      return await this.prisma.product.update({
+      const product = await this.prisma.product.update({
         where: { id },
         data: {
           slug: input.slug,
@@ -203,12 +253,10 @@ export class ProductsService {
           description: input.description,
           category: input.category,
         },
-        include: {
-          variants: {
-            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-          },
-        },
+        include: adminInclude,
       });
+
+      return this.toAdmin(product);
     } catch (error) {
       this.rethrowUniqueConflict(error);
     }
@@ -218,7 +266,7 @@ export class ProductsService {
     productId: string,
     variantId: string,
     input: UpdateProductVariantDto,
-  ): Promise<ProductWithVariants> {
+  ): Promise<AdminProductView> {
     if (
       input.label === undefined &&
       input.priceCents === undefined &&
@@ -267,10 +315,12 @@ export class ProductsService {
       },
     });
 
-    return this.requireAdminProduct(productId);
+    return this.toAdmin(
+      await this.requireAdminProduct(productId),
+    );
   }
 
-  async publish(id: string): Promise<ProductWithVariants> {
+  async publish(id: string): Promise<AdminProductView> {
     const product = await this.requireAdminProduct(id);
 
     if (product.status === ProductStatus.ARCHIVED) {
@@ -285,15 +335,21 @@ export class ProductsService {
       );
     }
 
+    if (product.images.length === 0) {
+      throw new ConflictException(
+        'A product needs at least one image before publication',
+      );
+    }
+
     await this.prisma.product.update({
       where: { id },
       data: { status: ProductStatus.PUBLISHED },
     });
 
-    return this.requireAdminProduct(id);
+    return this.toAdmin(await this.requireAdminProduct(id));
   }
 
-  async archive(id: string): Promise<ProductWithVariants> {
+  async archive(id: string): Promise<AdminProductView> {
     await this.requireAdminProduct(id);
 
     await this.prisma.product.update({
@@ -301,19 +357,15 @@ export class ProductsService {
       data: { status: ProductStatus.ARCHIVED },
     });
 
-    return this.requireAdminProduct(id);
+    return this.toAdmin(await this.requireAdminProduct(id));
   }
 
   private async requireAdminProduct(
     id: string,
-  ): Promise<ProductWithVariants> {
+  ): Promise<ProductWithAssets> {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: {
-        variants: {
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        },
-      },
+      include: adminInclude,
     });
 
     if (!product) {
@@ -323,12 +375,45 @@ export class ProductsService {
     return product;
   }
 
+  private toAdmin(
+    product: ProductWithAssets,
+  ): AdminProductView {
+    return {
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      description: product.description,
+      category: product.category,
+      currency: product.currency,
+      status: product.status,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+      variants: product.variants.map((variant) => ({
+        id: variant.id,
+        sku: variant.sku,
+        label: variant.label,
+        priceCents: variant.priceCents,
+        stock: variant.stock,
+        active: variant.active,
+      })),
+      images: product.images.map((image) => ({
+        id: image.id,
+        position: image.position,
+        mimeType: image.mimeType,
+        sizeBytes: image.sizeBytes,
+      })),
+    };
+  }
+
   private toPublic(
-    product: ProductWithVariants,
+    product: ProductWithAssets,
   ): PublicProductView {
-    if (product.variants.length === 0) {
+    if (
+      product.variants.length === 0 ||
+      product.images.length === 0
+    ) {
       throw new Error(
-        'Published product invariant violated: no active variant',
+        'Published product invariant violated: missing active variant or image',
       );
     }
 
@@ -353,6 +438,14 @@ export class ProductsService {
         priceCents: variant.priceCents,
         stock: variant.stock,
         active: variant.active,
+      })),
+      images: product.images.map((image) => ({
+        id: image.id,
+        position: image.position,
+        mimeType: image.mimeType,
+        sizeBytes: image.sizeBytes,
+        contentUrl:
+          `/api/products/${product.id}/images/${image.id}/content`,
       })),
     };
   }

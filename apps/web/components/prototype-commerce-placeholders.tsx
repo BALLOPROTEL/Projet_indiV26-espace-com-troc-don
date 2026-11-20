@@ -41,7 +41,7 @@ export function ProductPlaceholderPage() {
           <RoadmapBadge>LOT L4A</RoadmapBadge>
           <p>
             Les fiches produit utilisent désormais les vrais prix, variantes
-            et stocks du service Catalog. Cette route neutre ne fabrique aucun
+            stocks et images du service Catalog. Cette route neutre ne fabrique aucun
             produit lorsqu’aucun identifiant réel n’a été sélectionné.
           </p>
 
@@ -53,7 +53,7 @@ export function ProductPlaceholderPage() {
 
           <ul className="pm-product-placeholder__specs">
             <li><strong>Catalogue :</strong> backend Produit connecté</li>
-            <li><strong>Images :</strong> prévues en L4B</li>
+            <li><strong>Images :</strong> médias réels Catalog / MinIO</li>
             <li><strong>Panier / commande :</strong> prévus en L5</li>
           </ul>
         </section>
