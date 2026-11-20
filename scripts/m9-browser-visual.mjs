@@ -822,7 +822,7 @@ async function runRealBrowserJourneys() {
       'open:root.open, links:[...root.querySelectorAll(".pm-account-menu__panel a")]' +
       '.map(a=>a.getAttribute("href"))};})()');
     assert.equal(menu?.open, true, 'L1 USER account menu must open');
-    for (const required of ['/espace', '/espace#publier', '/espace#mes-articles', '/espace#mes-echanges']) {
+    for (const required of ['/espace', '/publier', '/mes-annonces', '/messages']) {
       assert.ok(menu?.links.includes(required),
         'L1 USER account menu must include ' + required);
     }
@@ -853,13 +853,13 @@ async function runRealBrowserJourneys() {
 
   // UX V4: member navigation anchors must survive the delayed Keycloak
   // bootstrap and preserve the real sent/received/hand-over dashboard.
-  await journeyOpen('/espace#mes-echanges', '.marketplace-dashboard',
+  await journeyOpen('/messages', '.marketplace-dashboard',
     'UX V4 member exchange section after login');
   const memberTargets = await evaluate('[...document.querySelectorAll(".pm-account-nav a")]' +
     '.map(a=>a.getAttribute("href")).filter(Boolean)');
-  assert.ok(memberTargets.includes('/espace#mes-articles'),
+  assert.ok(memberTargets.includes('/mes-annonces'),
     'Prototype account sidebar must link to Mes annonces');
-  assert.ok(memberTargets.includes('/espace#mes-echanges'),
+  assert.ok(memberTargets.includes('/messages'),
     'Prototype account sidebar must link to Messages & échanges');
   await waitUntil('UX V4 member deep link restored after Keycloak bootstrap',
     '(() => {const target=document.getElementById("mes-echanges");' +
@@ -1641,7 +1641,7 @@ async function runFrontV2HomeJourney() {
   );
   assert.deepEqual(
     navigation.mobile,
-    ['/', '/boutique', '/echanges', '/espace#publier', '/espace'],
+    ['/', '/boutique', '/echanges', '/publier', '/espace'],
     'Prototype mobile bar must expose task-oriented destinations',
   );
   assert.equal(navigation.footerColumns, 4,
@@ -2120,7 +2120,7 @@ async function runAdminDashboardBrowser() {
     'F5 true Keycloak ADMIN dashboard');
   const adminQuickLinks = await evaluate('[...document.querySelectorAll(".admin-v2__quick-actions a")]' +
     '.map(a=>a.getAttribute("href"))');
-  assert.deepEqual(adminQuickLinks, ['/moderation', '/echanges', '/espace#mes-echanges'],
+  assert.deepEqual(adminQuickLinks, ['/moderation', '/echanges', '/messages'],
     'Prototype ADMIN shortcuts must point to real authorized destinations only');
   await waitUntil('F5 ADMIN values from Catalog', '(() => {' +
     'const values=[...document.querySelectorAll(".admin-v2__metric strong")]' +
