@@ -139,6 +139,28 @@ async function run() {
   assert.equal(released.availabilityStatus, 'AVAILABLE');
   info('Catalog internal service-token authorization + 404/409/reserve/release: PASS');
 
+  await request(gateway, '/api/favorites/' + listingId, {}, 401);
+  const favorite = await request(gateway, '/api/favorites/' + listingId, {
+    method: 'POST',
+    headers: auth(requester),
+  }, 201);
+  assert.equal(favorite.listingId, listingId);
+  assert.equal(favorite.favorited, true);
+  const favoriteState = await request(gateway, '/api/favorites/' + listingId, {
+    headers: auth(requester),
+  }, 200);
+  assert.equal(favoriteState.favorited, true);
+  const favorites = await request(gateway, '/api/favorites', {
+    headers: auth(requester),
+  }, 200);
+  assert.ok(favorites.some(item => item.id === listingId));
+  const removedFavorite = await request(gateway, '/api/favorites/' + listingId, {
+    method: 'DELETE',
+    headers: auth(requester),
+  }, 200);
+  assert.equal(removedFavorite.favorited, false);
+  info('Catalog favorites: JWT add/read/list/remove real persistence: PASS');
+
   const proposal = await request(gateway, '/api/proposals', {
     method: 'POST',
     headers: { ...auth(requester), 'content-type': 'application/json' },
