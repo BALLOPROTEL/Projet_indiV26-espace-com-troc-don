@@ -2311,6 +2311,13 @@ body {
   margin-top: 20px;
 }
 
+.pm-settings-hint {
+  margin: -4px 0 2px;
+  color: var(--pm-muted);
+  font-size: .72rem;
+  line-height: 1.55;
+}
+
 .pm-settings-toggle {
   grid-template-columns: auto 1fr;
   align-items: center;
