@@ -393,6 +393,16 @@ export function PersonalSpace({ view = 'all' }: { view?: PersonalSpaceView }) {
       canModerate={hasAnyRole('MODERATOR', 'ADMIN')}
       isAdmin={roles.includes('ADMIN')}
       onLogout={() => void logout()}
+      heading={
+        view === 'publish'
+          ? 'Publier une annonce'
+          : view === 'listings'
+            ? 'Mes annonces'
+            : view === 'exchanges'
+              ? 'Messages & échanges'
+              : 'Mon espace'
+      }
+      description={viewCopy.text}
     >
       <div className={'workspace workspace-v3 workspace-v3--' + view}>
       <section className="workspace-intro">
