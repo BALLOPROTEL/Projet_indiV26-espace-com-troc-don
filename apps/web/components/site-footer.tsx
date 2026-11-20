@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { BrandMark, RoadmapBadge } from './design-system';
+import { BrandMark } from './design-system';
 
 export function SiteFooter() {
   return (
@@ -11,36 +11,36 @@ export function SiteFooter() {
             <h2>La Petite Maison<br />de l’Épouvante</h2>
           </div>
           <p>
-            La plateforme des passionnés d’horreur et de fantastique :
-            une communauté DON/TROC déjà active, et une boutique en construction.
+            La plateforme des passionnés d’horreur et de fantastique.<br />
+            Une boutique, une communauté, mille histoires à partager.
           </p>
         </div>
 
         <div>
           <h3>Explorer</h3>
+          <a href="/#boutique">La boutique</a>
           <Link href="/echanges">Dons &amp; échanges</Link>
-          <Link href="/#boutique">La boutique <RoadmapBadge>BIENTÔT</RoadmapBadge></Link>
-          <Link href="/#fanzines">Fanzines <RoadmapBadge>BIENTÔT</RoadmapBadge></Link>
+          <a href="/#fanzines">Les fanzines</a>
         </div>
 
         <div>
           <h3>Communauté</h3>
           <Link href="/espace#publier">Publier une annonce</Link>
-          <Link href="/echanges">Découvrir les échanges</Link>
-          <Link href="/moderation">Modération</Link>
+          <a href="/#actualites">Festival</a>
+          <span className="pm-footer__muted">Notre histoire · bientôt</span>
         </div>
 
         <div>
-          <h3>Projet</h3>
-          <Link href="/#actualites">Actualités <RoadmapBadge>BIENTÔT</RoadmapBadge></Link>
-          <span className="pm-footer__muted">FAQ · lot L6</span>
-          <span className="pm-footer__muted">Contact · lot L6</span>
+          <h3>Besoin d&apos;aide ?</h3>
+          <span className="pm-footer__muted">FAQ · bientôt</span>
+          <span className="pm-footer__muted">Nous contacter · bientôt</span>
+          <span className="pm-footer__muted">Préférences · bientôt</span>
         </div>
       </div>
 
       <div className="pm-wrap pm-footer__bottom">
-        <span>© La Petite Maison de l’Épouvante · Projet CESI</span>
-        <span>Fonctions commerciales non actives dans ce lot</span>
+        <span>© La Petite Maison de l’Épouvante — Prototype UX/UI intégré</span>
+        <span>Fonctions commerciales non actives tant que leurs backends ne sont pas livrés</span>
       </div>
     </footer>
   );
