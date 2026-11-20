@@ -100,6 +100,8 @@ export function AccountShell({
   canModerate,
   isAdmin,
   onLogout,
+  heading = 'Mon espace',
+  description = 'Tous vos échanges et préférences au même endroit.',
   children,
 }: {
   username: string | null;
@@ -107,6 +109,8 @@ export function AccountShell({
   canModerate: boolean;
   isAdmin: boolean;
   onLogout: () => void;
+  heading?: string;
+  description?: string;
   children: ReactNode;
 }) {
   return (
@@ -115,10 +119,10 @@ export function AccountShell({
         <nav aria-label="Fil d’Ariane">
           <Link href="/">Accueil</Link>
           <span aria-hidden="true">›</span>
-          <strong>Mon compte</strong>
+          <strong>{heading}</strong>
         </nav>
-        <h1>Mon espace</h1>
-        <p>Tous vos échanges et préférences au même endroit.</p>
+        <h1>{heading}</h1>
+        <p>{description}</p>
       </div>
 
       <div className="pm-account-layout">
