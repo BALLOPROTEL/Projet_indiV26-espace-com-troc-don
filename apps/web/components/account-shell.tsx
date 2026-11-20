@@ -9,7 +9,11 @@ type ActiveItem =
   | 'listings'
   | 'exchanges'
   | 'moderation'
-  | 'admin';
+  | 'admin'
+  | 'orders'
+  | 'favorites'
+  | 'notifications'
+  | 'settings';
 
 function initials(value: string | null) {
   const source = value?.trim() || 'Membre';
@@ -139,12 +143,12 @@ export function AccountShell({
 
           <nav className="pm-account-nav">
             <Item href="/espace" label="Vue d’ensemble" icon="overview" active={active === 'overview'} />
-            <Item label="Mes commandes" icon="orders" disabled />
+            <Item href="/mes-commandes" label="Mes commandes" icon="orders" active={active === 'orders'} />
             <Item href="/mes-annonces" label="Mes annonces" icon="listings" active={active === 'listings'} />
-            <Item label="Mes favoris" icon="favorites" disabled />
+            <Item href="/favoris" label="Mes favoris" icon="favorites" active={active === 'favorites'} />
             <Item href="/messages" label="Messages & échanges" icon="messages" active={active === 'exchanges'} />
-            <Item label="Notifications" icon="notifications" disabled />
-            <Item label="Paramètres" icon="settings" disabled />
+            <Item href="/notifications" label="Notifications" icon="notifications" active={active === 'notifications'} />
+            <Item href="/parametres" label="Paramètres" icon="settings" active={active === 'settings'} />
             {canModerate ? (
               <Item href="/moderation" label="Modération" icon="moderation" active={active === 'moderation'} />
             ) : null}
