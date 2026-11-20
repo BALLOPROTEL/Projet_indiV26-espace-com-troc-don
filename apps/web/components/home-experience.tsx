@@ -3,48 +3,16 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { listingsApi } from '../lib/api';
-import {
-  HOME_PAGE_SIZE,
-  filterPublicListings,
-  paginateListings,
-  paginationNumbers,
-} from '../lib/home-pagination';
-import type { Listing, ListingOperationType } from '../lib/types';
-import { EmptyState } from './empty-state';
+import type { Listing } from '../lib/types';
 import { ListingCard } from './listing-card';
 import { RoadmapBadge, SectionHeading } from './design-system';
 
-type OperationFilter = ListingOperationType | 'ALL';
-
-const universeCards = [
-  {
-    icon: '🛍️',
-    title: 'La boutique',
-    text: 'Produits, collections et commandes arriveront dans les lots L4–L5.',
-    href: '#boutique',
-    available: false,
-  },
-  {
-    icon: '♻️',
-    title: 'Dons & trocs',
-    text: 'Le parcours communautaire réel : annonces, modération, demandes et échanges.',
-    href: '/echanges',
-    available: true,
-  },
-  {
-    icon: '📖',
-    title: 'Les fanzines',
-    text: 'Un futur espace de lecture et de découverte éditoriale.',
-    href: '#fanzines',
-    available: false,
-  },
-  {
-    icon: '🎃',
-    title: 'Actualités',
-    text: 'Festival, événements et contenus seront ajoutés dans le lot L6.',
-    href: '#actualites',
-    available: false,
-  },
+const shopUniverses = [
+  ['🧛', 'Figurines'],
+  ['🎬', 'Films & Blu-ray'],
+  ['📚', 'BD & Livres'],
+  ['🎲', 'Jeux'],
+  ['🎁', 'Goodies'],
 ] as const;
 
 export function HomeExperience() {
@@ -52,29 +20,24 @@ export function HomeExperience() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
-  const [search, setSearch] = useState('');
-  const [type, setType] = useState<OperationFilter>('ALL');
-  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let active = true;
 
     void listingsApi.public()
       .then((data) => {
-        if (active) {
-          setListings(data);
-          setError(null);
-        }
+        if (!active) return;
+        setListings(data);
+        setError(null);
       })
       .catch((reason: unknown) => {
-        if (active) {
-          setListings([]);
-          setError(
-            reason instanceof Error
-              ? reason.message
-              : 'Impossible de charger les annonces.',
-          );
-        }
+        if (!active) return;
+        setListings([]);
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : 'Impossible de charger les annonces.',
+        );
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -85,32 +48,10 @@ export function HomeExperience() {
     };
   }, [reload]);
 
-  const approved = useMemo(
-    () => listings.filter((listing) => listing.status === 'APPROVED'),
+  const communityPreview = useMemo(
+    () => listings.filter((listing) => listing.status === 'APPROVED').slice(0, 3),
     [listings],
   );
-  const filtered = useMemo(
-    () => filterPublicListings(approved, search, type),
-    [approved, search, type],
-  );
-  const result = paginateListings(filtered, page);
-  const numberedPages = paginationNumbers(result.page, result.pages);
-  const availableCount = approved.filter(
-    (item) => item.availabilityStatus === 'AVAILABLE',
-  ).length;
-  const giftCount = approved.filter(
-    (item) => item.operationType === 'DONATION',
-  ).length;
-
-  function updateSearch(value: string) {
-    setSearch(value);
-    setPage(1);
-  }
-
-  function updateType(value: OperationFilter) {
-    setType(value);
-    setPage(1);
-  }
 
   return (
     <div className="pm-home home-v2">
@@ -118,20 +59,19 @@ export function HomeExperience() {
         <div className="pm-hero__copy">
           <span className="pm-eyebrow">✦ Boutique &amp; univers communautaire</span>
           <h1 id="pm-home-title">
-            Des frissons à découvrir.<br />
+            Des frissons à acheter.<br />
             <em>Des passions à partager.</em>
           </h1>
           <p>
-            La Petite Maison évolue en plateforme 2-en-1. Le DON/TROC reste
-            pleinement opérationnel ; la boutique sera activée seulement
-            lorsque ses vrais produits, stocks et commandes seront prêts.
+            Découvrez les univers de la maison, puis retrouvez chaque expérience
+            sur sa propre page : boutique, échanges, fanzines et festival.
           </p>
           <div className="pm-hero__actions home-v2__hero-actions">
-            <a className="pm-button pm-button--orange" href="#boutique">
-              Découvrir la future boutique →
-            </a>
+            <Link className="pm-button pm-button--orange" href="/boutique">
+              Explorer la boutique →
+            </Link>
             <Link className="pm-button pm-button--light" href="/echanges">
-              Voir les échanges ↔
+              Découvrir les échanges ↔
             </Link>
           </div>
         </div>
@@ -146,61 +86,57 @@ export function HomeExperience() {
             <div className="pm-house__window pm-house__window--two" />
             <div className="pm-house__door" />
           </div>
-          <div className="pm-hero-float pm-hero-float--a">🛍️ Boutique en préparation</div>
-          <div className="pm-hero-float pm-hero-float--b">♻️ DON &amp; TROC disponibles</div>
+          <div className="pm-hero-float pm-hero-float--a">🛍️ Boutique &amp; collections</div>
+          <div className="pm-hero-float pm-hero-float--b">♻️ Échanges entre passionnés</div>
         </div>
       </section>
 
-      <section className="pm-promises" aria-label="Fonctions réellement disponibles">
-        <article><span>🛡️</span><div><strong>Communauté modérée</strong><small>Validation des annonces</small></div></article>
-        <article><span>🔐</span><div><strong>Connexion sécurisée</strong><small>Keycloak / OIDC</small></div></article>
-        <article><span>♻️</span><div><strong>DON &amp; TROC réels</strong><small>Demandes et transactions</small></div></article>
-        <article><span>🖼️</span><div><strong>Galeries protégées</strong><small>Images via MinIO</small></div></article>
+      <section className="pm-promises" aria-label="Promesses de la plateforme">
+        <article><span>📦</span><div><strong>Univers boutique</strong><small>Catalogue commercial à venir</small></div></article>
+        <article><span>🔐</span><div><strong>Parcours sécurisé</strong><small>Connexion Keycloak</small></div></article>
+        <article><span>♻️</span><div><strong>Seconde vie</strong><small>Dons et trocs entre membres</small></div></article>
+        <article><span>💬</span><div><strong>Une vraie communauté</strong><small>Échanges avec les passionnés</small></div></article>
       </section>
 
       <section className="pm-section">
         <SectionHeading
-          eyebrow="La plateforme 2-en-1"
-          title="Explorez les univers de la Petite Maison"
-          description="Le design prépare l’ensemble de la plateforme sans présenter comme actives les fonctions encore en développement."
+          eyebrow="Explorez nos univers"
+          title="Une maison, plusieurs expériences"
+          description="Chaque univers possède désormais sa propre page."
         />
-        <div className="pm-universe-grid">
-          {universeCards.map((card) => (
-            <a className="pm-universe-card" href={card.href} key={card.title}>
-              <span className="pm-universe-card__icon" aria-hidden="true">{card.icon}</span>
-              <div>
-                <div className="pm-universe-card__title">
-                  <strong>{card.title}</strong>
-                  {card.available ? (
-                    <RoadmapBadge tone="teal">DISPONIBLE</RoadmapBadge>
-                  ) : (
-                    <RoadmapBadge>BIENTÔT</RoadmapBadge>
-                  )}
-                </div>
-                <p>{card.text}</p>
-              </div>
-            </a>
+        <div className="pm-home-universe-strip">
+          {shopUniverses.map(([icon, label]) => (
+            <Link href="/boutique" key={label}>
+              <span aria-hidden="true">{icon}</span>
+              <strong>{label}</strong>
+            </Link>
           ))}
         </div>
       </section>
 
-      <section className="pm-section pm-future-shop" id="boutique" aria-labelledby="pm-shop-title">
-        <div className="pm-future-shop__copy">
-          <RoadmapBadge>LOT L4–L5</RoadmapBadge>
-          <h2 id="pm-shop-title">La boutique prend place dans la maison.</h2>
-          <p>
-            Le catalogue commercial, les prix, le stock, le panier et les commandes
-            ne sont pas encore activés. Ce lot pose seulement leur identité visuelle.
-          </p>
-          <a className="pm-text-link" href="#annonces">
-            En attendant, découvrir les objets de la communauté →
-          </a>
+      <section className="pm-section pm-home-shop-teaser" aria-labelledby="home-shop-title">
+        <div className="pm-home-section-line">
+          <div>
+            <span className="pm-overline">Boutique</span>
+            <h2 id="home-shop-title">Les coups de cœur du moment</h2>
+            <p>Le catalogue réel sera affiché uniquement quand son backend sera disponible.</p>
+          </div>
+          <Link className="pm-text-link" href="/boutique">Tout voir →</Link>
         </div>
-        <div className="pm-future-shop__shelves" aria-hidden="true">
-          <span>FIGURINES</span>
-          <span>FANZINES</span>
-          <span>JEUX</span>
-          <span>BD &amp; LIVRES</span>
+        <div className="pm-home-shop-grid">
+          {[
+            ['🧛', 'Figurines'],
+            ['🎬', 'Films & Blu-ray'],
+            ['📖', 'Fanzines'],
+            ['🎲', 'Jeux'],
+          ].map(([icon, label]) => (
+            <Link href="/boutique" key={label}>
+              <div aria-hidden="true">{icon}</div>
+              <small>UNIVERS</small>
+              <strong>{label}</strong>
+              <RoadmapBadge>BIENTÔT</RoadmapBadge>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -209,11 +145,13 @@ export function HomeExperience() {
           <span className="pm-overline">Le coin des passionnés</span>
           <h2>Un objet chez vous.<br />Une belle histoire ailleurs.</h2>
           <p>
-            Proposez un livre, un jeu, une figurine ou un autre objet en don
-            ou en troc. Le parcours existant reste inchangé derrière cette nouvelle interface.
+            Proposez un livre, un jeu, une figurine ou un objet en don ou en troc.
+            Les annonces et transactions sont reliées aux services réels.
           </p>
           <div className="pm-community-feature__actions">
-            <Link className="pm-button pm-button--teal" href="/echanges">Voir les annonces ↔</Link>
+            <Link className="pm-button pm-button--teal" href="/echanges">
+              Voir les annonces ↔
+            </Link>
             <Link className="pm-button pm-button--outline" href="/espace#publier">
               Déposer une annonce
             </Link>
@@ -224,63 +162,18 @@ export function HomeExperience() {
         </div>
       </section>
 
-      <section className="pm-section" id="annonces" aria-labelledby="pm-community-title">
+      <section className="pm-section" aria-labelledby="pm-community-title">
         <SectionHeading
-          eyebrow="Communauté active"
+          eyebrow="Communauté"
           title="Tout juste dans la communauté"
           titleId="pm-community-title"
-          description="Les données ci-dessous viennent du vrai Catalog Service. Aucun article fictif n’est injecté."
-          action={
-            <Link className="pm-text-link" href="/espace#publier">
-              Déposer un objet ↗
-            </Link>
-          }
+          description="Un aperçu des dernières annonces approuvées. Le catalogue complet est sur la page Échanges & dons."
+          action={<Link className="pm-text-link" href="/echanges">Tout voir →</Link>}
         />
 
-        <form
-          className="pm-search-panel"
-          id="community-search"
-          role="search"
-          onSubmit={(event) => event.preventDefault()}
-        >
-          <label htmlFor="home-v2-search">Rechercher dans les annonces</label>
-          <div className="pm-search-panel__row">
-            <div className="pm-search-box">
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <circle cx="10.7" cy="10.7" r="6.8" />
-                <path d="m16 16 5 5" />
-              </svg>
-              <input
-                id="home-v2-search"
-                type="search"
-                value={search}
-                onChange={(event) => updateSearch(event.target.value)}
-                placeholder="Un livre, un jeu, une figurine…"
-              />
-            </div>
-            <label className="pm-select home-v2__filter-type">
-              <span>Type</span>
-              <select
-                value={type}
-                onChange={(event) => updateType(event.target.value as OperationFilter)}
-              >
-                <option value="ALL">Tous</option>
-                <option value="DONATION">Dons</option>
-                <option value="TRADE">Trocs</option>
-              </select>
-            </label>
-          </div>
-        </form>
-
-        <div className="pm-real-stats home-v2__facts" aria-label="État réel du catalogue">
-          <span><strong>{loading || error ? '—' : approved.length}</strong> annonces publiées</span>
-          <span><strong>{loading || error ? '—' : availableCount}</strong> disponibles</span>
-          <span><strong>{loading || error ? '—' : giftCount}</strong> dons</span>
-        </div>
-
         {loading ? (
-          <div className="pm-listing-grid home-v2__grid" aria-label="Chargement des annonces" aria-busy="true">
-            {Array.from({ length: HOME_PAGE_SIZE }, (_, index) => (
+          <div className="pm-listing-grid home-v2__grid" aria-busy="true">
+            {Array.from({ length: 3 }, (_, index) => (
               <div className="pm-skeleton" key={index} aria-hidden="true" />
             ))}
           </div>
@@ -288,7 +181,7 @@ export function HomeExperience() {
 
         {!loading && error ? (
           <div className="pm-error home-v2__error" role="alert">
-            <strong>Impossible de charger le catalogue communautaire.</strong>
+            <strong>Impossible de charger l’aperçu communautaire.</strong>
             <p>{error}</p>
             <button
               className="pm-button pm-button--navy"
@@ -304,91 +197,48 @@ export function HomeExperience() {
           </div>
         ) : null}
 
-        {!loading && !error && filtered.length === 0 ? (
-          <EmptyState
-            eyebrow={approved.length === 0 ? 'Premières annonces à venir' : 'Aucun résultat'}
-            title={
-              approved.length === 0
-                ? 'Il n’y a pas encore d’annonces publiées.'
-                : 'Aucune annonce ne correspond à votre recherche.'
-            }
-            text={
-              approved.length === 0
-                ? 'Les prochaines annonces apparaîtront ici après leur approbation.'
-                : 'Essayez un autre mot ou changez le type de publication.'
-            }
-          />
+        {!loading && !error && communityPreview.length === 0 ? (
+          <div className="pm-prototype-empty">
+            <h2>Les premières annonces arriveront bientôt.</h2>
+            <p>Les annonces approuvées par la modération apparaîtront ici.</p>
+          </div>
         ) : null}
 
-        {!loading && !error && result.items.length > 0 ? (
-          <>
-            <p className="pm-results home-v2__results" aria-live="polite">
-              {result.start}–{result.end} sur {result.total} annonce{result.total > 1 ? 's' : ''}
-            </p>
-            <div className="pm-listing-grid home-v2__grid">
-              {result.items.map((listing) => (
-                <ListingCard
-                  key={listing.id}
-                  listing={listing}
-                  href={'/annonces/' + listing.id}
-                  showAvailability
-                />
-              ))}
-            </div>
-          </>
-        ) : null}
-
-        {!loading && !error && result.pages > 1 && result.total > 0 ? (
-          <nav className="pm-pagination home-v2__pagination" aria-label="Pagination des annonces">
-            <button
-              type="button"
-              disabled={result.page === 1}
-              onClick={() => setPage(result.page - 1)}
-            >
-              ← Précédent
-            </button>
-            {numberedPages.map((number, index) => (
-              <span key={number}>
-                {index > 0 && number > numberedPages[index - 1] + 1 ? (
-                  <span className="pm-pagination__gap" aria-hidden="true">…</span>
-                ) : null}
-                <button
-                  type="button"
-                  aria-label={'Page ' + number}
-                  aria-current={number === result.page ? 'page' : undefined}
-                  className={number === result.page ? 'is-current' : ''}
-                  onClick={() => setPage(number)}
-                >
-                  {number}
-                </button>
-              </span>
+        {!loading && !error && communityPreview.length > 0 ? (
+          <div className="pm-listing-grid home-v2__grid">
+            {communityPreview.map((listing) => (
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                href={'/annonces/' + listing.id}
+                showAvailability
+              />
             ))}
-            <button
-              type="button"
-              disabled={result.page === result.pages}
-              onClick={() => setPage(result.page + 1)}
-            >
-              Suivant →
-            </button>
-          </nav>
+          </div>
         ) : null}
       </section>
 
       <section className="pm-section pm-story-grid">
-        <article id="fanzines">
-          <div className="pm-story-art" aria-hidden="true"><strong>FANZINES</strong><span>☾</span></div>
+        <article>
+          <div className="pm-story-art" aria-hidden="true">
+            <strong>ÉPOUVANTE</strong><span>☾</span>
+          </div>
           <div>
-            <RoadmapBadge>LOT L6</RoadmapBadge>
+            <span className="pm-overline">Le fanzine</span>
             <h2>Des histoires à dévorer.</h2>
-            <p>Le futur espace fanzine reprendra cette identité lorsque le contenu et les droits d’accès seront réellement cadrés.</p>
+            <p>Découvrez l’espace éditorial sur sa page dédiée.</p>
+            <Link className="pm-text-link" href="/fanzines">Découvrir →</Link>
           </div>
         </article>
-        <article id="actualites">
-          <div className="pm-story-art pm-story-art--festival" aria-hidden="true"><strong>FESTIVAL</strong><span>✦</span></div>
+        <article>
+          <div className="pm-story-art pm-story-art--festival" aria-hidden="true">
+            <strong>FESTIVAL</strong><span>✦</span>
+          </div>
           <div>
-            <RoadmapBadge>LOT L6</RoadmapBadge>
-            <h2>Le fantastique se vit aussi ensemble.</h2>
-            <p>Les actualités et événements apparaîtront ici sans inventer de dates ni de programmation.</p>
+            <span className="pm-overline">Événements</span>
+            <h2>Le Petit Festival</h2>
+            <p>Actualités et rencontres ont désormais leur propre espace.</p>
+            <Link className="pm-text-link" href="/festival">Voir l’actualité →</Link>
           </div>
         </article>
       </section>
