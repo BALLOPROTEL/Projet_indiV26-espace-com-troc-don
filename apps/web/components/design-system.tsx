@@ -27,11 +27,13 @@ export function RoadmapBadge({
 export function SectionHeading({
   eyebrow,
   title,
+  titleId,
   description,
   action,
 }: {
   eyebrow?: string;
   title: string;
+  titleId?: string;
   description?: string;
   action?: ReactNode;
 }) {
@@ -39,7 +41,7 @@ export function SectionHeading({
     <div className="pm-section-heading">
       <div>
         {eyebrow ? <span className="pm-overline">{eyebrow}</span> : null}
-        <h2>{title}</h2>
+        <h2 id={titleId}>{title}</h2>
         {description ? <p>{description}</p> : null}
       </div>
       {action ? <div className="pm-section-heading__action">{action}</div> : null}
