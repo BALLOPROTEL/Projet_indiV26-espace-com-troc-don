@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
-import { favoritesApi } from '../lib/api';
-import type { Listing } from '../lib/types';
+import { favoritesApi, notificationsApi } from '../lib/api';
+import type { Listing, UserNotification } from '../lib/types';
 import { AccountShell } from './account-shell';
 import { useAuth } from './auth-provider';
 import { RoadmapBadge } from './design-system';
@@ -216,21 +216,157 @@ export function FavoritesPlaceholderPage() {
   );
 }
 
+function notificationCopy(notification: UserNotification) {
+  switch (notification.event.type) {
+    case 'proposal.created':
+      return {
+        label: 'Nouvelle demande reçue',
+        description:
+          notification.event.data.proposalType === 'DONATION_REQUEST'
+            ? 'Un membre a demandé votre objet proposé en don.'
+            : 'Un membre vous a envoyé une proposition de troc.',
+        reference: notification.event.data.targetListingId,
+      };
+    case 'proposal.accepted':
+      return {
+        label: 'Proposition acceptée',
+        description:
+          'Le propriétaire a accepté votre proposition. La transaction peut maintenant être suivie dans votre espace.',
+        reference: notification.event.data.transactionId,
+      };
+    case 'proposal.rejected':
+      return {
+        label: 'Proposition non retenue',
+        description:
+          'Votre proposition a été refusée ou clôturée après l’acceptation d’une autre proposition.',
+        reference: notification.event.data.proposalId,
+      };
+    case 'transaction.completed':
+      return {
+        label: 'Échange terminé',
+        description:
+          'Les deux participants ont confirmé la fin de la transaction.',
+        reference: notification.event.data.transactionId,
+      };
+  }
+}
+
+function notificationDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('fr-FR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+}
+
 export function NotificationsPlaceholderPage() {
+  const { ready, authenticated, getToken } = useAuth();
+  const [items, setItems] = useState<UserNotification[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!ready || !authenticated) {
+      setItems([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    void getToken()
+      .then(notificationsApi.mine)
+      .then((notifications) => {
+        if (active) {
+          setItems(notifications);
+        }
+      })
+      .catch((reason: unknown) => {
+        if (active) {
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : 'Impossible de charger vos notifications.',
+          );
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [ready, authenticated, getToken]);
+
   return (
     <PendingAccountShell view="notifications">
       <section className="pm-account-placeholder">
-        <RoadmapBadge>INBOX UTILISATEUR À EXPOSER</RoadmapBadge>
+        <RoadmapBadge>INBOX PERSONNELLE CONNECTÉE</RoadmapBadge>
         <h2>Mes notifications</h2>
         <p>
-          Le service Notifications actuel stocke des événements techniques
-          globaux. Ils ne sont volontairement pas exposés dans cet écran tant
-          qu’une inbox filtrée et sécurisée par utilisateur n’existe pas.
+          Cet écran affiche uniquement les événements DON/TROC qui concernent
+          réellement votre compte. Aucune notification globale n’est exposée.
         </p>
-        <div className="pm-empty-table" role="status">
-          <span aria-hidden="true">🔔</span>
-          <strong>Aucune notification utilisateur exposée</strong>
-        </div>
+
+        {error ? (
+          <p role="alert" className="notice notice--error">{error}</p>
+        ) : null}
+
+        {loading ? (
+          <div className="pm-empty-table" role="status" aria-busy="true">
+            <span aria-hidden="true">🔔</span>
+            <strong>Chargement de vos notifications…</strong>
+          </div>
+        ) : items.length > 0 ? (
+          <div className="pm-notification-list" aria-label="Notifications du compte">
+            {items.map((notification) => {
+              const content = notificationCopy(notification);
+
+              return (
+                <article
+                  className="pm-notification-item"
+                  key={notification.event.eventId}
+                >
+                  <div className="pm-notification-item__mark" aria-hidden="true">
+                    {notification.event.type === 'transaction.completed' ? '✓' : '↗'}
+                  </div>
+                  <div>
+                    <div className="pm-notification-item__heading">
+                      <strong>{content.label}</strong>
+                      <time dateTime={notification.receivedAt}>
+                        {notificationDate(notification.receivedAt)}
+                      </time>
+                    </div>
+                    <p>{content.description}</p>
+                    <small>
+                      Réf. {content.reference.slice(0, 12)}
+                    </small>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="pm-empty-table" role="status">
+            <span aria-hidden="true">🔔</span>
+            <strong>Aucune notification pour votre compte</strong>
+          </div>
+        )}
+
+        <Link className="pm-button pm-button--outline" href="/messages">
+          Voir mes échanges
+        </Link>
       </section>
     </PendingAccountShell>
   );
