@@ -192,7 +192,9 @@ body {
 .pm-breadcrumbs,
 .pm-account-heading nav,
 .listing-detail__breadcrumbs {
+  min-width: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 9px;
   margin-bottom: 24px;
@@ -210,7 +212,10 @@ body {
 .pm-breadcrumbs strong,
 .pm-account-heading nav strong,
 .listing-detail__breadcrumbs span[aria-current='page'] {
+  min-width: 0;
   color: var(--pm-navy);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .pm-exchange-hero {
