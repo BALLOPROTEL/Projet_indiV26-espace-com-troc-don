@@ -60,3 +60,31 @@ Référence UX/UI : `docs/design/plateforme-2-en-1/prototype.html` sur `design/p
 - #148 devra être intégré avant l’UI messagerie de L2.
 - #146 devra être réévalué avant toute refonte du détail annonce/SEO en L2/L6.
 - La validation mobile physique (Safari iPhone + Chrome Android) reste humaine : l’émulation ne suffit pas pour safe-area, hover tactile et clavier logiciel.
+
+
+## Décision visuelle propriétaire — référence stricte
+
+Après revue du premier L1, le propriétaire a refusé le mélange entre le nouveau prototype et les composants visuels historiques.
+
+La règle est désormais :
+
+- le ZIP des 24 maquettes et le prototype HTML sont la seule référence visuelle ;
+- chaque écran migré doit abandonner l’ancienne palette, les anciens shells, les anciennes cartes et les anciens espacements ;
+- les fonctions métier et les données restent les contrats existants ;
+- l’absence de backend pour une maquette interdit les fausses données, mais n’autorise pas à réutiliser l’ancien design ;
+- un test `prototype-visual-contract.test.ts` bloque le retour des principales couleurs legacy sur les surfaces migrées ;
+- Keycloak est également migré vers la maquette 14 afin que la connexion ne rompe pas la continuité visuelle.
+
+### Écrans opérationnels désormais couverts visuellement
+
+- 01 — Accueil ;
+- 07 — Échanges & dons (`/echanges`) ;
+- 08 — Détail annonce ;
+- 09 — Publication ;
+- 14 — Connexion Keycloak ;
+- 15 — Tableau de bord ;
+- 17 — Mes annonces ;
+- 21 — Modération ;
+- Administration — même shell compte/design system.
+
+Les autres écrans restent dans leurs lots fonctionnels respectifs et ne reçoivent aucune donnée fictive.
