@@ -10,6 +10,7 @@ const header = readFileSync(new URL('../components/site-header.tsx', import.meta
 const exchanges = readFileSync(new URL('../components/marketplace-dashboard.tsx', import.meta.url), 'utf8');
 const admin = readFileSync(new URL('../components/admin-dashboard.tsx', import.meta.url), 'utf8');
 const moderation = readFileSync(new URL('../components/moderation-space.tsx', import.meta.url), 'utf8');
+const accountShell = readFileSync(new URL('../components/account-shell.tsx', import.meta.url), 'utf8');
 const designSystemCss = readFileSync(new URL('../app/design-system.css', import.meta.url), 'utf8');
 
 describe('UX V4 task-first entry points', () => {
@@ -33,7 +34,7 @@ describe('UX V4 task-first entry points', () => {
   it('provides a real target for every member shortcut', () => {
     for (const id of ['publier', 'mes-articles', 'mes-echanges']) {
       expect(space).toContain(`id="${id}"`);
-      expect(space).toContain(`href="#${id}"`);
+      expect(accountShell).toContain(`href="/espace#${id}"`);
       expect(header).toContain(`href="/espace#${id}"`);
     }
     expect(space).toContain('workspaceSectionFromHash(window.location.hash)');
@@ -65,7 +66,7 @@ describe('UX V4 task-first entry points', () => {
 
   it('keeps administrators and moderators on real existing destinations', () => {
     expect(admin).toContain('href="/moderation"');
-    expect(admin).toContain('href="/#annonces"');
+    expect(admin).toContain('href="/echanges"');
     expect(admin).toContain('href="/espace#mes-echanges"');
     expect(moderation).toContain('id="file-moderation"');
     expect(moderation).toContain("hasAnyRole('MODERATOR', 'ADMIN')");
