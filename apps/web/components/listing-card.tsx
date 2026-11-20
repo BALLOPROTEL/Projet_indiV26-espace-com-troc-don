@@ -43,6 +43,7 @@ export function ListingCard({
             src={listingAssetUrl(cover.contentUrl)}
             alt=""
             loading="lazy"
+            decoding="async"
           />
           <span>{listing.images.length} photos</span>
         </div>

@@ -104,7 +104,7 @@ export function MarketplaceDashboard() {
     const item = listings[id];
     return (
       <div className="marketplace-preview">
-        {item?.images[0] ? <img src={listingAssetUrl(item.images[0].contentUrl)} alt={item.title} loading="lazy" /> : null}
+        {item?.images[0] ? <img src={listingAssetUrl(item.images[0].contentUrl)} alt={item.title} loading="lazy" decoding="async" /> : null}
         <Link href={`/annonces/${encodeURIComponent(id)}`}>
           {item?.title ?? `Annonce ${id.slice(0, 8)}`}
         </Link>

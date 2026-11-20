@@ -461,7 +461,7 @@ export function PersonalSpace() {
               return (
                 <article className="personal-row" key={listing.id}>
                   <div className="personal-row__thumb">
-                    {cover ? <img src={cover} alt="" loading="lazy" /> : <span aria-hidden="true">⌂</span>}
+                    {cover ? <img src={cover} alt="" loading="lazy" decoding="async" /> : <span aria-hidden="true">⌂</span>}
                   </div>
                   <div className="personal-row__main">
                     <div className="personal-row__meta">
