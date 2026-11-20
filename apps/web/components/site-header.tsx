@@ -152,7 +152,11 @@ export function SiteHeader() {
                   {roles.includes('ADMIN') ? (
                     <Link href="/admin" onClick={closeAccountMenu}>Administration</Link>
                   ) : null}
-                  <button type="button" onClick={() => void logout()}>
+                  <button
+                    type="button"
+                    data-account-action="logout"
+                    onClick={() => void logout()}
+                  >
                     <HeaderIcon name="sign-out" />
                     Se déconnecter
                   </button>
