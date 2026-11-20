@@ -12,12 +12,15 @@ const admin = readFileSync(new URL('../components/admin-dashboard.tsx', import.m
 const moderation = readFileSync(new URL('../components/moderation-space.tsx', import.meta.url), 'utf8');
 
 describe('UX V4 task-first entry points', () => {
-  it('offers catalogue browsing without authentication and an actual help section', () => {
+  it('offers the L1 2-in-1 entry points without inventing active commerce', () => {
+    expect(home).toContain('href="#boutique"');
+    expect(home).toContain('id="boutique"');
     expect(home).toContain('href="#annonces"');
     expect(home).toContain('id="annonces"');
-    expect(home).toContain('href="#fonctionnement"');
-    expect(home).toContain('id="fonctionnement"');
     expect(home).toContain('href="/espace#publier"');
+    expect(home).toContain('ne sont pas encore activés');
+    expect(home).not.toContain('data-product');
+    expect(home).not.toContain('data-add');
   });
 
   it('provides a real target for every member shortcut', () => {
