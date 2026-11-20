@@ -1,238 +1,292 @@
-/* Petite Maison · Keycloak login UX V3 final, #93.
-   Pure presentation. All Keycloak auth actions, tokens, CSRF and redirects
-   remain handled by Keycloak's unmodified keycloak.v2 templates. */
+/* #149 — Keycloak presentation aligned with prototype screen 14.
+   Keycloak keeps ownership of authentication, CSRF, tokens and redirects. */
 :root {
-  --pm-ink: #172c27;
-  --pm-forest: #0b553a;
-  --pm-forest-deep: #083e2e;
-  --pm-muted: #47665a;
-  --pm-sage: #e9f3ed;
-  --pm-border: #b6d0c0;
+  --pm-navy: #17324d;
+  --pm-navy-deep: #0d2338;
+  --pm-teal: #20afa3;
+  --pm-teal-dark: #12887e;
+  --pm-orange: #f28c45;
+  --pm-bg: #f7f9fb;
+  --pm-ink: #344054;
+  --pm-muted: #7d8896;
+  --pm-border: #dde4ea;
   color-scheme: light;
 }
-html, body { min-height: 100%; }
-body.login-pf, body {
+
+html,
+body {
+  min-height: 100%;
+}
+
+body.login-pf,
+body {
   margin: 0;
+  background: var(--pm-bg) !important;
   color: var(--pm-ink) !important;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-  background:
-    radial-gradient(ellipse at 0 10%, rgba(203, 234, 214, .52), transparent 42%),
-    linear-gradient(160deg, #fbfdfb, #edf6f0) !important;
 }
-.login-pf-page, .pf-v5-c-login {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
+
+.login-pf-page,
+.pf-v5-c-login {
   width: 100% !important;
   min-height: 100vh;
   min-height: 100svh;
-  padding: 36px 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   box-sizing: border-box;
+  padding: 46px 24px !important;
   background: transparent !important;
 }
-/* Keycloak.v2's actual wrapper is the layout owner. Previous CSS constrained
-   this to 465px, causing an unusably thin form in desktop screenshots. */
+
 .pf-v5-c-login__container {
+  width: min(100%, 960px) !important;
+  max-width: 960px !important;
   display: grid !important;
-  grid-template-columns: minmax(0, 1.05fr) minmax(400px, .95fr) !important;
-  align-items: center !important;
-  column-gap: clamp(42px, 5vw, 90px);
-  width: min(100%, 1060px) !important;
-  max-width: 1060px !important;
-  margin: 0 auto !important;
+  grid-template-columns: minmax(0, .94fr) minmax(420px, 1.06fr) !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  overflow: hidden;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(13, 35, 56, .12);
 }
-.pf-v5-c-login__container > * { min-width: 0; }
-#kc-header, .pf-v5-c-login__header {
+
+.pf-v5-c-login__container > * {
+  min-width: 0;
+}
+
+#kc-header,
+.pf-v5-c-login__header {
+  position: relative;
   grid-column: 1;
   width: 100% !important;
-  max-width: none !important;
+  min-height: 560px;
   margin: 0 !important;
+  box-sizing: border-box;
+  display: flex !important;
+  align-items: stretch;
   padding: 0 !important;
+  background:
+    radial-gradient(circle at 78% 88%, rgba(242,140,69,.18), transparent 30%),
+    linear-gradient(145deg, var(--pm-navy-deep), #235a72) !important;
   text-align: left !important;
 }
+
+#kc-header::after {
+  content: "";
+  position: absolute;
+  right: 34px;
+  bottom: -35px;
+  width: 210px;
+  height: 210px;
+  border: 4px solid rgba(242,140,69,.25);
+  border-radius: 50%;
+}
+
 #kc-header-wrapper {
-  position: static !important;
-  display: block !important;
-  max-width: 560px !important;
+  position: relative !important;
+  z-index: 2;
+  width: 100%;
+  min-width: 0;
   margin: 0 !important;
-  padding: 0 !important;
-  color: var(--pm-ink) !important;
-  font: 550 clamp(2.6rem, 4vw, 4.25rem)/1.06 Georgia, "Times New Roman", serif !important;
-  letter-spacing: -.055em !important;
+  padding: 58px 48px !important;
+  box-sizing: border-box;
+  color: transparent !important;
+  font-size: 0 !important;
   text-align: left !important;
   text-transform: none !important;
-  overflow-wrap: break-word;
 }
+
 #kc-header-wrapper::before {
-  content: "PM";
-  display: grid !important;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  margin: 0 0 27px;
-  padding: 0 !important;
-  background: var(--pm-forest) !important;
-  border: none !important;
-  border-radius: 13px !important;
-  color: #fff !important;
-  box-shadow: none !important;
-  font: 760 1rem/1 ui-sans-serif,system-ui,sans-serif !important;
-  letter-spacing: -.025em;
-  transform: none !important;
+  content: "✦ ESPACE MEMBRE";
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  margin-bottom: 34px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  color: #d7f5f0 !important;
+  padding: 6px 12px;
+  font: 800 .68rem/1 ui-sans-serif,system-ui,sans-serif !important;
+  letter-spacing: .1em;
 }
+
 #kc-header-wrapper::after {
-  content: "DONNER · TROQUER · FAIRE CIRCULER";
+  content: "Votre passion a trouvé\A sa maison.\A\A Un compte pour vos achats, vos échanges, vos lectures et les autres passionnés.";
   display: block;
   max-width: 400px;
-  margin: 28px 0 0;
-  padding-top: 18px;
-  border-top: 1px solid #c2d9cb;
-  color: var(--pm-forest) !important;
-  font: 750 .72rem/1.5 ui-sans-serif,system-ui,sans-serif !important;
-  letter-spacing: .115em !important;
-  text-align: left !important;
+  color: #fff !important;
+  white-space: pre-line;
+  font: 700 clamp(2rem, 3vw, 3rem)/1.15 Georgia, "Times New Roman", serif !important;
+  letter-spacing: -.035em;
 }
-/* Right-hand form is the only card. Never restyle nested #kc-content as a card. */
-.pf-v5-c-login__main, .card-pf {
+
+.pf-v5-c-login__main,
+.card-pf {
   grid-column: 2;
   width: 100% !important;
   min-width: 0 !important;
-  max-width: 490px !important;
+  max-width: none !important;
   margin: 0 !important;
-  padding: 0 !important;
-  border: 1px solid #c5dccc !important;
-  border-radius: 20px !important;
-  background: #fff !important;
-  box-shadow: 0 18px 55px rgba(20, 72, 43, .08) !important;
-}
-#kc-content { border: 0 !important; background: transparent !important; box-shadow: none !important; }
-.pf-v5-c-login__main-header { padding: 35px 38px 4px !important; }
-.pf-v5-c-login__main-body { padding: 20px 38px 36px !important; }
-.pf-v5-c-login__main-footer { padding: 0 38px 30px !important; }
-#kc-page-title, .pf-v5-c-title, .pf-v5-c-login__main-title,
-#kc-content h1, #kc-content h2 {
-  color: var(--pm-ink) !important;
-  font: 550 clamp(1.65rem, 2.5vw, 2rem)/1.2 Georgia, "Times New Roman", serif !important;
-  letter-spacing: -.035em !important;
-  overflow-wrap: anywhere;
-}
-#kc-page-title { margin: 0 0 15px !important; }
-#kc-content, #kc-form, #kc-form-wrapper { min-width: 0; width: 100%; }
-.pf-v5-c-form__label-text, #kc-form label, label {
-  color: #294b3b !important;
-  font: 680 .86rem/1.4 ui-sans-serif,system-ui,sans-serif !important;
-}
-.pf-v5-c-form-control, input[type="text"], input[type="email"],
-input[type="password"] {
-  min-width: 0 !important;
-  min-height: 49px !important;
-  border: 1px solid #718e7f !important;
-  border-radius: 10px !important;
-  color: var(--pm-ink) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
   background: #fff !important;
   box-shadow: none !important;
-  font-size: 16px !important;
-  font-family: inherit !important;
+  align-self: stretch;
 }
-/* Keycloak owns the native password input and visibility toggle. Style the
-   containing PatternFly input group as ONE field, not its nested input as 1%
-   wide: that earlier rule produced the thin cursor box seen in Codespaces. */
+
+#kc-content {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.pf-v5-c-login__main-header {
+  padding: 58px 46px 6px !important;
+}
+
+.pf-v5-c-login__main-body {
+  padding: 19px 46px 40px !important;
+}
+
+.pf-v5-c-login__main-footer {
+  padding: 0 46px 34px !important;
+}
+
+#kc-page-title,
+.pf-v5-c-title,
+.pf-v5-c-login__main-title,
+#kc-content h1,
+#kc-content h2 {
+  margin: 0 0 10px !important;
+  color: var(--pm-navy) !important;
+  font: 850 clamp(1.6rem, 2.5vw, 1.95rem)/1.2 ui-sans-serif,system-ui,sans-serif !important;
+  letter-spacing: -.03em !important;
+  overflow-wrap: anywhere;
+}
+
+#kc-content,
+#kc-form,
+#kc-form-wrapper {
+  width: 100%;
+  min-width: 0;
+}
+
+.pf-v5-c-form__label-text,
+#kc-form label,
+label {
+  color: var(--pm-navy) !important;
+  font: 780 .76rem/1.4 ui-sans-serif,system-ui,sans-serif !important;
+}
+
+.pf-v5-c-form-control,
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+  min-width: 0 !important;
+  min-height: 48px !important;
+  border: 1px solid #d8e0e6 !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  color: var(--pm-ink) !important;
+  box-shadow: none !important;
+  font: 400 16px/1.45 ui-sans-serif,system-ui,sans-serif !important;
+}
+
+.pf-v5-c-form-control:focus-within,
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+  border-color: var(--pm-teal) !important;
+  outline: 3px solid rgba(32,175,163,.15) !important;
+  outline-offset: 1px;
+  box-shadow: none !important;
+}
+
 #kc-form-login .pf-v5-c-input-group {
-  display: flex !important;
-  align-items: stretch;
   width: 100% !important;
   min-width: 0 !important;
-  min-height: 49px;
-  padding: 0;
-  border: 1px solid #718e7f !important;
-  border-radius: 10px;
+  min-height: 48px;
+  display: flex !important;
+  align-items: stretch;
+  border: 1px solid #d8e0e6 !important;
+  border-radius: 9px;
   background: #fff !important;
   box-sizing: border-box;
 }
+
 #kc-form-login .pf-v5-c-input-group > .pf-v5-c-input-group__item:first-child {
+  min-width: 0 !important;
   display: flex;
   flex: 1 1 0 !important;
-  min-width: 0 !important;
 }
+
 #kc-form-login .pf-v5-c-input-group > .pf-v5-c-input-group__item:last-child {
+  min-width: 48px !important;
   display: flex;
   flex: 0 0 48px !important;
-  min-width: 48px !important;
 }
-#kc-form-login .pf-v5-c-input-group .pf-v5-c-form-control {
-  display: flex !important;
-  flex: 1 1 auto !important;
+
+#kc-form-login .pf-v5-c-input-group .pf-v5-c-form-control,
+#kc-form-login .pf-v5-c-input-group #password {
   width: 100% !important;
   min-width: 0 !important;
-  min-height: 47px !important;
+  min-height: 46px !important;
+  height: 46px !important;
+  flex: 1 1 auto !important;
+  margin: 0 !important;
   border: 0 !important;
-  border-radius: 9px 0 0 9px !important;
+  border-radius: 8px 0 0 8px !important;
   background: transparent !important;
   box-shadow: none !important;
   outline: 0 !important;
+  font-size: 16px !important;
 }
-/* PatternFly paints pseudo borders on the control as well. The group now
-   provides the single shared outline, so suppress these nested borders. */
+
+#kc-form-login .pf-v5-c-input-group #password {
+  padding: 0 12px !important;
+}
+
 #kc-form-login .pf-v5-c-input-group .pf-v5-c-form-control::before,
 #kc-form-login .pf-v5-c-input-group .pf-v5-c-form-control::after {
   display: none !important;
 }
-#kc-form-login .pf-v5-c-input-group #password {
-  flex: 1 1 auto !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  min-height: 47px !important;
-  height: 47px !important;
-  box-sizing: border-box;
-  margin: 0 !important;
-  padding: 0 12px !important;
-  border: 0 !important;
-  border-radius: 9px 0 0 9px !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  outline: 0 !important;
-  font-size: 16px !important;
-}
+
 #kc-form-login .pf-v5-c-input-group:focus-within {
-  border-color: var(--pm-forest) !important;
-  outline: 2px solid var(--pm-forest) !important;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 3px rgba(11, 85, 58, .12) !important;
+  border-color: var(--pm-teal) !important;
+  outline: 3px solid rgba(32,175,163,.15) !important;
+  outline-offset: 1px;
 }
+
 #kc-form-login .pf-v5-c-input-group #password:focus {
   border: 0 !important;
-  box-shadow: none !important;
   outline: 0 !important;
+  box-shadow: none !important;
 }
-/* The group owns the outer focus ring. The native eye button needs its
-   own inset cue on keyboard focus, never a second outer outline. */
-/* Keep Keycloak's real show/hide button, visually attached to the field. */
+
 #kc-form-login .pf-v5-c-input-group button {
-  flex: 0 0 48px !important;
   width: 48px;
   min-width: 48px;
-  min-height: 47px;
-  height: 47px;
+  min-height: 46px;
+  height: 46px;
+  flex: 0 0 48px !important;
   margin: 0;
   border: 0;
-  border-left: 1px solid #c6dacf;
-  border-radius: 0 9px 9px 0;
-  color: var(--pm-forest) !important;
-  background: #f0f7f2 !important;
+  border-left: 1px solid #e0e6eb;
+  border-radius: 0 8px 8px 0;
+  background: #f7f9fb !important;
+  color: var(--pm-navy) !important;
   outline: 0 !important;
   box-shadow: none !important;
 }
-#kc-form-login .pf-v5-c-input-group button:focus {
-  outline: 0 !important;
-}
+
 #kc-form-login .pf-v5-c-input-group button:focus-visible {
-  outline: 0 !important;
-  background: #d6e9dd !important;
-  box-shadow: inset 0 0 0 2px var(--pm-forest) !important;
+  background: #e8f7f4 !important;
+  box-shadow: inset 0 0 0 2px var(--pm-teal-dark) !important;
 }
-/* Windows High Contrast suppresses box shadows and replaces backgrounds.
-   Use a system-color INSIDE outline so Tab still identifies the eye button. */
+
 @media (forced-colors: active) {
   #kc-form-login .pf-v5-c-input-group button:focus-visible {
     outline: 2px solid Highlight !important;
@@ -240,80 +294,144 @@ input[type="password"] {
     box-shadow: none !important;
   }
 }
-@media (hover: hover) and (pointer: fine) {
-  #kc-form-login .pf-v5-c-input-group button:hover {
-    background: #e2f0e7 !important;
-  }
-}
-.pf-v5-c-form-control:focus-within,
-input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
-  border-color: var(--pm-forest) !important;
-  outline: 2px solid var(--pm-forest) !important;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 3px rgba(11, 85, 58, .12) !important;
-}
-.pf-v5-c-button.pf-m-primary, #kc-login {
+
+.pf-v5-c-button.pf-m-primary,
+#kc-login {
   width: 100% !important;
-  min-height: 49px !important;
-  padding: 12px 16px !important;
-  border: 1px solid var(--pm-forest-deep) !important;
-  border-radius: 10px !important;
-  background: var(--pm-forest) !important;
+  min-height: 48px !important;
+  border: 1px solid var(--pm-navy) !important;
+  border-radius: 9px !important;
+  background: var(--pm-navy) !important;
   color: #fff !important;
   box-shadow: none !important;
-  font: 730 .95rem/1.4 ui-sans-serif,system-ui,sans-serif !important;
+  padding: 11px 16px !important;
   cursor: pointer;
-  transition: background-color 130ms ease-out;
+  font: 820 .86rem/1.4 ui-sans-serif,system-ui,sans-serif !important;
 }
-@media (hover: hover) and (pointer: fine) {
-  .pf-v5-c-button.pf-m-primary:hover, #kc-login:hover {
-    background: var(--pm-forest-deep) !important;
-    transform: none !important;
-  }
+
+a {
+  color: var(--pm-teal-dark) !important;
+  text-underline-offset: 3px;
 }
-a { color: var(--pm-forest) !important; text-underline-offset: 3px; }
-a:hover { color: var(--pm-forest-deep) !important; }
-a:focus-visible, button:focus-visible, #kc-login:focus-visible {
-  outline: 3px solid var(--pm-forest) !important;
+
+a:focus-visible,
+button:focus-visible,
+#kc-login:focus-visible {
+  outline: 3px solid var(--pm-teal) !important;
   outline-offset: 3px !important;
 }
-#kc-info, #kc-form-options, .pf-v5-c-login__main-footer,
-.instruction { color: var(--pm-muted) !important; font-size: .85rem; line-height: 1.6; }
-.alert-error, .pf-v5-c-alert.pf-m-danger {
-  border-left: 4px solid #a34a40 !important;
-  background: #fff3ef !important;
-  color: #70352b !important;
-  border-radius: 8px !important;
+
+#kc-info,
+#kc-form-options,
+.pf-v5-c-login__main-footer,
+.instruction {
+  color: var(--pm-muted) !important;
+  font-size: .78rem;
+  line-height: 1.6;
 }
-/* Keep Keycloak.v2's native one-column layout until PatternFly actually
-   exposes the branding header at >=1200px, not at 900px. */
-@media (max-width: 1199px) {
+
+.alert-error,
+.pf-v5-c-alert.pf-m-danger {
+  border-left: 4px solid #c75b45 !important;
+  border-radius: 8px !important;
+  background: #fff2ec !important;
+  color: #7e3d31 !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #kc-form-login .pf-v5-c-input-group button:hover {
+    background: #eaf6f4 !important;
+  }
+
+  .pf-v5-c-button.pf-m-primary:hover,
+  #kc-login:hover {
+    background: var(--pm-navy-deep) !important;
+  }
+
+  a:hover {
+    color: #0f746b !important;
+  }
+}
+
+@media (max-width: 980px) {
+  .login-pf-page,
+  .pf-v5-c-login {
+    padding: 28px 18px !important;
+  }
+
   .pf-v5-c-login__container {
+    grid-template-columns: minmax(0, .82fr) minmax(390px, 1.18fr) !important;
+  }
+
+  #kc-header-wrapper {
+    padding: 45px 32px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .pf-v5-c-login__container {
+    width: min(100%, 520px) !important;
     display: flex !important;
     flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 24px;
-    width: min(100%, 525px) !important;
-    max-width: 525px !important;
+    overflow: visible;
+    border-radius: 18px;
   }
-  #kc-header, .pf-v5-c-login__header {
-    max-width: 100% !important;
+
+  #kc-header,
+  .pf-v5-c-login__header {
+    min-height: 210px;
+    border-radius: 18px 18px 0 0;
   }
-  #kc-header-wrapper { font-size: clamp(1.75rem, 5vw, 2.5rem) !important; }
-  #kc-header-wrapper::before { margin-bottom: 16px; width: 42px; height: 42px; }
-  #kc-header-wrapper::after { margin-top: 17px; padding-top: 12px; }
-  .pf-v5-c-login__main, .card-pf { max-width: none !important; }
+
+  #kc-header-wrapper {
+    padding: 28px 24px !important;
+  }
+
+  #kc-header-wrapper::before {
+    margin-bottom: 18px;
+  }
+
+  #kc-header-wrapper::after {
+    font-size: 1.8rem !important;
+  }
+
+  .pf-v5-c-login__main,
+  .card-pf {
+    border-radius: 0 0 18px 18px !important;
+  }
+
+  .pf-v5-c-login__main-header {
+    padding: 28px 24px 4px !important;
+  }
+
+  .pf-v5-c-login__main-body {
+    padding: 16px 24px 28px !important;
+  }
+
+  .pf-v5-c-login__main-footer {
+    padding: 0 24px 24px !important;
+  }
 }
-@media (max-width: 480px) {
-  .login-pf-page, .pf-v5-c-login { padding: 25px 14px 34px !important; }
-  .pf-v5-c-login__container { gap: 19px; }
-  #kc-header-wrapper { font-size: 1.8rem !important; }
-  #kc-header-wrapper::after { font-size: .61rem !important; }
-  .pf-v5-c-login__main-header { padding: 23px 20px 2px !important; }
-  .pf-v5-c-login__main-body { padding: 14px 20px 25px !important; }
-  .pf-v5-c-login__main-footer { padding: 0 20px 20px !important; }
-  #kc-page-title { font-size: 1.55rem !important; }
+
+@media (max-width: 420px) {
+  .login-pf-page,
+  .pf-v5-c-login {
+    padding: 15px 12px 28px !important;
+  }
+
+  #kc-header,
+  .pf-v5-c-login__header {
+    min-height: 180px;
+  }
+
+  #kc-header-wrapper::after {
+    font-size: 1.55rem !important;
+  }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .pf-v5-c-button.pf-m-primary, #kc-login { transition: none !important; }
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
 }
