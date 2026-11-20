@@ -187,8 +187,14 @@
 .workspace-v3__quick-link > span:last-child { align-self: start; font-size: 1.15rem; }
 .workspace-v3 #publier,
 .workspace-v3 #mes-articles,
-.workspace-v3 #mes-echanges { scroll-margin-top: 100px; }
+.workspace-v3 #mes-echanges,
+.workspace-v3 #mon-profil { scroll-margin-top: 100px; }
 .workspace-v3__exchanges { min-width: 0; }
+.workspace-v3 #mon-profil .marketplace-entry { min-width: 0; }
+.workspace-v3 #mon-profil .marketplace-entry p strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
 @media (max-width: 900px) {
   .workspace-v3__quick-nav { grid-template-columns: 1fr; gap: 9px; margin-top: 17px; }
   .workspace-v3__quick-link { min-height: 70px; padding: 12px 15px; }
