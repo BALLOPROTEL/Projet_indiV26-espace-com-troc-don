@@ -18,7 +18,7 @@ export function SiteFooter() {
 
         <div>
           <h3>Explorer</h3>
-          <Link href="/#annonces">Dons &amp; échanges</Link>
+          <Link href="/echanges">Dons &amp; échanges</Link>
           <Link href="/#boutique">La boutique <RoadmapBadge>BIENTÔT</RoadmapBadge></Link>
           <Link href="/#fanzines">Fanzines <RoadmapBadge>BIENTÔT</RoadmapBadge></Link>
         </div>
