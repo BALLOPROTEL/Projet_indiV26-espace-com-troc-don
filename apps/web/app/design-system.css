@@ -1110,6 +1110,11 @@ a,
   text-decoration: none;
 }
 
+.pm-footer a {
+  min-height: 44px;
+  padding-block: 8px;
+}
+
 .pm-footer__muted {
   opacity: .72;
 }
@@ -1368,6 +1373,9 @@ a,
     top: calc(98px + env(safe-area-inset-top, 0px));
     right: 13px;
     width: min(290px, calc(100vw - 26px));
+    max-height: calc(100dvh - 98px - 76px - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .pm-header__login {
