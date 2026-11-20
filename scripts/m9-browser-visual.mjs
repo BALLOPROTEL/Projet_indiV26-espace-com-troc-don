@@ -1610,9 +1610,7 @@ async function runFrontV2HomeJourney() {
   const moderatorToken = await browserToken('demo-moderator');
   let publicListings = await browserApi(moderatorToken, '/api/listings');
 
-  // Ensure a real approved catalogue spanning at least two pages.
-  // New fixtures are published through the actual Chrome form and approved
-  // after private gallery review, never inserted directly into the UI.
+  // Keep enough real approved fixtures to exercise a meaningful catalogue.
   const needed = Math.max(0, 7 - publicListings.length);
   if (needed) await journeySwitchUser('demo-moderator');
   for (let index = 0; index < needed; index++) {
@@ -1620,162 +1618,161 @@ async function runFrontV2HomeJourney() {
     await enrichedModerate(entry, moderatorToken);
   }
   publicListings = await browserApi(moderatorToken, '/api/listings');
-  assert.ok(publicListings.length >= 7, 'F1 requires at least seven real approved articles');
+  assert.ok(publicListings.length >= 7,
+    'F1 requires at least seven real approved articles');
 
   await command('Emulation.setDeviceMetricsOverride', {
     width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false,
   });
-  await journeyOpen('/', '.home-v2__welcome h1', 'FRONT-V2 F1 public homepage');
-  const l1Navigation = await evaluate('(() => ({' +
+
+  // Screen 01 — Accueil is a landing page with previews, not a collection of pseudo-pages.
+  await journeyOpen('/', '.home-v2__welcome h1', 'Prototype 01 public homepage');
+  const navigation = await evaluate('(() => ({' +
     'desktop:[...document.querySelectorAll(".pm-main-nav a")].map(a=>a.getAttribute("href")),' +
     'mobile:[...document.querySelectorAll(".pm-mobilebar a")].map(a=>a.getAttribute("href")),' +
     'footerColumns:document.querySelectorAll(".pm-footer__columns > div").length' +
     '}))()');
-  assert.deepEqual(l1Navigation.desktop,
-    ['/', '/#boutique', '/#annonces', '/#fanzines', '/#actualites'],
-    'L1 desktop header must match the five prototype destinations');
-  assert.deepEqual(l1Navigation.mobile,
-    ['/', '/#boutique', '/#annonces', '/espace#publier', '/espace'],
-    'L1 mobile bar must expose five task-oriented destinations');
-  assert.equal(l1Navigation.footerColumns, 4,
-    'L1 footer must keep the four-column prototype structure');
-  // #149/L1: validate the new 2-in-1 landing without exposing fake commerce.
-  const l1HomeReady = await evaluate('(() => {' +
-    'const links=[...document.querySelectorAll(".home-v2__hero-actions a")].map(a=>a.getAttribute("href"));' +
-    'const universes=document.querySelectorAll(".pm-universe-card");' +
-    'const shop=document.querySelector("#boutique");' +
-    'const fakeCommerce=document.querySelectorAll("[data-product],[data-add],[data-cartqty]");' +
-    'return links.includes("#boutique") && links.includes("#annonces")' +
-    '&& universes.length===4 && !!shop' +
-    '&& shop.textContent.includes("pas encore activés")' +
-    '&& fakeCommerce.length===0;})()');
-  assert.equal(l1HomeReady, true,
-    'L1 must expose the 2-in-1 design while keeping unfinished commerce explicit');
-  assert.equal(await evaluate('(() => {' +
-    'const link=[...document.querySelectorAll(".home-v2__hero-actions a")]' +
-    '.find(a=>a.getAttribute("href")==="#annonces");' +
-    'if(!link)return false;link.click();return true;})()'), true,
-  'L1 community CTA must remain clickable');
-  await waitUntil('L1 community fragment navigation',
-    'location.hash==="#annonces" && !!document.querySelector("#annonces")', 40);
-  await journeyScreenshot('l1-home-community-anchor-desktop');
-
-  const searchSource = publicListings[0];
-  await journeyOpen(
-    '/annonces/' + encodeURIComponent(searchSource.id),
-    '.listing-detail',
-    'L1 search shortcut from listing detail',
+  assert.deepEqual(
+    navigation.desktop,
+    ['/', '/boutique', '/echanges', '/fanzines', '/festival'],
+    'Prototype desktop header must expose five dedicated pages',
   );
+  assert.deepEqual(
+    navigation.mobile,
+    ['/', '/boutique', '/echanges', '/espace#publier', '/espace'],
+    'Prototype mobile bar must expose task-oriented destinations',
+  );
+  assert.equal(navigation.footerColumns, 4,
+    'Prototype footer must keep four columns');
+
+  const homeContract = await evaluate('(() => {' +
+    'const hero=[...document.querySelectorAll(".home-v2__hero-actions a")].map(a=>a.getAttribute("href"));' +
+    'const links=[...document.querySelectorAll(".home-v2__grid .listing-card__link")].map(a=>a.getAttribute("href"));' +
+    'const fake=document.querySelectorAll("[data-product],[data-add],[data-cartqty]");' +
+    'return {hero,links,fake:fake.length,' +
+    'shop:!!document.querySelector(\'.pm-home-shop-teaser a[href="/boutique"]\'),' +
+    'fanzine:!!document.querySelector(\'.pm-story-grid a[href="/fanzines"]\'),' +
+    'festival:!!document.querySelector(\'.pm-story-grid a[href="/festival"]\')};})()');
+  assert.deepEqual(homeContract.hero, ['/boutique', '/echanges'],
+    'Homepage hero must navigate to dedicated Boutique and Exchanges pages');
+  assert.equal(homeContract.fake, 0,
+    'Homepage must not expose fake commerce controls');
+  assert.equal(homeContract.shop && homeContract.fanzine && homeContract.festival, true,
+    'Homepage previews must link to their dedicated pages');
+
+  await waitUntil('Prototype home real community preview',
+    'document.querySelectorAll(".home-v2__grid .listing-card").length===3', 120);
+  const homePreviewLinks = await evaluate(
+    '[...document.querySelectorAll(".home-v2__grid .listing-card__link")].map(a=>a.getAttribute("href"))',
+  );
+  assert.deepEqual(
+    homePreviewLinks,
+    publicListings.slice(0, 3).map(item => '/annonces/' + item.id),
+    'Homepage community section must be a three-item real-data preview',
+  );
+  await journeyScreenshot('prototype-01-home-desktop');
+
+  // Screen 02 — Boutique has its own route and must not invent commercial data.
+  await journeyOpen('/boutique', '.pm-shop-layout', 'Prototype 02 Boutique');
+  const boutique = await evaluate('(() => ({' +
+    'filters:document.querySelectorAll(".pm-shop-filters label").length,' +
+    'universes:document.querySelectorAll(".pm-category-showcase article").length,' +
+    'fake:document.querySelectorAll("[data-product],[data-add],[data-cartqty]").length,' +
+    'text:document.body.innerText}))()');
+  assert.ok(boutique.filters >= 8 && boutique.universes === 6,
+    'Boutique must reproduce the prototype filter/category structure');
+  assert.equal(boutique.fake, 0, 'Boutique must not invent transactional product data');
+  assert.ok(boutique.text.includes('Le design de la boutique est prêt.'),
+    'Boutique must explain that its backend data is not active yet');
+  await journeyScreenshot('prototype-02-boutique-desktop');
+
+  // Screen 04 — Fanzines is a dedicated editorial page.
+  await journeyOpen('/fanzines', '.pm-editorial-hero', 'Prototype 04 Fanzines');
+  assert.equal(
+    await evaluate('document.querySelectorAll(".pm-formula-grid article").length'),
+    3,
+    'Fanzines must expose the three prototype formula cards',
+  );
+  assert.equal(
+    await evaluate('document.body.innerText.includes("39,90 €") || document.body.innerText.includes("29,00 €")'),
+    false,
+    'Fanzines must not invent prototype prices before real subscriptions exist',
+  );
+  await journeyScreenshot('prototype-04-fanzines-desktop');
+
+  // Screen 06 — Festival has its own page.
+  await journeyOpen('/festival', '.pm-festival-hero', 'Prototype 06 Festival');
+  assert.equal(
+    await evaluate('document.querySelectorAll(".pm-news-grid article").length'),
+    3,
+    'Festival must keep the three-column editorial structure',
+  );
+  await journeyScreenshot('prototype-06-festival-desktop');
+
+  // Screen 07 — real donation/trade catalogue lives here, not on Accueil.
+  await journeyOpen('/echanges', '.pm-exchange-hero', 'Prototype 07 Exchanges');
+  await waitUntil('Prototype 07 real Catalog cards',
+    'document.querySelectorAll(".pm-exchange-grid .listing-card").length>=' +
+      publicListings.length, 120);
+  let exchangeLinks = await evaluate(
+    '[...document.querySelectorAll(".pm-exchange-grid .listing-card__link")].map(a=>a.getAttribute("href"))',
+  );
+  assert.deepEqual(
+    exchangeLinks,
+    publicListings.map(item => '/annonces/' + item.id),
+    'Exchanges page must render the real approved Catalog ordering',
+  );
+
+  const filters = await evaluate(
+    '[...document.querySelectorAll(".pm-filter-pills button")].map(b=>b.textContent.trim())',
+  );
+  assert.equal(filters.length, 3,
+    'Prototype 07 must expose All / Trades / Donations filters');
+
+  // Real DON filter.
   assert.equal(await evaluate('(() => {' +
-    'const link=document.querySelector(\'.pm-icon-button[href="/#community-search"]\');' +
-    'if(!link)return false;link.click();return true;})()'), true,
-  'L1 header search shortcut must be clickable outside the homepage');
-  await waitUntil('L1 search anchor restored below sticky header',
-    '(() => {const el=document.getElementById("community-search");' +
-    'if(location.pathname!=="/"||location.hash!=="#community-search"||!el)return false;' +
-    'const rect=el.getBoundingClientRect();return rect.top>=70&&rect.top<Math.min(innerHeight*.75,650);})()',
-    120);
-  await journeyScreenshot('l1-search-anchor-from-detail');
-
-  await journeyOpen('/', '.home-v2__welcome h1', 'F1 homepage after L1 fragment navigation');
-  await waitUntil('F1 exactly six cards on the first page',
-    'document.querySelectorAll(".home-v2__grid .listing-card").length===6' +
-    '&&document.querySelector(".home-v2__results")?.innerText.includes("sur")', 120);
-
-  const reportedTotal = Number(await evaluate(
-    'document.querySelector(".home-v2__facts strong")?.textContent',
-  ));
-  assert.equal(reportedTotal, publicListings.length,
-    'The hero must show the actual number of approved Catalog listings');
-  const firstLinks = await evaluate('([...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
-    '.map(a=>a.getAttribute("href")) )');
-  assert.equal(firstLinks.length, 6);
-  await journeyScreenshot('f1-catalog-six-articles-desktop');
-
-  assert.equal(await evaluate('(() => {' +
-    'const button=document.querySelector(".home-v2__pagination button[aria-label=\\"Page 2\\"]");' +
-    'if(!button)return false;button.click();return true;})()'), true,
-  'F1 must display a usable second page');
-  const secondSize = Math.min(6, publicListings.length - 6);
-  await waitUntil('F1 second page has new records and correct count',
-    '(() => {const cards=[...document.querySelectorAll(".home-v2__grid .listing-card__link")];' +
-    'return cards.length===' + secondSize +
-    '&&document.querySelector(".home-v2__pagination button[aria-current=page]")?.textContent==="2"' +
-    '&&cards[0]?.getAttribute("href")!==' + JSON.stringify(firstLinks[0]) + ';})()', 120);
-  const secondLinks = await evaluate('[...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
-    '.map(a=>a.getAttribute("href"))');
-  assert.ok(secondLinks.every(url => !firstLinks.includes(url)),
-    'No duplicate listing may appear across the first two pages');
-  await journeyScreenshot('f1-catalog-second-page');
-
-  // Changing the type while page 2 is active must reset pagination to page 1.
-  const filterSet = await evaluate('(() => {const select=document.querySelector(".home-v2__filter-type select");' +
-    'if(!select)return false;select.value="DONATION";' +
-    'select.dispatchEvent(new Event("change",{bubbles:true}));return true;})()');
-  assert.equal(filterSet, true, 'Missing real DON filter');
-  const donationIds = publicListings.filter(item => item.operationType === 'DONATION')
+    'const button=[...document.querySelectorAll(".pm-filter-pills button")]' +
+    '.find(el=>el.textContent.includes("Dons"));if(!button)return false;button.click();return true;})()'),
+    true, 'Prototype 07 must expose a Donations filter');
+  const donationLinks = publicListings
+    .filter(item => item.operationType === 'DONATION')
     .map(item => '/annonces/' + item.id);
-  const expectedDonLinks = donationIds.slice(0, 6);
-  await waitUntil('F1 DON filter shows only donation listings and resets page', '(() => {' +
-    'const links=[...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
-    '.map(a=>a.getAttribute("href"));' +
-    'const expected=' + JSON.stringify(expectedDonLinks) + ';' +
-    'return document.querySelector(".home-v2__filter-type select")?.value==="DONATION"' +
-    ' && links.length===expected.length && links.every((href,i)=>href===expected[i])' +
-    ' && !document.querySelector(".home-v2__pagination button[aria-current=page]")?.textContent?.includes("2");' +
-    '})()', 120);
-  assert.deepEqual(await evaluate('[...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
-    '.map(a=>a.getAttribute("href"))'), expectedDonLinks,
-    'Every filtered page-one card must have type DONATION');
+  await waitUntil('Prototype 07 DON filter',
+    'document.querySelectorAll(".pm-exchange-grid .listing-card__link").length===' + donationLinks.length,
+    120);
+  exchangeLinks = await evaluate(
+    '[...document.querySelectorAll(".pm-exchange-grid .listing-card__link")].map(a=>a.getAttribute("href"))',
+  );
+  assert.deepEqual(exchangeLinks, donationLinks,
+    'DON filter must show only real donation listings');
 
-  // Search for a real title, never for a mocked or hardcoded catalogue item.
-  const title = publicListings.find(item => item.title.startsWith('9BF Chrome'))?.title;
-  assert.ok(title, 'Missing real Chrome enriched listing to test search');
-  const searchSet = await evaluate('(() => {const select=document.querySelector(".home-v2__filter-type select");' +
-    'select.value="ALL";select.dispatchEvent(new Event("change",{bubbles:true}));return true;})()');
-  assert.equal(searchSet, true);
-  await sleep(150);
-  assert.equal(await evaluate('(() => {const input=document.querySelector("#home-v2-search");' +
-    'if(!input)return false;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,' +
-    JSON.stringify(title) + ');input.dispatchEvent(new Event("input",{bubbles:true}));return true;})()'),
-    true, 'F1 search input must be interactive');
-  await waitUntil('F1 search finds exactly the real listing',
-    '(() => {const cards=[...document.querySelectorAll(".home-v2__grid .listing-card")];' +
-    'return cards.length===1&&cards[0].textContent.includes(' + JSON.stringify(title) + ');})()', 120);
-  await journeyScreenshot('f1-catalog-search-live-title');
+  // Return to All before visual/accessibility checks.
+  assert.equal(await evaluate('(() => {' +
+    'const button=[...document.querySelectorAll(".pm-filter-pills button")]' +
+    '.find(el=>el.textContent.includes("Toutes"));if(!button)return false;button.click();return true;})()'),
+    true, 'Prototype 07 must expose an All filter');
+  await waitUntil('Prototype 07 all listings restored',
+    'document.querySelectorAll(".pm-exchange-grid .listing-card").length===' + publicListings.length, 120);
 
-  // F7/#81 break-ui: a real approved legacy fixture without images must
-  // display a neutral, accessible placeholder rather than a blank 185px void.
+  // F7/#81: a real approved fixture without images must display the existing accessible placeholder.
   const noPhoto = publicListings.find(item =>
     item.status === 'APPROVED' && item.images.length === 0);
   assert.ok(noPhoto, 'F7 #81 requires an approved no-photo Catalog fixture');
-  assert.equal(await evaluate('(() => {' +
-    'const input=document.querySelector("#home-v2-search");' +
-    'if(!input)return false;' +
-    'Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,' +
-    JSON.stringify(noPhoto.title) + ');' +
-    'input.dispatchEvent(new Event("input",{bubbles:true}));return true;})()'),
-    true, 'F7 #81 no-photo search input must work');
-  await waitUntil('F7 #81 no-photo card visible', '(() => {' +
-    'const cards=[...document.querySelectorAll(".home-v2__grid .listing-card")];' +
-    'return cards.length===1 &&' +
-    'cards[0].querySelector("h3")?.textContent===' + JSON.stringify(noPhoto.title) + ' &&' +
-    '!!cards[0].querySelector(".listing-card__cover--empty");})()', 120);
   const missingImage = await evaluate('(() => {' +
-    'const card=document.querySelector(".home-v2__grid .listing-card");' +
-    'const cover=card.querySelector(".listing-card__cover--empty");' +
-    'return {label:cover.innerText.trim(),images:cover.querySelectorAll("img").length,' +
-    'height:cover.getBoundingClientRect().height,' +
-    'link:card.querySelector(".listing-card__link")?.getAttribute("href")};})()');
+    'const link=document.querySelector(' +
+      JSON.stringify('.pm-exchange-grid .listing-card__link[href="/annonces/' + noPhoto.id + '"]') + ');' +
+    'const card=link?.closest(".listing-card");const cover=card?.querySelector(".listing-card__cover--empty");' +
+    'if(!card||!cover)return null;return {label:cover.innerText.trim(),' +
+    'images:cover.querySelectorAll("img").length,height:cover.getBoundingClientRect().height,' +
+    'link:link.getAttribute("href")};})()');
+  assert.ok(missingImage, 'No-photo real listing must be present on Exchanges');
   assert.equal(missingImage.label, 'Aucune photo disponible');
-  assert.equal(missingImage.images, 0, 'F7 #81 must never invent a product photo');
-  assert.ok(missingImage.height >= 175, 'F7 #81 placeholder occupies the existing cover area');
-  assert.equal(missingImage.link, '/annonces/' + noPhoto.id,
-    'F7 #81 placeholder must preserve the real product detail link');
-  await journeyScreenshot('f7-catalog-no-photo-desktop');
+  assert.equal(missingImage.images, 0, 'No fake product photo may be invented');
+  assert.ok(missingImage.height >= 175, 'Placeholder must preserve the cover area');
+  assert.equal(missingImage.link, '/annonces/' + noPhoto.id);
+  await journeyScreenshot('prototype-07-exchanges-desktop');
 
-  // F7/mobile-native: mobile metrics alone do NOT emulate a touch pointer.
-  // Real CDP touch emulation is necessary to exercise (any-pointer: coarse).
+  // Mobile 320/390 — dedicated pages must remain usable and touch-friendly.
   await command('Emulation.setTouchEmulationEnabled', {
     enabled: true, maxTouchPoints: 1,
   });
@@ -1783,62 +1780,43 @@ async function runFrontV2HomeJourney() {
     await command('Emulation.setDeviceMetricsOverride', {
       width, height: 844, deviceScaleFactor: 1, mobile: true,
     });
-    await journeyOpen('/', '.home-v2__welcome h1',
-      'F7 mobile homepage at ' + width + 'px');
-    await waitUntil('F7 six cards at ' + width + 'px',
-      'document.querySelectorAll(".home-v2__grid .listing-card").length===6', 120);
+    await journeyOpen('/echanges', '.pm-exchange-hero h1',
+      'Prototype 07 mobile at ' + width + 'px');
+    await waitUntil('Prototype 07 mobile real cards at ' + width + 'px',
+      'document.querySelectorAll(".pm-exchange-grid .listing-card").length>=1', 120);
+
     const checks = await evaluate('(() => {' +
       'const root=document.documentElement;' +
-      'const search=document.querySelector("#home-v2-search");' +
-      'const type=document.querySelector(".home-v2__filter-type select");' +
-      'const c=document.querySelector(".home-v2__grid");' +
-      'const buttons=[...document.querySelectorAll(".home-v2__pagination button:not(:disabled)")];' +
+      'const grid=document.querySelector(".pm-exchange-grid");' +
+      'const filters=[...document.querySelectorAll(".pm-filter-pills button")];' +
+      'const headerTargets=[...document.querySelectorAll(".pm-header .pm-icon-button,.pm-header .pm-account-menu summary,.pm-header .pm-header__login")];' +
+      'const footerTargets=[...document.querySelectorAll(".pm-footer a")];' +
       'return {scroll:root.scrollWidth,client:root.clientWidth,' +
-      'touch:matchMedia("(any-pointer: coarse)").matches,' +
-      'touchPoints:navigator.maxTouchPoints,' +
-      'searchFont:parseFloat(getComputedStyle(search).fontSize),' +
-      'typeFont:parseFloat(getComputedStyle(type).fontSize),' +
-      'columns:getComputedStyle(c).gridTemplateColumns.split(" ").length,' +
-      'buttons:buttons.map(b=>({w:b.getBoundingClientRect().width,h:b.getBoundingClientRect().height})),' +
-      'headerTargets:[...document.querySelectorAll(".pm-header .pm-icon-button,.pm-header .pm-account-menu summary,.pm-header .pm-header__login")]' +
-      '.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height}))};' +
-      '})()');
+      'touch:matchMedia("(any-pointer: coarse)").matches,touchPoints:navigator.maxTouchPoints,' +
+      'columns:getComputedStyle(grid).gridTemplateColumns.split(" ").length,' +
+      'filters:filters.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height})),' +
+      'header:headerTargets.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height})),' +
+      'footer:footerTargets.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height}))};})()');
     assert.ok(checks.scroll <= checks.client + 2,
-      'F7 mobile homepage must not overflow at ' + width + 'px: ' + JSON.stringify(checks));
-    assert.equal(checks.columns, 1, 'F7 expects one card column on phone');
-    assert.equal(
-      await evaluate('getComputedStyle(document.querySelector(".pm-mobilebar")).display'),
-      'grid',
-      'L1 mobile bottom navigation must be visible at ' + width + 'px',
-    );
-    assert.equal(checks.touch, true, 'F7 must emulate coarse touch media at ' + width + 'px');
-    assert.ok(checks.touchPoints >= 1, 'F7 Chrome must expose at least one touch point');
-    assert.ok(checks.searchFont >= 16 && checks.typeFont >= 16,
-      'F7 mobile fields must use >=16px to prevent iOS zoom: ' + JSON.stringify(checks));
-    assert.ok(checks.buttons.length > 0 && checks.buttons.every(b=>b.w>=44 && b.h>=44),
-      'F7 pagination touch targets >=44px: ' + JSON.stringify(checks));
-    assert.ok(checks.headerTargets.length >= 2 &&
-      checks.headerTargets.every(target => target.w >= 44 && target.h >= 44),
-      'L1 header touch targets must stay >=44px: ' + JSON.stringify(checks.headerTargets));
-    const accountMenuTargets = await evaluate('(() => {' +
-      'const root=document.querySelector(".pm-account-menu");' +
-      'const summary=root?.querySelector("summary");' +
-      'if(!root||!summary)return [];' +
-      'if(!root.open)summary.click();' +
-      'const targets=[...root.querySelectorAll(".pm-account-menu__panel > a,.pm-account-menu__panel > button")]' +
-      '.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height}));' +
-      'if(root.open)summary.click();return targets;})()');
-    assert.ok(
-      accountMenuTargets.length >= 5 &&
-      accountMenuTargets.every(target => target.w >= 44 && target.h >= 44),
-      'L1 mobile account menu targets must stay >=44px: ' + JSON.stringify(accountMenuTargets),
-    );
-    // Force :hover at the CSS engine level. Merely moving a mouse under touch
-    // emulation can be ignored and would produce a false-positive regression.
+      'Prototype mobile page must not overflow: ' + JSON.stringify(checks));
+    assert.equal(checks.columns, 1,
+      'Exchanges catalogue must use one card column on phones');
+    assert.equal(await evaluate('getComputedStyle(document.querySelector(".pm-mobilebar")).display'),
+      'grid', 'Prototype mobile bottom navigation must be visible');
+    assert.equal(checks.touch, true);
+    assert.ok(checks.touchPoints >= 1);
+    assert.ok(checks.filters.length === 3 && checks.filters.every(t=>t.h>=44),
+      'Prototype filter touch targets must be >=44px: ' + JSON.stringify(checks.filters));
+    assert.ok(checks.header.length >= 2 && checks.header.every(t=>t.w>=44&&t.h>=44),
+      'Prototype header touch targets must be >=44px');
+    assert.ok(checks.footer.length >= 4 && checks.footer.every(t=>t.w>=44&&t.h>=44),
+      'Prototype footer touch targets must be >=44px');
+
+    // Force :hover under touch emulation to ensure cards do not lift/zoom.
     await command('DOM.enable');
     await command('CSS.enable');
     const documentNode = await command('DOM.getDocument', { depth: 1 });
-    const cardSelector = '.home-v2__grid .listing-card--interactive:has(.listing-card__cover img)';
+    const cardSelector = '.pm-exchange-grid .listing-card--interactive:has(.listing-card__cover img)';
     const hoverNode = await command('DOM.querySelector', {
       nodeId: documentNode.root.nodeId, selector: cardSelector,
     });
@@ -1846,7 +1824,7 @@ async function runFrontV2HomeJourney() {
       nodeId: documentNode.root.nodeId, selector: cardSelector + ' .listing-card__link',
     });
     assert.ok(hoverNode.nodeId && hoverLink.nodeId,
-      'F7 must find a real Catalog card with photo and detail link');
+      'Touch test requires one real Catalog card with photo');
     await command('CSS.forcePseudoState', {
       nodeId: hoverNode.nodeId, forcedPseudoClasses: ['hover'],
     });
@@ -1859,29 +1837,24 @@ async function runFrontV2HomeJourney() {
       'const image=el.querySelector(".listing-card__cover img");' +
       'const arrow=el.querySelector(".listing-card__cta span");' +
       'const cta=el.querySelector(".listing-card__cta");' +
-      'const content=el.querySelector(".listing-card__wishes")||el.querySelector(".listing-card__assets");' +
-      'const css=getComputedStyle(el);return {hover:el.matches(":hover"),' +
-      'linkHover:link.matches(":hover"),' +
-      'transform:css.transform,shadow:css.boxShadow,border:css.borderTopColor,' +
-      'imageTransform:getComputedStyle(image).transform,' +
-      'arrowTransform:getComputedStyle(arrow).transform,' +
-      'ctaTop:cta?.getBoundingClientRect().top,contentBottom:content?.getBoundingClientRect().bottom};})()');
-    assert.equal(touchCard.hover, true, 'F7 must actually apply :hover to the test card');
-    assert.equal(touchCard.linkHover, true, 'F7 must apply :hover to the detail link');
-    assert.equal(touchCard.transform, 'none', 'F7 touch card must not lift on hover');
-    assert.equal(touchCard.border, 'rgb(228, 234, 240)',
-      'F7 touch card must retain the L1 base border color');
-    assert.ok(touchCard.shadow.includes('3px 12px'),
-      'F7 touch card must retain the L1 base shadow: ' + JSON.stringify(touchCard));
+      'const block=el.querySelector(".listing-card__wishes")||el.querySelector(".listing-card__assets");' +
+      'return {hover:el.matches(":hover"),linkHover:link.matches(":hover"),' +
+      'transform:getComputedStyle(el).transform,imageTransform:getComputedStyle(image).transform,' +
+      'arrowTransform:getComputedStyle(arrow).transform,ctaTop:cta?.getBoundingClientRect().top,' +
+      'contentBottom:block?.getBoundingClientRect().bottom};})()');
+    assert.equal(touchCard.hover, true);
+    assert.equal(touchCard.linkHover, true);
+    assert.equal(touchCard.transform, 'none',
+      'Touch card must not lift when hover is forced');
     assert.equal(touchCard.imageTransform, 'none',
-      'F7 touch must not leave the image scaled');
+      'Touch image must not zoom');
     assert.equal(touchCard.arrowTransform, 'none',
-      'F7 touch must not leave the detail CTA arrow displaced');
+      'Touch CTA arrow must not move');
     assert.ok(
       Number.isFinite(touchCard.ctaTop) &&
       Number.isFinite(touchCard.contentBottom) &&
       touchCard.ctaTop >= touchCard.contentBottom + 8,
-      'L1 listing CTA must not overlap metadata or trade wishes: ' + JSON.stringify(touchCard),
+      'Listing CTA must not overlap metadata',
     );
     await command('CSS.forcePseudoState', {
       nodeId: hoverLink.nodeId, forcedPseudoClasses: [],
@@ -1889,10 +1862,31 @@ async function runFrontV2HomeJourney() {
     await command('CSS.forcePseudoState', {
       nodeId: hoverNode.nodeId, forcedPseudoClasses: [],
     });
-    await journeyScreenshot('f7-catalog-mobile-' + width);
+
+    await journeyScreenshot('prototype-07-exchanges-mobile-' + width);
   }
   await command('Emulation.setTouchEmulationEnabled', { enabled: false });
-  console.log('[FRONT-V2/F1] Chrome: true Catalog ≥7; six per page; page 2 distinct; DON filter; live search; mobile: PASS');
+
+  // Short-screen account dropdown must stay scrollable above bottom navigation.
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 320, height: 480, deviceScaleFactor: 1, mobile: true,
+  });
+  await journeyOpen('/espace', '.pm-account-sidebar', 'Prototype account on short viewport');
+  const shortAccount = await evaluate('(() => {' +
+    'const root=document.querySelector(".pm-account-menu");const summary=root?.querySelector("summary");' +
+    'if(!root||!summary)return null;if(!root.open)summary.click();' +
+    'const panel=root.querySelector(".pm-account-menu__panel");' +
+    'if(!panel)return null;const css=getComputedStyle(panel);const box=panel.getBoundingClientRect();' +
+    'return {overflowY:css.overflowY,scrollHeight:panel.scrollHeight,clientHeight:panel.clientHeight,' +
+    'top:box.top,bottom:box.bottom,viewport:innerHeight};})()');
+  assert.ok(shortAccount &&
+    ['auto','scroll'].includes(shortAccount.overflowY) &&
+    shortAccount.scrollHeight >= shortAccount.clientHeight &&
+    shortAccount.bottom <= shortAccount.viewport - 60,
+    'Prototype account dropdown must remain scrollable on 320x480: ' +
+      JSON.stringify(shortAccount));
+
+  console.log('[#149] Dedicated pages: home preview, boutique, exchanges, fanzines, festival, mobile: PASS');
 }
 
 
