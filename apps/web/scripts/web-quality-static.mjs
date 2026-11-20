@@ -151,7 +151,7 @@ const seoChecks = [
   ['app/layout.tsx', ['metadataBase', 'openGraph', 'twitter']],
   ['app/page.tsx', ['canonical']],
   ['app/robots.ts', ['/admin', '/espace', '/moderation', 'sitemap.xml']],
-  ['app/sitemap.ts', ['changeFrequency', 'priority']],
+  ['app/sitemap.ts', ['changeFrequency', 'priority', 'getPublicListings']],
   ['app/not-found.tsx', ['Page introuvable', 'index: false']],
   ['app/admin/page.tsx', ['index: false']],
   ['app/espace/page.tsx', ['index: false']],
@@ -160,6 +160,8 @@ const seoChecks = [
   ['app/twitter-image.tsx', ['ImageResponse', '1200', '630']],
   ['app/icon.svg', ['<svg']],
   ['app/apple-icon.tsx', ['ImageResponse', '180']],
+  ['app/annonces/[id]/page.tsx', ['generateMetadata', 'notFound()', 'canonical']],
+  ['lib/server-listings.ts', ['API_INTERNAL_URL', 'getPublicListing', 'getPublicListings', 'publicListingAssetUrl']],
   ['public/humans.txt', ['Projet pédagogique CESI']],
 ];
 
