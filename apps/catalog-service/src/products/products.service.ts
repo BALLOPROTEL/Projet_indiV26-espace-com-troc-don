@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   Product,
+  ProductImage,
   ProductStatus,
   ProductVariant,
 } from '../../generated/prisma';
@@ -15,8 +16,9 @@ import { ProductSearchDto } from './dto/product-search.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateProductVariantDto } from './dto/update-product-variant.dto';
 
-type ProductWithVariants = Product & {
+type ProductWithAssets = Product & {
   variants: ProductVariant[];
+  images: ProductImage[];
 };
 
 export type PublicProductVariantView = {
@@ -26,6 +28,14 @@ export type PublicProductVariantView = {
   priceCents: number;
   stock: number;
   active: boolean;
+};
+
+export type PublicProductImageView = {
+  id: string;
+  position: number;
+  mimeType: string;
+  sizeBytes: number;
+  contentUrl: string;
 };
 
 export type PublicProductView = {
@@ -38,10 +48,37 @@ export type PublicProductView = {
   fromPriceCents: number;
   availableStock: number;
   variants: PublicProductVariantView[];
+  images: PublicProductImageView[];
 };
 
 const publicVariantOrder = {
   priceCents: 'asc' as const,
+};
+
+const adminInclude = {
+  variants: {
+    orderBy: [
+      { createdAt: 'asc' as const },
+      { id: 'asc' as const },
+    ],
+  },
+  images: {
+    orderBy: {
+      position: 'asc' as const,
+    },
+  },
+};
+
+const publicInclude = {
+  variants: {
+    where: { active: true },
+    orderBy: publicVariantOrder,
+  },
+  images: {
+    orderBy: {
+      position: 'asc' as const,
+    },
+  },
 };
 
 @Injectable()
@@ -59,6 +96,9 @@ export class ProductsService {
         status: ProductStatus.PUBLISHED,
         variants: {
           some: { active: true },
+        },
+        images: {
+          some: {},
         },
         ...(category
           ? {
@@ -87,12 +127,7 @@ export class ProductsService {
             }
           : {}),
       },
-      include: {
-        variants: {
-          where: { active: true },
-          orderBy: publicVariantOrder,
-        },
-      },
+      include: publicInclude,
       orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
     });
 
@@ -109,13 +144,11 @@ export class ProductsService {
         variants: {
           some: { active: true },
         },
-      },
-      include: {
-        variants: {
-          where: { active: true },
-          orderBy: publicVariantOrder,
+        images: {
+          some: {},
         },
       },
+      include: publicInclude,
     });
 
     if (!product) {
@@ -125,20 +158,16 @@ export class ProductsService {
     return this.toPublic(product);
   }
 
-  async findAdmin(): Promise<ProductWithVariants[]> {
+  async findAdmin(): Promise<ProductWithAssets[]> {
     return this.prisma.product.findMany({
-      include: {
-        variants: {
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        },
-      },
+      include: adminInclude,
       orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
     });
   }
 
   async create(
     input: CreateProductDto,
-  ): Promise<ProductWithVariants> {
+  ): Promise<ProductWithAssets> {
     this.assertUniqueSkus(input.variants.map((variant) => variant.sku));
 
     try {
@@ -160,11 +189,7 @@ export class ProductsService {
             })),
           },
         },
-        include: {
-          variants: {
-            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-          },
-        },
+        include: adminInclude,
       });
     } catch (error) {
       this.rethrowUniqueConflict(error);
@@ -174,7 +199,7 @@ export class ProductsService {
   async update(
     id: string,
     input: UpdateProductDto,
-  ): Promise<ProductWithVariants> {
+  ): Promise<ProductWithAssets> {
     if (
       input.slug === undefined &&
       input.name === undefined &&
@@ -203,11 +228,7 @@ export class ProductsService {
           description: input.description,
           category: input.category,
         },
-        include: {
-          variants: {
-            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-          },
-        },
+        include: adminInclude,
       });
     } catch (error) {
       this.rethrowUniqueConflict(error);
@@ -218,7 +239,7 @@ export class ProductsService {
     productId: string,
     variantId: string,
     input: UpdateProductVariantDto,
-  ): Promise<ProductWithVariants> {
+  ): Promise<ProductWithAssets> {
     if (
       input.label === undefined &&
       input.priceCents === undefined &&
@@ -270,7 +291,7 @@ export class ProductsService {
     return this.requireAdminProduct(productId);
   }
 
-  async publish(id: string): Promise<ProductWithVariants> {
+  async publish(id: string): Promise<ProductWithAssets> {
     const product = await this.requireAdminProduct(id);
 
     if (product.status === ProductStatus.ARCHIVED) {
@@ -285,6 +306,12 @@ export class ProductsService {
       );
     }
 
+    if (product.images.length === 0) {
+      throw new ConflictException(
+        'A product needs at least one image before publication',
+      );
+    }
+
     await this.prisma.product.update({
       where: { id },
       data: { status: ProductStatus.PUBLISHED },
@@ -293,7 +320,7 @@ export class ProductsService {
     return this.requireAdminProduct(id);
   }
 
-  async archive(id: string): Promise<ProductWithVariants> {
+  async archive(id: string): Promise<ProductWithAssets> {
     await this.requireAdminProduct(id);
 
     await this.prisma.product.update({
@@ -306,14 +333,10 @@ export class ProductsService {
 
   private async requireAdminProduct(
     id: string,
-  ): Promise<ProductWithVariants> {
+  ): Promise<ProductWithAssets> {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: {
-        variants: {
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        },
-      },
+      include: adminInclude,
     });
 
     if (!product) {
@@ -324,11 +347,14 @@ export class ProductsService {
   }
 
   private toPublic(
-    product: ProductWithVariants,
+    product: ProductWithAssets,
   ): PublicProductView {
-    if (product.variants.length === 0) {
+    if (
+      product.variants.length === 0 ||
+      product.images.length === 0
+    ) {
       throw new Error(
-        'Published product invariant violated: no active variant',
+        'Published product invariant violated: missing active variant or image',
       );
     }
 
@@ -353,6 +379,14 @@ export class ProductsService {
         priceCents: variant.priceCents,
         stock: variant.stock,
         active: variant.active,
+      })),
+      images: product.images.map((image) => ({
+        id: image.id,
+        position: image.position,
+        mimeType: image.mimeType,
+        sizeBytes: image.sizeBytes,
+        contentUrl:
+          `/api/products/${product.id}/images/${image.id}/content`,
       })),
     };
   }
