@@ -172,7 +172,8 @@ export function AdminProductCatalog() {
     event.preventDefault();
     setCreateError(null);
 
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
 
     try {
       const input: AdminProductCreateInput = {
@@ -202,7 +203,7 @@ export function AdminProductCatalog() {
             }
           : current,
       );
-      event.currentTarget.reset();
+      formElement.reset();
       setVariants([emptyVariant()]);
     } catch (reason) {
       setCreateError(
@@ -292,7 +293,8 @@ export function AdminProductCatalog() {
     productId: string,
   ) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     const files = form
       .getAll('images')
       .filter(
@@ -316,7 +318,7 @@ export function AdminProductCatalog() {
         files,
       );
       updateImages(productId, images);
-      event.currentTarget.reset();
+      formElement.reset();
     } catch (reason) {
       setActionError(
         reason instanceof Error
