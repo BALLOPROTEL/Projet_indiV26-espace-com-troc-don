@@ -2,7 +2,11 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { ApiError, productsApi } from '../lib/api';
+import {
+  apiAssetUrl,
+  ApiError,
+  productsApi,
+} from '../lib/api';
 import type { Product } from '../lib/types';
 import { RoadmapBadge } from './design-system';
 
@@ -13,12 +17,54 @@ function money(cents: number, currency: string) {
   }).format(cents / 100);
 }
 
-function ProductVisual() {
+function ProductVisual({
+  product,
+}: {
+  product: Product;
+}) {
+  const image = product.images[0];
+
+  if (!image) {
+    return (
+      <div className="pm-real-product-visual" aria-label="Visuel produit indisponible">
+        <span aria-hidden="true">✦</span>
+        <strong>VISUEL INDISPONIBLE</strong>
+      </div>
+    );
+  }
+
   return (
-    <div className="pm-real-product-visual" aria-label="Image produit non encore connectée">
-      <span aria-hidden="true">✦</span>
-      <strong>VISUEL PRODUIT</strong>
-      <small>Images prévues en L4B</small>
+    <div className="pm-real-product-visual">
+      <img
+        src={apiAssetUrl(image.contentUrl)}
+        alt={`Visuel de ${product.name}`}
+      />
+    </div>
+  );
+}
+
+function ProductGallery({
+  product,
+}: {
+  product: Product;
+}) {
+  return (
+    <div className="pm-real-product-gallery">
+      <ProductVisual product={product} />
+      {product.images.length > 1 ? (
+        <div
+          className="pm-real-product-gallery__thumbs"
+          aria-label="Autres visuels du produit"
+        >
+          {product.images.map((image, index) => (
+            <img
+              key={image.id}
+              src={apiAssetUrl(image.contentUrl)}
+              alt={`${product.name} — visuel ${index + 1}`}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -201,7 +247,7 @@ export function ProductCatalog() {
                     href={`/boutique/produit/${encodeURIComponent(product.slug)}`}
                     aria-label={`Voir ${product.name}`}
                   >
-                    <ProductVisual />
+                    <ProductVisual product={product} />
                   </Link>
                   <div className="pm-real-product-card__body">
                     <small>{product.category}</small>
@@ -354,7 +400,7 @@ export function ProductDetail({
       </nav>
 
       <div className="pm-real-product-detail">
-        <ProductVisual />
+        <ProductGallery product={product} />
 
         <section className="pm-real-product-detail__info">
           <span className="pm-overline">{product.category}</span>
