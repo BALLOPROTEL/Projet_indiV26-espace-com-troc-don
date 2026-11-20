@@ -26,7 +26,7 @@ export function SiteFooter() {
         <div>
           <h3>Communauté</h3>
           <Link href="/espace#publier">Publier une annonce</Link>
-          <Link href="/espace#mes-echanges">Mes échanges</Link>
+          <Link href="/echanges">Découvrir les échanges</Link>
           <Link href="/moderation">Modération</Link>
         </div>
 
