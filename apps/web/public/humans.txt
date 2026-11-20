@@ -1,0 +1,11 @@
+/* TEAM */
+Projet : La Petite Maison de l’Épouvante
+Contexte : Projet pédagogique CESI
+
+/* SITE */
+Langue : Français
+Technologies : Next.js, React, TypeScript
+Fonction : plateforme communautaire de don et de troc
+
+/* PRIVACY */
+Aucune donnée personnelle n’est publiée dans ce fichier.
