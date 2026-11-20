@@ -61,6 +61,22 @@ function metricRouteLabel(requestUrl: string): string {
     return path;
   }
 
+  if (path === '/api/products') {
+    return path;
+  }
+
+  if (path.startsWith('/api/products/')) {
+    return '/api/products/*';
+  }
+
+  if (path === '/api/admin/products') {
+    return path;
+  }
+
+  if (path.startsWith('/api/admin/products/')) {
+    return '/api/admin/products/*';
+  }
+
   if (path === '/api/listings') {
     return path;
   }
