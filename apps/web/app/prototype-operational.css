@@ -1734,3 +1734,209 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Prototype 22/23/24 — FAQ, histoire, contact. */
+.pm-faq-list {
+  max-width: 810px;
+  display: grid;
+  gap: 10px;
+}
+
+.pm-faq-item {
+  border: 1px solid var(--pm-border);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.pm-faq-item summary {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--pm-navy);
+  padding: 14px 17px;
+  font-size: .8rem;
+  font-weight: 850;
+}
+
+.pm-faq-item p {
+  margin: 0;
+  border-top: 1px solid #edf1f4;
+  color: var(--pm-muted);
+  padding: 15px 17px 18px;
+  font-size: .76rem;
+  line-height: 1.65;
+}
+
+.pm-info-cta {
+  margin-top: 20px;
+}
+
+.pm-about-feature {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(300px,.9fr);
+  gap: 28px;
+  align-items: center;
+  border-radius: 20px;
+  background: #e4eff6;
+  padding: 32px 36px;
+}
+
+.pm-about-feature h2 {
+  margin: 8px 0 10px;
+  color: var(--pm-navy);
+  font-size: clamp(1.8rem,4vw,2.7rem);
+  letter-spacing: -.04em;
+  line-height: 1.08;
+}
+
+.pm-about-feature p {
+  max-width: 640px;
+  color: #536b7a;
+  font-size: .84rem;
+  line-height: 1.75;
+}
+
+.pm-about-art {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  border-radius: 18px;
+  background: linear-gradient(145deg,#122f4d,#2c6f82);
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 14px 35px rgba(13,35,56,.15);
+}
+
+.pm-about-art span {
+  color: var(--pm-orange);
+  font-size: 5rem;
+}
+
+.pm-about-art strong {
+  font-family: Georgia,'Times New Roman',serif;
+  font-size: 1.15rem;
+  letter-spacing: .04em;
+}
+
+.pm-pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 14px;
+}
+
+.pm-pillar-grid article {
+  border: 1px solid var(--pm-border);
+  border-radius: 14px;
+  background: #fff;
+  padding: 20px;
+}
+
+.pm-pillar-grid article > span {
+  font-size: 2.1rem;
+}
+
+.pm-pillar-grid h3 {
+  margin: 12px 0 7px;
+  color: var(--pm-navy);
+  font-size: .95rem;
+}
+
+.pm-pillar-grid p {
+  margin: 0;
+  color: var(--pm-muted);
+  font-size: .74rem;
+  line-height: 1.55;
+}
+
+.pm-contact-layout {
+  display: grid;
+  grid-template-columns: minmax(0,1.35fr) minmax(300px,.75fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.pm-contact-form,
+.pm-contact-aside {
+  border: 1px solid var(--pm-border);
+  border-radius: 14px;
+  background: #fff;
+  padding: 24px;
+}
+
+.pm-contact-form {
+  display: grid;
+  gap: 14px;
+}
+
+.pm-contact-form h2,
+.pm-contact-aside h2 {
+  margin: 0 0 4px;
+  color: var(--pm-navy);
+  font-size: 1rem;
+}
+
+.pm-contact-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.pm-contact-form label > span {
+  color: var(--pm-navy);
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.pm-contact-form input,
+.pm-contact-form select,
+.pm-contact-form textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #d8e1e8;
+  border-radius: 9px;
+  background: #f8fafb;
+  color: #8c97a4;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 16px;
+}
+
+.pm-contact-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.pm-contact-aside p {
+  color: var(--pm-muted);
+  font-size: .76rem;
+  line-height: 1.65;
+}
+
+.pm-info-notice {
+  margin: 18px 0;
+  border-radius: 10px;
+  background: #fff2e8;
+  color: #95572d;
+  padding: 13px 14px;
+  font-size: .72rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 760px) {
+  .pm-about-feature,
+  .pm-contact-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .pm-pillar-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pm-about-art {
+    min-height: 220px;
+  }
+}
