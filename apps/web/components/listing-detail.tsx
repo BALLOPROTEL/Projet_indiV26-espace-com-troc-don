@@ -15,13 +15,25 @@ import { canRestoreProposalAnchor } from '../lib/listing-navigation';
 import { ListingProposalForm } from './listing-proposal-form';
 import { ListingImageGallery } from './listing-image-gallery';
 
-export function ListingDetail({ id }: { id: string }) {
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [loading, setLoading] = useState(true);
+export function ListingDetail({
+  id,
+  initialListing,
+}: {
+  id: string;
+  initialListing?: Listing;
+}) {
+  const [listing, setListing] = useState<Listing | null>(
+    initialListing ?? null,
+  );
+  const [loading, setLoading] = useState(!initialListing);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialListing) {
+      return;
+    }
+
     let active = true;
 
     void listingsApi
@@ -59,7 +71,7 @@ export function ListingDetail({ id }: { id: string }) {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, initialListing]);
 
   // On first navigation from Keycloak, the browser may consume the hash
   // while only PageLoading exists. Restore the requested form after the

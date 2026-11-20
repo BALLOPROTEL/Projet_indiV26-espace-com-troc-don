@@ -24,6 +24,7 @@ export function formatListingDate(value: string): string {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    timeZone: 'Europe/Paris',
   }).format(new Date(value));
 }
 
