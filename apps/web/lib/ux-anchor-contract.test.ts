@@ -10,6 +10,7 @@ const header = readFileSync(new URL('../components/site-header.tsx', import.meta
 const exchanges = readFileSync(new URL('../components/marketplace-dashboard.tsx', import.meta.url), 'utf8');
 const admin = readFileSync(new URL('../components/admin-dashboard.tsx', import.meta.url), 'utf8');
 const moderation = readFileSync(new URL('../components/moderation-space.tsx', import.meta.url), 'utf8');
+const designSystemCss = readFileSync(new URL('../app/design-system.css', import.meta.url), 'utf8');
 
 describe('UX V4 task-first entry points', () => {
   it('offers the L1 2-in-1 entry points without inventing active commerce', () => {
@@ -21,6 +22,12 @@ describe('UX V4 task-first entry points', () => {
     expect(home).toContain('ne sont pas encore activés');
     expect(home).not.toContain('data-product');
     expect(home).not.toContain('data-add');
+  });
+
+  it('keeps catalogue CTAs and edit dialogs clear of L1 fixed navigation', () => {
+    expect(designSystemCss).toContain('padding-bottom: 72px');
+    expect(designSystemCss).toContain('.dialog-backdrop');
+    expect(designSystemCss).toContain('z-index: 80');
   });
 
   it('provides a real target for every member shortcut', () => {
