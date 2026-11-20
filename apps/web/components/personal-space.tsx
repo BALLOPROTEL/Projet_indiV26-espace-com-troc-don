@@ -36,7 +36,12 @@ export function PersonalSpace() {
     ready,
     authenticated,
     username,
+    firstName,
+    lastName,
+    email,
+    emailVerified,
     login,
+    manageAccount,
     getToken,
   } = useAuth();
 
@@ -383,6 +388,11 @@ export function PersonalSpace() {
           <span><strong>Mes échanges</strong><small>Demandes reçues, envoyées et suivi</small></span>
           <span aria-hidden="true">↗</span>
         </Link>
+        <Link className="workspace-v3__quick-link" href="#mon-profil">
+          <span className="workspace-v3__quick-number" aria-hidden="true">04</span>
+          <span><strong>Mon profil</strong><small>Identité et sécurité du compte</small></span>
+          <span aria-hidden="true">↗</span>
+        </Link>
       </nav>
 
       <div className="workspace-grid">
@@ -490,6 +500,57 @@ export function PersonalSpace() {
 
       <section className="workspace-v3__exchanges" id="mes-echanges" aria-label="Mes échanges">
         <MarketplaceDashboard />
+      </section>
+
+      <section
+        className="workspace-v3__exchanges"
+        id="mon-profil"
+        aria-labelledby="workspace-profile-title"
+      >
+        <div className="section-heading section-heading--compact">
+          <div>
+            <span className="eyebrow">Compte</span>
+            <h2 id="workspace-profile-title">Mon profil</h2>
+          </div>
+        </div>
+        <p className="marketplace-dashboard__help">
+          Ces informations viennent directement de votre identité Keycloak.
+          La Petite Maison ne stocke jamais votre mot de passe.
+        </p>
+        <div className="marketplace-dashboard__grid">
+          <article className="marketplace-entry">
+            <strong>Identité</strong>
+            <p>
+              Nom : <strong>{[firstName, lastName].filter(Boolean).join(' ') || username || 'Non renseigné'}</strong>
+            </p>
+            <p>
+              E-mail : <strong>{email ?? 'Non communiqué'}</strong>
+            </p>
+            <p className="quiet-note">
+              Vérification e-mail : {
+                emailVerified === true
+                  ? 'vérifié'
+                  : emailVerified === false
+                    ? 'non vérifié'
+                    : 'information indisponible'
+              }
+            </p>
+          </article>
+          <article className="marketplace-entry">
+            <strong>Sécurité du compte</strong>
+            <p>
+              L’identité, les sessions et les secrets de connexion sont gérés
+              par Keycloak, pas par la base applicative.
+            </p>
+            <button
+              className="button button--quiet button--small"
+              type="button"
+              onClick={() => void manageAccount()}
+            >
+              Gérer mon compte sécurisé
+            </button>
+          </article>
+        </div>
       </section>
 
       {editing ? (
