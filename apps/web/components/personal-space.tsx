@@ -29,6 +29,7 @@ import type {
 } from '../lib/types';
 import { useAuth } from './auth-provider';
 import { EmptyState } from './empty-state';
+import { AccountShell } from './account-shell';
 import { MarketplaceDashboard } from './marketplace-dashboard';
 
 export function PersonalSpace() {
@@ -36,7 +37,10 @@ export function PersonalSpace() {
     ready,
     authenticated,
     username,
+    roles,
+    hasAnyRole,
     login,
+    logout,
     getToken,
   } = useAuth();
 
@@ -358,7 +362,14 @@ export function PersonalSpace() {
   }
 
   return (
-    <div className="workspace workspace-v3">
+    <AccountShell
+      username={username}
+      active="overview"
+      canModerate={hasAnyRole('MODERATOR', 'ADMIN')}
+      isAdmin={roles.includes('ADMIN')}
+      onLogout={() => void logout()}
+    >
+      <div className="workspace workspace-v3">
       <section className="workspace-intro">
         <div>
           <span className="eyebrow">Mon espace</span>
@@ -538,7 +549,8 @@ export function PersonalSpace() {
           </section>
         </div>
       ) : null}
-    </div>
+      </div>
+    </AccountShell>
   );
 }
 
