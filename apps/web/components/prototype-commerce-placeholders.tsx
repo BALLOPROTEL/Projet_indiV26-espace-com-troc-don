@@ -22,7 +22,12 @@ function Breadcrumb({
 export function ProductPlaceholderPage() {
   return (
     <div className="pm-prototype-page">
-      <Breadcrumb items={[{ label: 'Boutique', href: '/boutique' }, { label: 'Fiche produit' }]} />
+      <Breadcrumb
+        items={[
+          { label: 'Boutique', href: '/boutique' },
+          { label: 'Fiche produit' },
+        ]}
+      />
 
       <div className="pm-product-placeholder">
         <div className="pm-product-placeholder__visual" aria-hidden="true">
@@ -31,44 +36,28 @@ export function ProductPlaceholderPage() {
         </div>
 
         <section className="pm-product-placeholder__info">
-          <span className="pm-overline">BOUTIQUE · PRODUIT</span>
-          <h1>Fiche produit</h1>
-          <RoadmapBadge>BACKEND PRODUITS REQUIS</RoadmapBadge>
+          <span className="pm-overline">CATALOGUE RÉEL CONNECTÉ</span>
+          <h1>Choisissez un produit publié</h1>
+          <RoadmapBadge>LOT L4A</RoadmapBadge>
           <p>
-            Cette page reprend la structure de la maquette 03, mais aucun nom,
-            prix, stock, avis ou disponibilité fictive n’est affiché.
+            Les fiches produit utilisent désormais les vrais prix, variantes
+            et stocks du service Catalog. Cette route neutre ne fabrique aucun
+            produit lorsqu’aucun identifiant réel n’a été sélectionné.
           </p>
 
-          <div className="pm-product-placeholder__price">Prix réel à connecter</div>
-          <div className="pm-product-placeholder__availability">
-            Disponibilité réelle à connecter
-          </div>
-
           <div className="pm-product-placeholder__actions">
-            <button className="pm-button pm-button--orange" type="button" disabled>
-              Ajouter au panier
-            </button>
-            <button className="pm-button pm-button--outline" type="button" disabled>
-              Ajouter aux favoris
-            </button>
+            <Link className="pm-button pm-button--orange" href="/boutique">
+              Voir les produits publiés
+            </Link>
           </div>
 
           <ul className="pm-product-placeholder__specs">
-            <li><strong>Livraison :</strong> contrat e-commerce à définir</li>
-            <li><strong>Retours :</strong> politique réelle à connecter</li>
-            <li><strong>Paiement :</strong> aucun encaissement actif</li>
+            <li><strong>Catalogue :</strong> backend Produit connecté</li>
+            <li><strong>Images :</strong> prévues en L4B</li>
+            <li><strong>Panier / commande :</strong> prévus en L5</li>
           </ul>
         </section>
       </div>
-
-      <section className="pm-prototype-section">
-        <h2>Vous aimerez aussi</h2>
-        <p>Les recommandations apparaîtront ici à partir de vraies données produit.</p>
-        <div className="pm-empty-shelf">
-          <span aria-hidden="true">♡</span>
-          <strong>Aucune recommandation fictive</strong>
-        </div>
-      </section>
     </div>
   );
 }
