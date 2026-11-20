@@ -16,6 +16,9 @@ const keycloak = process.env.KEYCLOAK_PUBLIC_URL ?? 'http://127.0.0.1:18081';
 const internalToken = 'local_internal_change_me_2026_very_long_token'; // disposable Compose only
 const listingId = 'm8-' + randomUUID();
 const transientId = 'm8-' + randomUUID();
+const productSuffix = randomUUID().slice(0, 8);
+const productSlug = 'm8-product-' + productSuffix;
+const productSku = 'M8-' + productSuffix.toUpperCase();
 
 function info(message) {
   process.stdout.write('[M8-B] ' + message + '\n');
@@ -100,7 +103,12 @@ function seed(ownerSubject) {
 async function run() {
   const requester = await token('demo-user');
   const owner = await token('demo-moderator');
-  assert.notEqual(requester.subject, owner.subject);
+  const admin = await token('demo-admin');
+  assert.equal(new Set([
+    requester.subject,
+    owner.subject,
+    admin.subject,
+  ]).size, 3);
 
   await request(gateway, '/api/health/ready', {}, 200);
   await request(gateway, '/api/proposals/me', {}, 401);
@@ -109,6 +117,96 @@ async function run() {
   await request(gateway, '/api/notifications/recent', {}, 404);
   await request(gateway, '/api/notifications/me', {}, 401);
   info('Gateway paths, legacy fallback, protected and private routes: PASS');
+
+  await request(gateway, '/api/admin/products', {}, 401);
+  await request(gateway, '/api/admin/products', {
+    method: 'POST',
+    headers: {
+      ...auth(requester),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      slug: productSlug,
+      name: 'M8 disposable commercial product',
+      description:
+        'Synthetic product created only inside the isolated M8 integration environment.',
+      category: 'M8 Tests',
+      variants: [{
+        sku: productSku,
+        label: 'Standard',
+        priceCents: 2599,
+        stock: 3,
+      }],
+    }),
+  }, 403);
+
+  const draftProduct = await request(gateway, '/api/admin/products', {
+    method: 'POST',
+    headers: {
+      ...auth(admin),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      slug: productSlug,
+      name: 'M8 disposable commercial product',
+      description:
+        'Synthetic product created only inside the isolated M8 integration environment.',
+      category: 'M8 Tests',
+      variants: [{
+        sku: productSku,
+        label: 'Standard',
+        priceCents: 2599,
+        stock: 3,
+      }],
+    }),
+  }, 201);
+  assert.equal(draftProduct.status, 'DRAFT');
+  assert.equal(draftProduct.variants[0].priceCents, 2599);
+  assert.equal(draftProduct.variants[0].stock, 3);
+
+  await request(gateway, '/api/products/' + productSlug, {}, 404);
+
+  const publishedProduct = await request(
+    gateway,
+    '/api/admin/products/' + draftProduct.id + '/publish',
+    {
+      method: 'POST',
+      headers: auth(admin),
+    },
+    200,
+  );
+  assert.equal(publishedProduct.status, 'PUBLISHED');
+
+  const publicProduct = await request(
+    gateway,
+    '/api/products/' + productSlug,
+    {},
+    200,
+  );
+  assert.equal(publicProduct.slug, productSlug);
+  assert.equal(publicProduct.fromPriceCents, 2599);
+  assert.equal(publicProduct.availableStock, 3);
+  assert.equal('status' in publicProduct, false);
+
+  const searchedProducts = await request(
+    gateway,
+    '/api/products?category=' + encodeURIComponent('M8 Tests'),
+    {},
+    200,
+  );
+  assert.ok(searchedProducts.some(item => item.id === draftProduct.id));
+
+  await request(
+    gateway,
+    '/api/admin/products/' + draftProduct.id + '/archive',
+    {
+      method: 'POST',
+      headers: auth(admin),
+    },
+    200,
+  );
+  await request(gateway, '/api/products/' + productSlug, {}, 404);
+  info('Commercial Product: ADMIN RBAC + DRAFT/PUBLISHED/ARCHIVED visibility: PASS');
 
   seed(owner.subject);
   info('Two approved donation listings seeded in isolated Catalog DB');
