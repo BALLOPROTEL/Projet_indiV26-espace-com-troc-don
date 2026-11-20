@@ -233,6 +233,7 @@ const targets = [
   ['legacy', 'http://legacy-api:3099/api/health/live'],
   ['catalog', 'http://catalog-service:3101/health/ready'],
   ['marketplace', 'http://marketplace-service:3102/health/ready'],
+  ['notification', 'http://notification-service:3103/health/ready'],
 ];
 (async () => {
   for (const [name, url] of targets) {
@@ -251,7 +252,7 @@ const targets = [
   }
 })().catch((error) => { console.error(error); process.exit(1); });
 "
-echo "[OK] Gateway -> Legacy/Catalog/Marketplace Kubernetes DNS."
+echo "[OK] Gateway -> Legacy/Catalog/Marketplace/Notification Kubernetes DNS."
 
 kubectl -n "${NAMESPACE}" exec deployment/marketplace-service -- node -e "
 (async () => {
