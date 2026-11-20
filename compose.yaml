@@ -291,6 +291,9 @@ services:
       PORT: "3103"
       RABBITMQ_URL: amqp://app:rabbitmq_local_change_me_2026@rabbitmq:5672
       NOTIFICATION_DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=notification
+      KEYCLOAK_ISSUER: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}/realms/projet-indiv26
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: api
     ports:
       - "127.0.0.1:${NOTIFICATION_HOST_PORT:-3103}:3103"
     depends_on:
