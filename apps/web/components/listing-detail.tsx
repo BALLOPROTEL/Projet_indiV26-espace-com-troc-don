@@ -228,7 +228,7 @@ export function ListingDetail({ id }: { id: string }) {
           </div>
 
           <div className="listing-detail__actions">
-            <Link className="button" href="/espace#publier">
+            <Link className="button" href="/publier">
               Déposer mon objet
             </Link>
             <Link className="text-link" href="/echanges">
