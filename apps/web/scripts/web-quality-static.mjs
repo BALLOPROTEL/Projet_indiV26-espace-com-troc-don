@@ -111,7 +111,10 @@ function isKnownInternalRoute(href) {
     return true;
   }
 
-  return /^\/annonces\/[^/]+$/.test(path);
+  return (
+    /^\/annonces\/[^/]+$/.test(path) ||
+    /^\/boutique\/produit\/[^/]+$/.test(path)
+  );
 }
 
 const findings = [];
