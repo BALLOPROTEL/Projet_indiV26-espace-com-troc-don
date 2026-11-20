@@ -78,6 +78,10 @@ export function BoutiqueShowcase() {
               Les produits, prix, stocks, favoris, panier et commandes ne seront affichés
               qu’après connexion de leurs vrais contrats backend.
             </p>
+            <div className="pm-prototype-empty__actions">
+              <Link className="pm-button pm-button--outline" href="/boutique/produit">Voir la fiche produit</Link>
+              <Link className="pm-button pm-button--outline" href="/panier">Voir le panier</Link>
+            </div>
           </div>
         </section>
       </div>
@@ -99,9 +103,9 @@ export function FanzinesShowcase() {
           <span>✦ L’ESPACE FANZINE</span>
           <h2>Le fantastique entre vos mains.</h2>
           <p>Lecture numérique, archives et futures éditions réunies dans un seul univers.</p>
-          <button className="pm-button pm-button--orange" type="button" disabled>
-            Feuilleter un extrait — bientôt
-          </button>
+          <Link className="pm-button pm-button--orange" href="/fanzines/lecteur">
+            Ouvrir le lecteur →
+          </Link>
         </div>
         <div className="pm-fanzine-cover" aria-hidden="true">ÉPOUVANTE</div>
       </section>
