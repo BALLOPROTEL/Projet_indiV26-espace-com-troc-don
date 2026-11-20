@@ -7,6 +7,7 @@ import { InternalModule } from './internal/internal.module';
 import { ListingsModule } from './listings/listings.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProductsModule } from './products/products.module';
 import { StorageModule } from './storage/storage.module';
 
 @Module({
@@ -21,6 +22,7 @@ import { StorageModule } from './storage/storage.module';
     MarketplaceModule,
     ListingsModule,
     FavoritesModule,
+    ProductsModule,
     InternalModule,
     HealthModule,
   ],
