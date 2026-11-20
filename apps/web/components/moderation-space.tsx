@@ -7,6 +7,7 @@ import type { Listing } from '../lib/types';
 import { filterPendingListings, moderationMetrics, type ModerationFilter } from '../lib/moderation-dashboard';
 import { useAuth } from './auth-provider';
 import { EmptyState } from './empty-state';
+import { AccountShell } from './account-shell';
 import { ModerationQueueRow } from './moderation-queue-row';
 
 export function ModerationSpace() {
@@ -17,6 +18,8 @@ export function ModerationSpace() {
     login,
     getToken,
     username,
+    roles,
+    logout,
   } = useAuth();
 
   const canModerate = hasAnyRole('MODERATOR', 'ADMIN');
@@ -170,7 +173,14 @@ export function ModerationSpace() {
   }
 
   return (
-    <section className="moderation-page management-v2" aria-labelledby="moderation-title">
+    <AccountShell
+      username={username}
+      active="moderation"
+      canModerate
+      isAdmin={roles.includes('ADMIN')}
+      onLogout={() => void logout()}
+    >
+      <section className="moderation-page management-v2" aria-labelledby="moderation-title">
       <div className="management-v2__layout">
         <div className="management-v2__content">
           <div className="moderation-hero management-v2__hero">
@@ -295,7 +305,8 @@ export function ModerationSpace() {
       </div>
         </div>
       </div>
-    </section>
+      </section>
+    </AccountShell>
   );
 }
 
