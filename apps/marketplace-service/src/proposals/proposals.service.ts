@@ -77,6 +77,7 @@ export class ProposalsService {
         proposalId: created.id,
         targetListingId,
         requesterId,
+        ownerId: target.ownerId,
         proposalType: type,
         offeredListingId,
       },
