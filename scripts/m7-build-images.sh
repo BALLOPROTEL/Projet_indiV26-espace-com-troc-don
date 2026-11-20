@@ -46,6 +46,9 @@ build_image projet-indiv26-marketplace-migrate:m7-local --target migration -f ap
 build_image projet-indiv26-notification-service:m8-local -f apps/notification-service/Dockerfile
 build_image projet-indiv26-notification-migrate:m8-local --target migration -f apps/notification-service/Dockerfile
 
+build_image projet-indiv26-commerce-service:l5a-local -f apps/commerce-service/Dockerfile
+build_image projet-indiv26-commerce-migrate:l5a-local --target migration -f apps/commerce-service/Dockerfile
+
 build_image projet-indiv26-web:m7-local \
   --build-arg NEXT_PUBLIC_API_URL=/api \
   --build-arg NEXT_PUBLIC_SITE_URL="${APP_PUBLIC_URL}" \
