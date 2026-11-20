@@ -325,8 +325,10 @@ async function loginAsDemoOwner() {
 
 async function loginAsDemoRequester() {
   const logoutClicked = await evaluate(`(() => {
-    const button = [...document.querySelectorAll('header button')]
-      .find(element => element.textContent?.trim() === 'Sortir');
+    const root = document.querySelector('.pm-account-menu');
+    if (!root) return false;
+    if (!root.open) root.querySelector('summary')?.click();
+    const button = root.querySelector('[data-account-action="logout"]');
     if (!button) return false;
     button.click();
     return true;
@@ -335,7 +337,7 @@ async function loginAsDemoRequester() {
 
   await waitUntil('Keycloak logout returns to the public app', `(
     location.origin === ${JSON.stringify(new URL(base).origin)} &&
-    !document.body.innerText.includes('Demo Moderator')
+    !document.querySelector('.pm-account-menu')
   )`, 100);
 
   await command('Page.navigate', { url: new URL('/espace', base).href });
@@ -677,8 +679,7 @@ async function assertKeycloakPasswordLayout(viewport) {
 async function journeySwitchUser(username) {
   const logout = '(() => {const root=document.querySelector(".pm-account-menu");' +
     'if(!root)return false;if(!root.open)root.querySelector("summary")?.click();' +
-    'const button=[...root.querySelectorAll("button")]' +
-    '.find(el=>el.textContent?.trim()==="Se déconnecter");' +
+    'const button=root.querySelector("[data-account-action=logout]");' +
     'if(!button)return false;button.click();return true;})()';
   assert.equal(await evaluate(logout), true, 'Missing real browser logout');
   await waitUntil('Keycloak logout and app return',
@@ -1780,7 +1781,9 @@ async function runFrontV2HomeJourney() {
       'searchFont:parseFloat(getComputedStyle(search).fontSize),' +
       'typeFont:parseFloat(getComputedStyle(type).fontSize),' +
       'columns:getComputedStyle(c).gridTemplateColumns.split(" ").length,' +
-      'buttons:buttons.map(b=>({w:b.getBoundingClientRect().width,h:b.getBoundingClientRect().height}))};' +
+      'buttons:buttons.map(b=>({w:b.getBoundingClientRect().width,h:b.getBoundingClientRect().height})),' +
+      'headerTargets:[...document.querySelectorAll(".pm-header .pm-icon-button,.pm-header .pm-account-menu summary,.pm-header .pm-header__login")]' +
+      '.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height}))};' +
       '})()');
     assert.ok(checks.scroll <= checks.client + 2,
       'F7 mobile homepage must not overflow at ' + width + 'px: ' + JSON.stringify(checks));
@@ -1796,6 +1799,9 @@ async function runFrontV2HomeJourney() {
       'F7 mobile fields must use >=16px to prevent iOS zoom: ' + JSON.stringify(checks));
     assert.ok(checks.buttons.length > 0 && checks.buttons.every(b=>b.w>=44 && b.h>=44),
       'F7 pagination touch targets >=44px: ' + JSON.stringify(checks));
+    assert.ok(checks.headerTargets.length >= 2 &&
+      checks.headerTargets.every(target => target.w >= 44 && target.h >= 44),
+      'L1 header touch targets must stay >=44px: ' + JSON.stringify(checks.headerTargets));
     // Force :hover at the CSS engine level. Merely moving a mouse under touch
     // emulation can be ignored and would produce a false-positive regression.
     await command('DOM.enable');
