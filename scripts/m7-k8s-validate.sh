@@ -76,9 +76,14 @@ grep -Fq 'replicas: 2' "${K8S_DIR}/notification-deployment.yaml"
 grep -Fq 'NOTIFICATION_DATABASE_URL' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
 require_rendered 'CATALOG_SERVICE_URL: http://catalog-service:3101' 'Gateway -> Catalog DNS'
 require_rendered 'MARKETPLACE_SERVICE_URL: http://marketplace-service:3102' 'Gateway -> Marketplace DNS'
+require_rendered 'NOTIFICATION_SERVICE_URL: http://notification-service:3103' 'Gateway -> Notification DNS'
 require_rendered 'LEGACY_API_URL: http://legacy-api:3099' 'Gateway -> legacy DNS'
 require_rendered 'CATALOG_INTERNAL_URL: http://catalog-service:3101' 'Marketplace -> Catalog DNS'
 require_rendered 'KEYCLOAK_JWKS_URL: http://keycloak:8080/' 'internal Keycloak JWKS'
+grep -A 8 'name: notification-config' < <(kubectl kustomize "${K8S_DIR}") | grep -Fq 'KEYCLOAK_AUDIENCE: api' || {
+  echo "[FAIL] Notification ConfigMap must carry Keycloak JWT verification settings."
+  exit 1
+}
 require_rendered 'app.projet-indiv26.test' 'Web ingress host'
 require_rendered 'api.projet-indiv26.test' 'Gateway ingress host'
 require_rendered 'auth.projet-indiv26.test' 'Keycloak ingress host'
