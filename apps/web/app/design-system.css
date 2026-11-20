@@ -1111,8 +1111,9 @@ a,
 }
 
 .pm-footer a {
+  min-width: 44px;
   min-height: 44px;
-  padding-block: 8px;
+  padding: 8px 4px;
 }
 
 .pm-footer__muted {
