@@ -1623,6 +1623,19 @@ async function runFrontV2HomeJourney() {
     width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false,
   });
   await journeyOpen('/', '.home-v2__welcome h1', 'FRONT-V2 F1 public homepage');
+  const l1Navigation = await evaluate('(() => ({' +
+    'desktop:[...document.querySelectorAll(".pm-main-nav a")].map(a=>a.getAttribute("href")),' +
+    'mobile:[...document.querySelectorAll(".pm-mobilebar a")].map(a=>a.getAttribute("href")),' +
+    'footerColumns:document.querySelectorAll(".pm-footer__columns > div").length' +
+    '}))()');
+  assert.deepEqual(l1Navigation.desktop,
+    ['/', '/#boutique', '/#annonces', '/#fanzines', '/#actualites'],
+    'L1 desktop header must match the five prototype destinations');
+  assert.deepEqual(l1Navigation.mobile,
+    ['/', '/#boutique', '/#annonces', '/espace#publier', '/espace'],
+    'L1 mobile bar must expose five task-oriented destinations');
+  assert.equal(l1Navigation.footerColumns, 4,
+    'L1 footer must keep the four-column prototype structure');
   // #149/L1: validate the new 2-in-1 landing without exposing fake commerce.
   const l1HomeReady = await evaluate('(() => {' +
     'const links=[...document.querySelectorAll(".home-v2__hero-actions a")].map(a=>a.getAttribute("href"));' +
@@ -1770,6 +1783,11 @@ async function runFrontV2HomeJourney() {
     assert.ok(checks.scroll <= checks.client + 2,
       'F7 mobile homepage must not overflow at ' + width + 'px: ' + JSON.stringify(checks));
     assert.equal(checks.columns, 1, 'F7 expects one card column on phone');
+    assert.equal(
+      await evaluate('getComputedStyle(document.querySelector(".pm-mobilebar")).display'),
+      'grid',
+      'L1 mobile bottom navigation must be visible at ' + width + 'px',
+    );
     assert.equal(checks.touch, true, 'F7 must emulate coarse touch media at ' + width + 'px');
     assert.ok(checks.touchPoints >= 1, 'F7 Chrome must expose at least one touch point');
     assert.ok(checks.searchFont >= 16 && checks.typeFont >= 16,
@@ -1842,7 +1860,7 @@ async function runFinalAccessibilityAutomation() {
   await journeyOpen('/', '.home-v2', 'F7 200-percent zoom layout proxy');
   const zoomHome = await evaluate('({scroll:document.documentElement.scrollWidth,' +
     'client:document.documentElement.clientWidth,' +
-    'menu:!!document.querySelector(".site-header__menu-toggle")})');
+    'mobilebar:getComputedStyle(document.querySelector(".pm-mobilebar")).display})');
   assert.ok(zoomHome.scroll <= zoomHome.client + 2,
     '200% zoom proxy must not overflow home horizontally: ' + JSON.stringify(zoomHome));
   await journeyScreenshot('f7-zoom-200-proxy-home');
