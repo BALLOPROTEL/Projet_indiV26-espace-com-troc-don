@@ -10,6 +10,10 @@ const header = readFileSync(new URL('../components/site-header.tsx', import.meta
 const account = readFileSync(new URL('../components/account-shell.tsx', import.meta.url), 'utf8');
 const exchanges = readFileSync(new URL('../components/exchange-space.tsx', import.meta.url), 'utf8');
 const showcase = readFileSync(new URL('../components/prototype-showcase-pages.tsx', import.meta.url), 'utf8');
+const productCatalog = readFileSync(
+  new URL('../components/product-catalog.tsx', import.meta.url),
+  'utf8',
+);
 const keycloak = readFileSync(
   new URL('../../../infra/keycloak/themes/petite-maison/login/resources/css/login.css', import.meta.url),
   'utf8',
@@ -44,7 +48,9 @@ describe('#149 prototype visual contract', () => {
     }
     expect(exchanges).toContain('pm-exchange-hero');
     expect(exchanges).toContain('listingsApi.public()');
-    expect(showcase).toContain('pm-shop-layout');
+    expect(productCatalog).toContain('pm-shop-layout');
+    expect(productCatalog).toContain('productsApi');
+    expect(productCatalog).toContain('Aucun produit publié pour le moment.');
     expect(showcase).toContain('pm-editorial-hero');
     expect(showcase).toContain('pm-festival-hero');
   });
