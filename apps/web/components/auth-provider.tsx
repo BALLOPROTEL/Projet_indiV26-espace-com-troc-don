@@ -20,6 +20,7 @@ type AppRole = 'USER' | 'MODERATOR' | 'ADMIN';
 type ParsedToken = KeycloakTokenParsed & {
   preferred_username?: string;
   name?: string;
+  email?: string;
   realm_access?: {
     roles?: string[];
   };
@@ -29,6 +30,7 @@ type AuthContextValue = {
   ready: boolean;
   authenticated: boolean;
   username: string | null;
+  email: string | null;
   subject: string | null;
   roles: AppRole[];
   login: () => Promise<void>;
@@ -55,6 +57,10 @@ function readIdentity() {
       token?.name ??
       token?.preferred_username ??
       null,
+    email:
+      typeof token?.email === 'string'
+        ? token.email
+        : null,
     subject: token?.sub ?? null,
     roles,
   };
@@ -69,6 +75,7 @@ export function AuthProvider({
   const [identity, setIdentity] = useState(() => ({
     authenticated: false,
     username: null as string | null,
+    email: null as string | null,
     subject: null as string | null,
     roles: [] as AppRole[],
   }));
