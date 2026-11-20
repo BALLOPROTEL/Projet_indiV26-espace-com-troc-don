@@ -53,22 +53,17 @@ describe('#149 dedicated-page navigation', () => {
     expect(operationalCss).toContain('overflow-wrap: anywhere');
   });
 
-  it('provides real targets for publication, listings and exchanges', () => {
-    for (const id of ['publier', 'mes-articles', 'mes-echanges']) {
-      expect(space).toContain(`id="${id}"`);
-      expect(header).toContain(`href="/espace#${id}"`);
-    }
+  it('provides real dedicated routes for publication, listings and exchanges', () => {
+    expect(space).toContain('id="publier"');
+    expect(space).toContain('id="mes-articles"');
+    expect(space).toContain('id="mes-echanges"');
 
-    // The prototype account sidebar deliberately keeps publication out of its
-    // navigation. Publication remains reachable from the shared header/mobile
-    // action, while the sidebar exposes the persistent account destinations.
-    for (const id of ['mes-articles', 'mes-echanges']) {
-      expect(accountShell).toContain(`href="/espace#${id}"`);
-    }
-    expect(accountShell).not.toContain('href="/publier"');
+    expect(header).toContain('href="/publier"');
+    expect(header).toContain('href="/mes-annonces"');
+    expect(header).toContain('href="/messages"');
+    expect(accountShell).toContain('href="/mes-annonces"');
+    expect(accountShell).toContain('href="/messages"');
 
-    expect(space).toContain('workspaceSectionFromHash(window.location.hash)');
-    expect(space).toContain('requestAnimationFrame');
     expect(space).toContain('<MarketplaceDashboard />');
     expect(space).toContain('<ListingForm');
   });
@@ -103,8 +98,8 @@ describe('#149 dedicated-page navigation', () => {
     expect(moderation).toContain("hasAnyRole('MODERATOR', 'ADMIN')");
   });
 
-  it('does not invent unsupported functional pages or bypass role-based menus', () => {
-    expect(header).not.toContain('href="/messages"');
+  it('does not invent unsupported pages while preserving role-based menus', () => {
+    expect(header).toContain('href="/messages"');
     expect(header).not.toContain('href="/favoris"');
     expect(header).toContain("roles.includes('ADMIN')");
     expect(header).toContain("roles.includes('MODERATOR')");
