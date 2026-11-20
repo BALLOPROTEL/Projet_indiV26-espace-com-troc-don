@@ -5,3 +5,4 @@ metadata:
   namespace: projet-indiv26
 data:
   API_INTERNAL_URL: "http://gateway:3000"
+  NEXT_PUBLIC_SITE_URL: "https://app.projet-indiv26.test"

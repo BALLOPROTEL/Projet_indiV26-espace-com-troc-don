@@ -147,6 +147,40 @@ for (const file of files) {
   visit(sourceFile);
 }
 
+const seoChecks = [
+  ['app/layout.tsx', ['metadataBase', 'openGraph', 'twitter']],
+  ['app/page.tsx', ['canonical']],
+  ['app/robots.ts', ['/admin', '/espace', '/moderation', 'sitemap.xml']],
+  ['app/sitemap.ts', ['changeFrequency', 'priority']],
+  ['app/not-found.tsx', ['Page introuvable', 'index: false']],
+  ['app/admin/page.tsx', ['index: false']],
+  ['app/espace/page.tsx', ['index: false']],
+  ['app/moderation/page.tsx', ['index: false']],
+  ['app/opengraph-image.tsx', ['ImageResponse', '1200', '630']],
+  ['app/twitter-image.tsx', ['ImageResponse', '1200', '630']],
+  ['app/icon.svg', ['<svg']],
+  ['app/apple-icon.tsx', ['ImageResponse', '180']],
+  ['public/humans.txt', ['Projet pédagogique CESI']],
+];
+
+for (const [seoPath, expectedMarkers] of seoChecks) {
+  const absolute = join(webRoot, seoPath);
+  let content;
+
+  try {
+    content = await readFile(absolute, 'utf8');
+  } catch {
+    findings.push(`${seoPath}: required SEO artifact is missing`);
+    continue;
+  }
+
+  for (const expected of expectedMarkers) {
+    if (!content.includes(expected)) {
+      findings.push(`${seoPath}: missing SEO marker "${expected}"`);
+    }
+  }
+}
+
 if (findings.length > 0) {
   console.error('Web static quality audit: FAIL');
   for (const finding of findings) console.error(`- ${finding}`);

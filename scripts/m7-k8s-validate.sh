@@ -82,6 +82,8 @@ require_rendered 'KEYCLOAK_JWKS_URL: http://keycloak:8080/' 'internal Keycloak J
 require_rendered 'app.projet-indiv26.test' 'Web ingress host'
 require_rendered 'api.projet-indiv26.test' 'Gateway ingress host'
 require_rendered 'auth.projet-indiv26.test' 'Keycloak ingress host'
+require_rendered 'NEXT_PUBLIC_SITE_URL: https://app.projet-indiv26.test' 'Web public SEO URL'
+grep -Fq -- '--build-arg NEXT_PUBLIC_SITE_URL="${APP_PUBLIC_URL}"' "${ROOT_DIR}/scripts/m7-build-images.sh"
 require_rendered 'secretName: platform-tls' 'platform TLS secret'
 require_rendered 'kind: HorizontalPodAutoscaler' 'Gateway HPA'
 require_rendered 'maxReplicas: 4' 'Gateway HPA max replicas'

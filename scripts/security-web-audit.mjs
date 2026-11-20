@@ -12,6 +12,7 @@ const allowedPublicEnv = new Set([
   'NEXT_PUBLIC_KEYCLOAK_URL',
   'NEXT_PUBLIC_KEYCLOAK_REALM',
   'NEXT_PUBLIC_KEYCLOAK_CLIENT_ID',
+  'NEXT_PUBLIC_SITE_URL',
 ]);
 
 const sensitivePublicName =
