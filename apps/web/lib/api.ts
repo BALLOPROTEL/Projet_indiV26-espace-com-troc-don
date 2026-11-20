@@ -7,6 +7,7 @@ import type {
   MarketplaceProposal,
   MarketplaceTransaction,
   ProposalType,
+  Product,
   UserNotification,
 } from './types';
 
@@ -99,6 +100,26 @@ export function listingAssetUrl(path: string): string {
 
   return `${API_ORIGIN}${path}`;
 }
+
+export const productsApi = {
+  public: (filters: { q?: string; category?: string } = {}) => {
+    const params = new URLSearchParams();
+
+    if (filters.q?.trim()) {
+      params.set('q', filters.q.trim());
+    }
+    if (filters.category?.trim()) {
+      params.set('category', filters.category.trim());
+    }
+
+    const query = params.toString();
+
+    return request<Product[]>(`/products${query ? `?${query}` : ''}`);
+  },
+
+  publicBySlug: (slug: string) =>
+    request<Product>(`/products/${encodeURIComponent(slug)}`),
+};
 
 export const listingsApi = {
   public: () => request<Listing[]>('/listings'),
