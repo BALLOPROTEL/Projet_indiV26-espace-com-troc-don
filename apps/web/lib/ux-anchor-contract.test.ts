@@ -65,7 +65,7 @@ describe('#149 dedicated-page navigation', () => {
     for (const id of ['mes-articles', 'mes-echanges']) {
       expect(accountShell).toContain(`href="/espace#${id}"`);
     }
-    expect(accountShell).not.toContain('href="/espace#publier"');
+    expect(accountShell).not.toContain('href="/publier"');
 
     expect(space).toContain('workspaceSectionFromHash(window.location.hash)');
     expect(space).toContain('requestAnimationFrame');
@@ -81,7 +81,7 @@ describe('#149 dedicated-page navigation', () => {
     expect(detail).toContain('canRestoreProposalAnchor(');
     expect(detail).toContain('requestAnimationFrame');
     expect(detail).toContain("document.getElementById('faire-une-demande')");
-    expect(detail).toContain('href="/espace#publier"');
+    expect(detail).toContain('href="/publier"');
     expect(exchangePage).toContain('listingsApi.public()');
   });
 
@@ -98,7 +98,7 @@ describe('#149 dedicated-page navigation', () => {
   it('keeps administrators and moderators on real existing destinations', () => {
     expect(admin).toContain('href="/moderation"');
     expect(admin).toContain('href="/echanges"');
-    expect(admin).toContain('href="/espace#mes-echanges"');
+    expect(admin).toContain('href="/messages"');
     expect(moderation).toContain('id="file-moderation"');
     expect(moderation).toContain("hasAnyRole('MODERATOR', 'ADMIN')");
   });
