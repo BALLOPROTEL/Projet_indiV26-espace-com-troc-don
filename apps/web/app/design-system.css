@@ -230,7 +230,7 @@ a,
 
 .pm-button--teal {
   background: var(--pm-teal);
-  color: #fff;
+  color: var(--pm-navy);
 }
 
 .pm-button--navy {
@@ -788,6 +788,7 @@ a,
 }
 
 .pm-search-panel {
+  scroll-margin-top: 105px;
   margin-bottom: 15px;
   border: 1px solid var(--pm-border);
   border-radius: 17px;
@@ -1342,12 +1343,12 @@ a,
   }
 
   .pm-icon-button {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
   }
 
   .pm-account-menu summary {
-    width: 42px;
+    width: 44px;
     padding: 0;
     justify-content: center;
   }
@@ -1495,6 +1496,20 @@ a,
 
   .pm-footer__bottom {
     flex-direction: column;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .pm-home .listing-card--interactive:hover {
+    border-color: var(--pm-border);
+    box-shadow: 0 3px 12px rgba(21, 47, 74, 0.025);
+    transform: none;
+  }
+
+  .pm-home .listing-card--interactive:hover .listing-card__cover img,
+  .pm-home .listing-card__link:hover .listing-card__cover img,
+  .pm-home .listing-card__link:hover .listing-card__cta span {
+    transform: none;
   }
 }
 
