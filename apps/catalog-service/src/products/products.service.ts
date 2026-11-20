@@ -21,6 +21,27 @@ type ProductWithAssets = Product & {
   images: ProductImage[];
 };
 
+export type AdminProductImageView = {
+  id: string;
+  position: number;
+  mimeType: string;
+  sizeBytes: number;
+};
+
+export type AdminProductView = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  currency: string;
+  status: ProductStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  variants: PublicProductVariantView[];
+  images: AdminProductImageView[];
+};
+
 export type PublicProductVariantView = {
   id: string;
   sku: string;
@@ -158,20 +179,22 @@ export class ProductsService {
     return this.toPublic(product);
   }
 
-  async findAdmin(): Promise<ProductWithAssets[]> {
-    return this.prisma.product.findMany({
+  async findAdmin(): Promise<AdminProductView[]> {
+    const products = await this.prisma.product.findMany({
       include: adminInclude,
       orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
     });
+
+    return products.map((product) => this.toAdmin(product));
   }
 
   async create(
     input: CreateProductDto,
-  ): Promise<ProductWithAssets> {
+  ): Promise<AdminProductView> {
     this.assertUniqueSkus(input.variants.map((variant) => variant.sku));
 
     try {
-      return await this.prisma.product.create({
+      const product = await this.prisma.product.create({
         data: {
           slug: input.slug,
           name: input.name,
@@ -191,6 +214,8 @@ export class ProductsService {
         },
         include: adminInclude,
       });
+
+      return this.toAdmin(product);
     } catch (error) {
       this.rethrowUniqueConflict(error);
     }
@@ -199,7 +224,7 @@ export class ProductsService {
   async update(
     id: string,
     input: UpdateProductDto,
-  ): Promise<ProductWithAssets> {
+  ): Promise<AdminProductView> {
     if (
       input.slug === undefined &&
       input.name === undefined &&
@@ -220,7 +245,7 @@ export class ProductsService {
     }
 
     try {
-      return await this.prisma.product.update({
+      const product = await this.prisma.product.update({
         where: { id },
         data: {
           slug: input.slug,
@@ -230,6 +255,8 @@ export class ProductsService {
         },
         include: adminInclude,
       });
+
+      return this.toAdmin(product);
     } catch (error) {
       this.rethrowUniqueConflict(error);
     }
@@ -239,7 +266,7 @@ export class ProductsService {
     productId: string,
     variantId: string,
     input: UpdateProductVariantDto,
-  ): Promise<ProductWithAssets> {
+  ): Promise<AdminProductView> {
     if (
       input.label === undefined &&
       input.priceCents === undefined &&
@@ -288,10 +315,12 @@ export class ProductsService {
       },
     });
 
-    return this.requireAdminProduct(productId);
+    return this.toAdmin(
+      await this.requireAdminProduct(productId),
+    );
   }
 
-  async publish(id: string): Promise<ProductWithAssets> {
+  async publish(id: string): Promise<AdminProductView> {
     const product = await this.requireAdminProduct(id);
 
     if (product.status === ProductStatus.ARCHIVED) {
@@ -317,10 +346,10 @@ export class ProductsService {
       data: { status: ProductStatus.PUBLISHED },
     });
 
-    return this.requireAdminProduct(id);
+    return this.toAdmin(await this.requireAdminProduct(id));
   }
 
-  async archive(id: string): Promise<ProductWithAssets> {
+  async archive(id: string): Promise<AdminProductView> {
     await this.requireAdminProduct(id);
 
     await this.prisma.product.update({
@@ -328,7 +357,7 @@ export class ProductsService {
       data: { status: ProductStatus.ARCHIVED },
     });
 
-    return this.requireAdminProduct(id);
+    return this.toAdmin(await this.requireAdminProduct(id));
   }
 
   private async requireAdminProduct(
@@ -344,6 +373,36 @@ export class ProductsService {
     }
 
     return product;
+  }
+
+  private toAdmin(
+    product: ProductWithAssets,
+  ): AdminProductView {
+    return {
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      description: product.description,
+      category: product.category,
+      currency: product.currency,
+      status: product.status,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+      variants: product.variants.map((variant) => ({
+        id: variant.id,
+        sku: variant.sku,
+        label: variant.label,
+        priceCents: variant.priceCents,
+        stock: variant.stock,
+        active: variant.active,
+      })),
+      images: product.images.map((image) => ({
+        id: image.id,
+        position: image.position,
+        mimeType: image.mimeType,
+        sizeBytes: image.sizeBytes,
+      })),
+    };
   }
 
   private toPublic(
