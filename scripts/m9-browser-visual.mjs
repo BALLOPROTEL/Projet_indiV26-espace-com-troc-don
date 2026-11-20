@@ -675,13 +675,15 @@ async function assertKeycloakPasswordLayout(viewport) {
 }
 
 async function journeySwitchUser(username) {
-  const logout = '(() => {const button=[...document.querySelectorAll("header button")]' +
-    '.find(el=>el.textContent?.trim()==="Sortir");if(!button)return false;' +
-    'button.click();return true;})()';
+  const logout = '(() => {const root=document.querySelector(".pm-account-menu");' +
+    'if(!root)return false;if(!root.open)root.querySelector("summary")?.click();' +
+    'const button=[...root.querySelectorAll("button")]' +
+    '.find(el=>el.textContent?.trim()==="Se déconnecter");' +
+    'if(!button)return false;button.click();return true;})()';
   assert.equal(await evaluate(logout), true, 'Missing real browser logout');
   await waitUntil('Keycloak logout and app return',
     'location.origin===' + JSON.stringify(new URL(base).origin) +
-    '&& ![...document.querySelectorAll("header button")].some(el=>el.textContent?.trim()==="Sortir")', 120);
+    '&& !document.querySelector(".pm-account-menu")', 120);
   await journeyOpen('/espace', '.gate-card button', 'member sign-in after logout');
   assert.equal(await evaluate('(() => {const b=document.querySelector(".gate-card button");if(!b)return false;b.click();return true;})()'),
     true, 'Missing sign-in button');
