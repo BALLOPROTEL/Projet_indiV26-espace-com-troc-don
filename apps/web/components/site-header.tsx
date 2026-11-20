@@ -94,7 +94,9 @@ export function SiteHeader() {
 
           <nav className="pm-main-nav" aria-label="Navigation principale">
             {desktopLinks.map((link) => {
-              const active = link.href === '/' && pathname === '/';
+              const active =
+                (link.href === '/' && pathname === '/') ||
+                (link.href === '/echanges' && pathname.startsWith('/echanges'));
               return (
                 <Link
                   key={link.href}
