@@ -38,7 +38,7 @@ export function BoutiqueShowcase() {
           <h2>Catégories</h2>
           {boutiqueCategories.map(([, label], index) => (
             <label key={label}>
-              <input type="radio" name="future-category" checked={index === 0} readOnly />
+              <input type="radio" name="future-category" checked={index === 0} readOnly disabled />
               {label}
             </label>
           ))}
