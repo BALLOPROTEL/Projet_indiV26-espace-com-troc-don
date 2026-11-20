@@ -113,8 +113,8 @@ export function HomeExperience() {
   }
 
   return (
-    <div className="pm-home">
-      <section className="pm-hero" aria-labelledby="pm-home-title">
+    <div className="pm-home home-v2">
+      <section className="pm-hero home-v2__welcome" aria-labelledby="pm-home-title">
         <div className="pm-hero__copy">
           <span className="pm-eyebrow">✦ Boutique &amp; univers communautaire</span>
           <h1 id="pm-home-title">
@@ -126,7 +126,7 @@ export function HomeExperience() {
             pleinement opérationnel ; la boutique sera activée seulement
             lorsque ses vrais produits, stocks et commandes seront prêts.
           </p>
-          <div className="pm-hero__actions">
+          <div className="pm-hero__actions home-v2__hero-actions">
             <a className="pm-button pm-button--orange" href="#boutique">
               Découvrir la future boutique →
             </a>
@@ -242,7 +242,7 @@ export function HomeExperience() {
           role="search"
           onSubmit={(event) => event.preventDefault()}
         >
-          <label htmlFor="pm-search">Rechercher dans les annonces</label>
+          <label htmlFor="home-v2-search">Rechercher dans les annonces</label>
           <div className="pm-search-panel__row">
             <div className="pm-search-box">
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -250,14 +250,14 @@ export function HomeExperience() {
                 <path d="m16 16 5 5" />
               </svg>
               <input
-                id="pm-search"
+                id="home-v2-search"
                 type="search"
                 value={search}
                 onChange={(event) => updateSearch(event.target.value)}
                 placeholder="Un livre, un jeu, une figurine…"
               />
             </div>
-            <label className="pm-select">
+            <label className="pm-select home-v2__filter-type">
               <span>Type</span>
               <select
                 value={type}
@@ -271,14 +271,14 @@ export function HomeExperience() {
           </div>
         </form>
 
-        <div className="pm-real-stats" aria-label="État réel du catalogue">
+        <div className="pm-real-stats home-v2__facts" aria-label="État réel du catalogue">
           <span><strong>{loading || error ? '—' : approved.length}</strong> annonces publiées</span>
           <span><strong>{loading || error ? '—' : availableCount}</strong> disponibles</span>
           <span><strong>{loading || error ? '—' : giftCount}</strong> dons</span>
         </div>
 
         {loading ? (
-          <div className="pm-listing-grid" aria-label="Chargement des annonces" aria-busy="true">
+          <div className="pm-listing-grid home-v2__grid" aria-label="Chargement des annonces" aria-busy="true">
             {Array.from({ length: HOME_PAGE_SIZE }, (_, index) => (
               <div className="pm-skeleton" key={index} aria-hidden="true" />
             ))}
@@ -286,8 +286,8 @@ export function HomeExperience() {
         ) : null}
 
         {!loading && error ? (
-          <div className="pm-error" role="alert">
-            <strong>Impossible de charger les annonces.</strong>
+          <div className="pm-error home-v2__error" role="alert">
+            <strong>Impossible de charger le catalogue communautaire.</strong>
             <p>{error}</p>
             <button
               className="pm-button pm-button--navy"
@@ -321,10 +321,10 @@ export function HomeExperience() {
 
         {!loading && !error && result.items.length > 0 ? (
           <>
-            <p className="pm-results" aria-live="polite">
+            <p className="pm-results home-v2__results" aria-live="polite">
               {result.start}–{result.end} sur {result.total} annonce{result.total > 1 ? 's' : ''}
             </p>
-            <div className="pm-listing-grid">
+            <div className="pm-listing-grid home-v2__grid">
               {result.items.map((listing) => (
                 <ListingCard
                   key={listing.id}
@@ -338,7 +338,7 @@ export function HomeExperience() {
         ) : null}
 
         {!loading && !error && result.pages > 1 && result.total > 0 ? (
-          <nav className="pm-pagination" aria-label="Pagination des annonces">
+          <nav className="pm-pagination home-v2__pagination" aria-label="Pagination des annonces">
             <button
               type="button"
               disabled={result.page === 1}
