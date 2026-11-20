@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { BoutiqueShowcase } from '../../components/prototype-showcase-pages';
+import { ProductCatalog } from '../../components/product-catalog';
 
 export const metadata: Metadata = {
   title: 'Boutique',
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function BoutiquePage() {
-  return <BoutiqueShowcase />;
+  return <ProductCatalog />;
 }
