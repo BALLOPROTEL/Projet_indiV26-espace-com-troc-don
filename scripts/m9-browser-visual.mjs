@@ -813,28 +813,29 @@ async function runRealBrowserJourneys() {
   await journeyOpen('/espace', '.marketplace-dashboard', 'UX V4 USER account dropdown');
   for (const targetId of ['publier', 'mes-articles', 'mes-echanges']) {
     const menu = await evaluate('(() => {' +
-      'const root=document.querySelector(".session__menu");' +
+      'const root=document.querySelector(".pm-account-menu");' +
       'const summary=root?.querySelector("summary");' +
       'if(!summary)return null;summary.click();return {' +
-      'open:root.open, links:[...root.querySelectorAll(".session__dropdown a")]' +
+      'open:root.open, links:[...root.querySelectorAll(".pm-account-menu__panel a")]' +
       '.map(a=>a.getAttribute("href"))};})()');
-    assert.deepEqual(menu, {
-      open: true,
-      links: ['/espace#publier', '/espace#mes-articles', '/espace#mes-echanges'],
-    }, 'UX V4 USER dropdown must open with exactly three authorized destinations');
+    assert.equal(menu?.open, true, 'L1 USER account menu must open');
+    for (const required of ['/espace', '/espace#publier', '/espace#mes-articles', '/espace#mes-echanges']) {
+      assert.ok(menu?.links.includes(required),
+        'L1 USER account menu must include ' + required);
+    }
     // Serialize the href as a JS string literal rather than nesting quoted
     // CSS attribute selectors; otherwise Chrome throws a SyntaxError.
     const expectedHref = '/espace#' + targetId;
     const clicked = await evaluate('(() => {' +
       'const href=' + JSON.stringify(expectedHref) + ';' +
-      'const link=[...document.querySelectorAll(".session__dropdown a")]' +
+      'const link=[...document.querySelectorAll(".pm-account-menu__panel a")]' +
       '.find(a=>a.getAttribute("href")===href);' +
       'if(!link)return false;link.click();return true;})()');
     assert.equal(clicked, true, 'UX V4 USER must click account dropdown target ' + targetId);
     await waitUntil('UX V4 USER account menu navigates to ' + targetId,
       '(() => {const el=document.getElementById(' + JSON.stringify(targetId) + ');' +
       'if(location.hash!=="#"+' + JSON.stringify(targetId) + '||!el)return false;' +
-      'const rect=el.getBoundingClientRect();return !document.querySelector(".session__menu")?.open' +
+      'const rect=el.getBoundingClientRect();return !document.querySelector(".pm-account-menu")?.open' +
       '&& rect.top>=56 && rect.top<Math.min(innerHeight*.8,600)' +
       '&& rect.bottom>56;})()', 120);
   }
@@ -1622,22 +1623,27 @@ async function runFrontV2HomeJourney() {
     width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false,
   });
   await journeyOpen('/', '.home-v2__welcome h1', 'FRONT-V2 F1 public homepage');
-  // UX V4: validate the actual task-oriented landing navigation in Chrome.
-  const homeGuideReady = await evaluate('(() => {' +
+  // #149/L1: validate the new 2-in-1 landing without exposing fake commerce.
+  const l1HomeReady = await evaluate('(() => {' +
     'const links=[...document.querySelectorAll(".home-v2__hero-actions a")].map(a=>a.getAttribute("href"));' +
-    'const guide=document.querySelector("#fonctionnement");' +
-    'return links.includes("#annonces") && links.includes("/espace#publier")' +
-    '&& guide?.querySelectorAll(".home-v2__step").length===3' +
-    '&& !!document.querySelector(\'.home-v2__helper-link[href="#fonctionnement"]\');})()');
-  assert.equal(homeGuideReady, true, 'UX V4 must expose real catalogue, publish and help destinations');
+    'const universes=document.querySelectorAll(".pm-universe-card");' +
+    'const shop=document.querySelector("#boutique");' +
+    'const fakeCommerce=document.querySelectorAll("[data-product],[data-add],[data-cartqty]");' +
+    'return links.includes("#boutique") && links.includes("#annonces")' +
+    '&& universes.length===4 && !!shop' +
+    '&& shop.textContent.includes("pas encore activés")' +
+    '&& fakeCommerce.length===0;})()');
+  assert.equal(l1HomeReady, true,
+    'L1 must expose the 2-in-1 design while keeping unfinished commerce explicit');
   assert.equal(await evaluate('(() => {' +
-    'const link=document.querySelector(".home-v2__helper-link");' +
+    'const link=[...document.querySelectorAll(".home-v2__hero-actions a")]' +
+    '.find(a=>a.getAttribute("href")==="#annonces");' +
     'if(!link)return false;link.click();return true;})()'), true,
-  'UX V4 help link must be clickable');
-  await waitUntil('UX V4 live guide fragment navigation',
-    'location.hash==="#fonctionnement" && !!document.querySelector("#fonctionnement")', 40);
-  await journeyScreenshot('uxv4-how-it-works-desktop');
-  await journeyOpen('/', '.home-v2__welcome h1', 'F1 homepage after guide navigation');
+  'L1 community CTA must remain clickable');
+  await waitUntil('L1 community fragment navigation',
+    'location.hash==="#annonces" && !!document.querySelector("#annonces")', 40);
+  await journeyScreenshot('l1-home-community-anchor-desktop');
+  await journeyOpen('/', '.home-v2__welcome h1', 'F1 homepage after L1 fragment navigation');
   await waitUntil('F1 exactly six cards on the first page',
     'document.querySelectorAll(".home-v2__grid .listing-card").length===6' +
     '&&document.querySelector(".home-v2__results")?.innerText.includes("sur")', 120);
@@ -1803,10 +1809,10 @@ async function runFrontV2HomeJourney() {
     assert.equal(touchCard.hover, true, 'F7 must actually apply :hover to the test card');
     assert.equal(touchCard.linkHover, true, 'F7 must apply :hover to the detail link');
     assert.equal(touchCard.transform, 'none', 'F7 touch card must not lift on hover');
-    assert.equal(touchCard.border, 'rgb(226, 236, 231)',
-      'F7 touch card must retain its base border color');
-    assert.ok(touchCard.shadow.includes('5px 20px'),
-      'F7 touch card must retain its base shadow: ' + JSON.stringify(touchCard));
+    assert.equal(touchCard.border, 'rgb(228, 234, 240)',
+      'F7 touch card must retain the L1 base border color');
+    assert.ok(touchCard.shadow.includes('3px 12px'),
+      'F7 touch card must retain the L1 base shadow: ' + JSON.stringify(touchCard));
     assert.equal(touchCard.imageTransform, 'none',
       'F7 touch must not leave the image scaled');
     assert.equal(touchCard.arrowTransform, 'none',
@@ -2059,8 +2065,8 @@ async function runAdminDashboardBrowser() {
     true, 'MODERATOR must see the actual ADMIN denial');
   assert.equal(await evaluate('!!document.querySelector(".admin-v2__stats")'),
     false, 'No ADMIN numbers rendered for MODERATOR');
-  assert.equal(await evaluate('!!document.querySelector(' + JSON.stringify('.primary-nav__link[href="/admin"]') + ')'),
-    false, 'No ADMIN link for a MODERATOR');
+  assert.equal(await evaluate('!!document.querySelector(' + JSON.stringify('.pm-account-menu__panel a[href="/admin"]') + ')'),
+    false, 'No ADMIN account action for a MODERATOR');
   await journeyScreenshot('f5-moderator-access-denied');
 
   await journeySwitchUser('demo-admin');
@@ -2086,14 +2092,14 @@ async function runAdminDashboardBrowser() {
     '})()', 120);
   assert.equal(await evaluate('document.querySelector(".admin-v2__role")?.textContent'),
     'Administrateur');
-  assert.equal(await evaluate('!!document.querySelector(' + JSON.stringify('.primary-nav__link[href="/admin"]') + ')'),
-    true, 'ADMIN navigation must exist for authorized sessions');
+  assert.equal(await evaluate('!!document.querySelector(' + JSON.stringify('.pm-account-menu__panel a[href="/admin"]') + ')'),
+    true, 'ADMIN account action must exist for authorized sessions');
   assert.equal(await evaluate('document.body.innerText.includes("Suspendre un utilisateur")'),
     false, 'Do not expose fake account suspension UI');
   assert.equal(await evaluate('document.querySelectorAll(".admin-v2__sidebar").length'), 0,
     'UX V3: admin uses the shared header navigation without duplicate sidebar');
-  assert.equal(await evaluate('document.querySelectorAll(".primary-nav a[aria-current=page]").length'), 1,
-    'UX V3: primary header has one active link on admin');
+  assert.equal(await evaluate('document.querySelectorAll(".pm-main-nav a").length'), 5,
+    'L1: shared desktop header keeps the five public prototype destinations');
   await journeyScreenshot('f5-admin-summary-catalog-desktop');
 
   // Tablet and zoom-sensitive viewports: ADMIN adds a fourth header link.
@@ -2105,21 +2111,25 @@ async function runAdminDashboardBrowser() {
       'F5 ADMIN tablet header at ' + width + 'px');
     await waitUntil('F5 tablet Catalog data at ' + width + 'px',
       'document.querySelectorAll(".admin-v2__metric strong").length===4', 120);
-    const closed = await evaluate('(() => {' +
-      'const nav=document.querySelector(".primary-nav");' +
-      'const menu=document.querySelector(".site-header__menu-toggle");' +
-      'return getComputedStyle(menu).display!=="none" &&' +
-      'getComputedStyle(nav).display==="none" &&' +
-      'document.documentElement.scrollWidth<=document.documentElement.clientWidth+2;' +
+    const navigation = await evaluate('(() => {' +
+      'const nav=document.querySelector(".pm-main-nav");' +
+      'const mobile=document.querySelector(".pm-mobilebar");' +
+      'return {nav:getComputedStyle(nav).display,mobile:getComputedStyle(mobile).display,' +
+      'fit:document.documentElement.scrollWidth<=document.documentElement.clientWidth+2};' +
       '})()');
-    assert.equal(closed, true, 'F5 ADMIN navigation must collapse and fit at ' + width + 'px');
-    await evaluate('document.querySelector(".site-header__menu-toggle").click()');
-    assert.equal(await evaluate('document.querySelector(".site-header__menu-toggle").getAttribute("aria-expanded")'),
-      'true', 'F5 ADMIN menu must open at ' + width + 'px');
-    assert.equal(await evaluate('getComputedStyle(document.querySelector(".primary-nav")).display'),
-      'flex', 'F5 ADMIN menu must expose links at ' + width + 'px');
-    const fit = await evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth+2');
-    assert.equal(fit, true, 'F5 expanded ADMIN menu must not overflow at ' + width + 'px');
+    assert.equal(navigation.fit, true,
+      'L1 ADMIN header must not overflow at ' + width + 'px');
+    if (width > 860) {
+      assert.equal(navigation.nav, 'flex',
+        'L1 desktop/tablet navigation remains visible above 860px');
+      assert.equal(navigation.mobile, 'none',
+        'L1 mobile bottom navigation stays hidden above 860px');
+    } else {
+      assert.equal(navigation.nav, 'none',
+        'L1 desktop navigation hides on mobile');
+      assert.equal(navigation.mobile, 'grid',
+        'L1 mobile bottom navigation replaces the desktop menu');
+    }
     if (width === 1024 || width === 768) {
       await journeyScreenshot('f5-admin-tablet-' + width);
     }
