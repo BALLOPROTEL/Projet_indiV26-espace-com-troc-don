@@ -76,9 +76,13 @@ grep -Fq 'replicas: 2' "${K8S_DIR}/notification-deployment.yaml"
 grep -Fq 'NOTIFICATION_DATABASE_URL' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
 require_rendered 'CATALOG_SERVICE_URL: http://catalog-service:3101' 'Gateway -> Catalog DNS'
 require_rendered 'MARKETPLACE_SERVICE_URL: http://marketplace-service:3102' 'Gateway -> Marketplace DNS'
+require_rendered 'NOTIFICATION_SERVICE_URL: http://notification-service:3103' 'Gateway -> Notification DNS'
 require_rendered 'LEGACY_API_URL: http://legacy-api:3099' 'Gateway -> legacy DNS'
 require_rendered 'CATALOG_INTERNAL_URL: http://catalog-service:3101' 'Marketplace -> Catalog DNS'
 require_rendered 'KEYCLOAK_JWKS_URL: http://keycloak:8080/' 'internal Keycloak JWKS'
+grep -Fq 'KEYCLOAK_ISSUER: "https://auth.projet-indiv26.test/realms/projet-indiv26"' "${K8S_DIR}/notification-configmap.yaml"
+grep -Fq 'KEYCLOAK_JWKS_URL: "http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs"' "${K8S_DIR}/notification-configmap.yaml"
+grep -Fq 'KEYCLOAK_AUDIENCE: "api"' "${K8S_DIR}/notification-configmap.yaml"
 require_rendered 'app.projet-indiv26.test' 'Web ingress host'
 require_rendered 'api.projet-indiv26.test' 'Gateway ingress host'
 require_rendered 'auth.projet-indiv26.test' 'Keycloak ingress host'
@@ -228,6 +232,7 @@ const targets = [
   ['legacy', 'http://legacy-api:3099/api/health/live'],
   ['catalog', 'http://catalog-service:3101/health/ready'],
   ['marketplace', 'http://marketplace-service:3102/health/ready'],
+  ['notification', 'http://notification-service:3103/health/ready'],
 ];
 (async () => {
   for (const [name, url] of targets) {
@@ -246,7 +251,7 @@ const targets = [
   }
 })().catch((error) => { console.error(error); process.exit(1); });
 "
-echo "[OK] Gateway -> Legacy/Catalog/Marketplace Kubernetes DNS."
+echo "[OK] Gateway -> Legacy/Catalog/Marketplace/Notification Kubernetes DNS."
 
 kubectl -n "${NAMESPACE}" exec deployment/marketplace-service -- node -e "
 (async () => {

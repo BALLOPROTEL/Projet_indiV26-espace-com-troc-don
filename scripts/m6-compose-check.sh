@@ -92,6 +92,7 @@ const targets = [
   ['legacy', 'http://legacy-api:3099/api/health/live'],
   ['catalog', 'http://catalog-service:3101/health/ready'],
   ['marketplace', 'http://marketplace-service:3102/health/ready'],
+  ['notification', 'http://notification-service:3103/health/ready'],
 ];
 
 (async () => {

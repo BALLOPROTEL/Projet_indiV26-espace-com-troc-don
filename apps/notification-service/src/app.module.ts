@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health/health.controller';
 import { NotificationsController } from './notifications/notifications.controller';
 import { NotificationStore } from './notifications/notification.store';
@@ -12,6 +13,7 @@ import { NotificationPrismaService } from './prisma/prisma.service';
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],
     }),
+    AuthModule,
   ],
   controllers: [HealthController, NotificationsController],
   providers: [NotificationPrismaService, NotificationStore, RabbitMqConsumer],

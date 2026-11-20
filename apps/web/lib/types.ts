@@ -90,3 +90,69 @@ export type AdminCatalogSummary = {
     completed: number;
   };
 };
+
+
+export type NotificationEvent =
+  | {
+      eventId: string;
+      type: 'proposal.created';
+      version: 1;
+      occurredAt: string;
+      source: 'marketplace-service';
+      data: {
+        proposalId: string;
+        targetListingId: string;
+        requesterId: string;
+        ownerId: string | null;
+        proposalType: ProposalType;
+        offeredListingId: string | null;
+      };
+    }
+  | {
+      eventId: string;
+      type: 'proposal.accepted';
+      version: 1;
+      occurredAt: string;
+      source: 'marketplace-service';
+      data: {
+        proposalId: string;
+        transactionId: string;
+        targetListingId: string;
+        offeredListingId: string | null;
+        ownerId: string;
+        requesterId: string;
+      };
+    }
+  | {
+      eventId: string;
+      type: 'proposal.rejected';
+      version: 1;
+      occurredAt: string;
+      source: 'marketplace-service';
+      data: {
+        proposalId: string;
+        targetListingId: string;
+        requesterId: string;
+        ownerId: string;
+      };
+    }
+  | {
+      eventId: string;
+      type: 'transaction.completed';
+      version: 1;
+      occurredAt: string;
+      source: 'marketplace-service';
+      data: {
+        transactionId: string;
+        proposalId: string;
+        targetListingId: string;
+        offeredListingId: string | null;
+        ownerId: string;
+        requesterId: string;
+      };
+    };
+
+export type UserNotification = {
+  receivedAt: string;
+  event: NotificationEvent;
+};

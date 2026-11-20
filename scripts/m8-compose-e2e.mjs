@@ -186,6 +186,8 @@ async function run() {
     expected: 401,
   });
   await call(gateway, '/api/transactions/me', { expected: 401 });
+  await call(gateway, '/api/notifications/me', { expected: 401 });
+  await call(gateway, '/api/notifications/recent', { expected: 404 });
   await call(gateway, '/api/transactions/me', {
     headers: { authorization: 'Bearer invalid.jwt.value' }, expected: 401,
   });
@@ -260,6 +262,28 @@ async function run() {
     new Set(['proposal.created', 'proposal.accepted', 'transaction.completed']),
   );
   assert.equal(new Set(events.map(item => item.event.eventId)).size, 3);
+
+  const ownerInbox = await call(gateway, '/api/notifications/me', {
+    headers: jwtHeader(owner),
+  });
+  const requesterInbox = await call(gateway, '/api/notifications/me', {
+    headers: jwtHeader(requester),
+  });
+  const unrelatedInbox = await call(gateway, '/api/notifications/me', {
+    headers: jwtHeader(other),
+  });
+  const forTarget = items =>
+    items.filter(item => item.event?.data?.targetListingId === tradeTarget);
+  assert.deepEqual(
+    new Set(forTarget(ownerInbox).map(item => item.event.type)),
+    new Set(['proposal.created', 'transaction.completed']),
+  );
+  assert.deepEqual(
+    new Set(forTarget(requesterInbox).map(item => item.event.type)),
+    new Set(['proposal.accepted', 'transaction.completed']),
+  );
+  assert.equal(forTarget(unrelatedInbox).length, 0);
+  say('Notification JWT inbox is isolated for owner/requester/third party: PASS');
   say('TROC RabbitMQ 3 unique actual notifications: PASS');
 
   // Real duplicate delivery to the same queue while Notification is alive.

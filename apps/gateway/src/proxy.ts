@@ -20,6 +20,7 @@ type GatewayRequest = IncomingMessage & {
 type TargetMap = {
   catalog: URL;
   marketplace: URL;
+  notification: URL;
   legacy: URL;
 };
 

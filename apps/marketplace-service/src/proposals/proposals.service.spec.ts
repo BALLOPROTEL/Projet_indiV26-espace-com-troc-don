@@ -132,6 +132,7 @@ describe('ProposalsService', () => {
         proposalId: 'proposal-1',
         targetListingId: 'target-1',
         requesterId: 'requester-1',
+        ownerId: 'owner-1',
       }),
     );
   });

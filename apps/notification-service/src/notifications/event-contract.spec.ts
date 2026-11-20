@@ -22,6 +22,28 @@ describe('parseMarketplaceEvent', () => {
 
     expect(event.type).toBe('proposal.created');
     expect(event.data.proposalId).toBe('proposal-1');
+    expect(event.data.ownerId).toBeNull();
+  });
+
+  it('accepts recipient-aware proposal.created without changing v1', () => {
+    const event = parseMarketplaceEvent({
+      eventId: 'event-owner',
+      type: 'proposal.created',
+      version: MARKETPLACE_EVENT_VERSION,
+      occurredAt: '2026-10-07T17:00:00.000Z',
+      source: 'marketplace-service',
+      data: {
+        proposalId: 'proposal-owner',
+        targetListingId: 'listing-owner',
+        requesterId: 'requester-1',
+        ownerId: 'owner-1',
+        proposalType: 'DONATION_REQUEST',
+        offeredListingId: null,
+      },
+    });
+
+    expect(event.type).toBe('proposal.created');
+    expect(event.data.ownerId).toBe('owner-1');
   });
 
   it('accepts the M9 proposal.rejected envelope with owner and requester', () => {
