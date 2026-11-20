@@ -486,7 +486,7 @@ export function PersonalSpace() {
                   </div>
                   <div className="personal-row__action">
                     {canEditListing(listing.status) ? (
-                      <button className="button button--quiet button--small" type="button" onClick={() => startEditing(listing)}>Corriger</button>
+                      <button className="button button--quiet" type="button" onClick={() => startEditing(listing)}>Corriger</button>
                     ) : (
                       <span className="personal-row__locked">Consultable</span>
                     )}
