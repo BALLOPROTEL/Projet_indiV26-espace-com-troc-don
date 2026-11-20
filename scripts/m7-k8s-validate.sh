@@ -80,10 +80,9 @@ require_rendered 'NOTIFICATION_SERVICE_URL: http://notification-service:3103' 'G
 require_rendered 'LEGACY_API_URL: http://legacy-api:3099' 'Gateway -> legacy DNS'
 require_rendered 'CATALOG_INTERNAL_URL: http://catalog-service:3101' 'Marketplace -> Catalog DNS'
 require_rendered 'KEYCLOAK_JWKS_URL: http://keycloak:8080/' 'internal Keycloak JWKS'
-grep -A 8 'name: notification-config' < <(kubectl kustomize "${K8S_DIR}") | grep -Fq 'KEYCLOAK_AUDIENCE: api' || {
-  echo "[FAIL] Notification ConfigMap must carry Keycloak JWT verification settings."
-  exit 1
-}
+grep -Fq 'KEYCLOAK_ISSUER: "https://auth.projet-indiv26.test/realms/projet-indiv26"' "${K8S_DIR}/notification-configmap.yaml"
+grep -Fq 'KEYCLOAK_JWKS_URL: "http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs"' "${K8S_DIR}/notification-configmap.yaml"
+grep -Fq 'KEYCLOAK_AUDIENCE: "api"' "${K8S_DIR}/notification-configmap.yaml"
 require_rendered 'app.projet-indiv26.test' 'Web ingress host'
 require_rendered 'api.projet-indiv26.test' 'Gateway ingress host'
 require_rendered 'auth.projet-indiv26.test' 'Keycloak ingress host'
