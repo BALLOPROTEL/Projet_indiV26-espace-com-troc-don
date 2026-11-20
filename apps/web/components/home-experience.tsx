@@ -12,8 +12,40 @@ import {
 import type { Listing, ListingOperationType } from '../lib/types';
 import { EmptyState } from './empty-state';
 import { ListingCard } from './listing-card';
+import { RoadmapBadge, SectionHeading } from './design-system';
 
 type OperationFilter = ListingOperationType | 'ALL';
+
+const universeCards = [
+  {
+    icon: '🛍️',
+    title: 'La boutique',
+    text: 'Produits, collections et commandes arriveront dans les lots L4–L5.',
+    href: '#boutique',
+    available: false,
+  },
+  {
+    icon: '♻️',
+    title: 'Dons & trocs',
+    text: 'Le parcours communautaire réel : annonces, modération, demandes et échanges.',
+    href: '#annonces',
+    available: true,
+  },
+  {
+    icon: '📖',
+    title: 'Les fanzines',
+    text: 'Un futur espace de lecture et de découverte éditoriale.',
+    href: '#fanzines',
+    available: false,
+  },
+  {
+    icon: '🎃',
+    title: 'Actualités',
+    text: 'Festival, événements et contenus seront ajoutés dans le lot L6.',
+    href: '#actualites',
+    available: false,
+  },
+] as const;
 
 export function HomeExperience() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -26,6 +58,7 @@ export function HomeExperience() {
 
   useEffect(() => {
     let active = true;
+
     void listingsApi.public()
       .then((data) => {
         if (active) {
@@ -36,15 +69,20 @@ export function HomeExperience() {
       .catch((reason: unknown) => {
         if (active) {
           setListings([]);
-          setError(reason instanceof Error
-            ? reason.message
-            : 'Impossible de charger les annonces.');
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : 'Impossible de charger les annonces.',
+          );
         }
       })
       .finally(() => {
         if (active) setLoading(false);
       });
-    return () => { active = false; };
+
+    return () => {
+      active = false;
+    };
   }, [reload]);
 
   const approved = useMemo(
@@ -68,122 +106,164 @@ export function HomeExperience() {
     setSearch(value);
     setPage(1);
   }
+
   function updateType(value: OperationFilter) {
     setType(value);
     setPage(1);
   }
 
   return (
-    <div className="home-v2">
-      <section className="home-v2__welcome" aria-labelledby="home-welcome-title">
-        <div className="home-v2__welcome-inner">
-          <div className="home-v2__welcome-copy">
-            <span className="home-v2__kicker">
-              <span className="home-v2__status-dot" aria-hidden="true" />
-              La communauté du don et du troc
-            </span>
-            <h1 id="home-welcome-title">
-              Donnez, trouvez, échangez. <span>Tout simplement.</span>
-            </h1>
-            <p>
-              Un objet inutilisé peut servir à quelqu’un d’autre. Explorez
-              les annonces de la communauté ou proposez le vôtre en quelques étapes.
-            </p>
-            <div className="home-v2__hero-actions">
-              <a className="home-v2__hero-action" href="#annonces">
-                Voir les annonces <span aria-hidden="true">↓</span>
-              </a>
-              <Link className="home-v2__hero-action home-v2__hero-action--secondary" href="/espace#publier">
-                Déposer un objet <span aria-hidden="true">→</span>
-              </Link>
-            </div>
-            <a className="home-v2__helper-link" href="#fonctionnement">
-              Comment ça marche ? <span aria-hidden="true">↘</span>
+    <div className="pm-home">
+      <section className="pm-hero" aria-labelledby="pm-home-title">
+        <div className="pm-hero__copy">
+          <span className="pm-eyebrow">✦ Boutique &amp; univers communautaire</span>
+          <h1 id="pm-home-title">
+            Des frissons à découvrir.<br />
+            <em>Des passions à partager.</em>
+          </h1>
+          <p>
+            La Petite Maison évolue en plateforme 2-en-1. Le DON/TROC reste
+            pleinement opérationnel ; la boutique sera activée seulement
+            lorsque ses vrais produits, stocks et commandes seront prêts.
+          </p>
+          <div className="pm-hero__actions">
+            <a className="pm-button pm-button--orange" href="#boutique">
+              Découvrir la future boutique →
+            </a>
+            <a className="pm-button pm-button--light" href="#annonces">
+              Voir les échanges ↔
             </a>
           </div>
-          <div className="home-v2__facts" aria-label="La communauté en chiffres">
-            {loading || error ? (
-              <p className="home-v2__facts-pending">
-                {loading ? 'Actualisation du catalogue…' : 'Catalogue indisponible'}
-              </p>
-            ) : (
-              <>
-                <div><strong>{approved.length}</strong><span>Annonces publiées</span></div>
-                <div><strong>{availableCount}</strong><span>Articles disponibles</span></div>
-                <div><strong>{giftCount}</strong><span>Dons proposés</span></div>
-              </>
-            )}
+        </div>
+
+        <div className="pm-hero__graphic" aria-hidden="true">
+          <div className="pm-moon" />
+          <span className="pm-bat">⌁</span>
+          <div className="pm-house">
+            <div className="pm-house__roof" />
+            <div className="pm-house__main" />
+            <div className="pm-house__window pm-house__window--one" />
+            <div className="pm-house__window pm-house__window--two" />
+            <div className="pm-house__door" />
           </div>
+          <div className="pm-hero-float pm-hero-float--a">🛍️ Boutique en préparation</div>
+          <div className="pm-hero-float pm-hero-float--b">♻️ DON &amp; TROC disponibles</div>
         </div>
       </section>
 
-      <section className="home-v2__how" id="fonctionnement" aria-labelledby="home-how-title">
-        <div className="home-v2__how-heading">
-          <div>
-            <span className="home-v2__overline">Simple, de bout en bout</span>
-            <h2 id="home-how-title">Comment fonctionne La Petite Maison ?</h2>
-          </div>
-          <p>Trois étapes pour donner une seconde vie aux objets.</p>
-        </div>
-        <ol className="home-v2__steps">
-          <li className="home-v2__step">
-            <span className="home-v2__step-index" aria-hidden="true">01</span>
-            <h3>Découvrir</h3>
-            <p>Parcourez les annonces de dons et de trocs, sans obligation de connexion.</p>
-            <a href="#annonces">Explorer les articles <span aria-hidden="true">→</span></a>
-          </li>
-          <li className="home-v2__step">
-            <span className="home-v2__step-index" aria-hidden="true">02</span>
-            <h3>Proposer</h3>
-            <p>Connectez-vous, décrivez votre objet, ajoutez ses photos et soumettez-le à la modération.</p>
-            <Link href="/espace#publier">Déposer une annonce <span aria-hidden="true">→</span></Link>
-          </li>
-          <li className="home-v2__step">
-            <span className="home-v2__step-index" aria-hidden="true">03</span>
-            <h3>Échanger</h3>
-            <p>Suivez vos demandes, choisissez une contrepartie et confirmez la remise entre membres.</p>
-            <Link href="/espace#mes-echanges">Suivre mes échanges <span aria-hidden="true">→</span></Link>
-          </li>
-        </ol>
+      <section className="pm-promises" aria-label="Fonctions réellement disponibles">
+        <article><span>🛡️</span><div><strong>Communauté modérée</strong><small>Validation des annonces</small></div></article>
+        <article><span>🔐</span><div><strong>Connexion sécurisée</strong><small>Keycloak / OIDC</small></div></article>
+        <article><span>♻️</span><div><strong>DON &amp; TROC réels</strong><small>Demandes et transactions</small></div></article>
+        <article><span>🖼️</span><div><strong>Galeries protégées</strong><small>Images via MinIO</small></div></article>
       </section>
 
-      <section className="home-v2__catalog" id="annonces" aria-labelledby="home-catalog-title">
-        <div className="home-v2__section-intro">
-          <div>
-            <span className="home-v2__overline">Notre sélection communautaire</span>
-            <h2 id="home-catalog-title">Les articles à découvrir</h2>
-            <p>De belles histoires commencent avec un objet qui change de mains.</p>
-          </div>
-          <Link className="home-v2__secondary-link" href="/espace#mes-echanges">
-            Suivre mes échanges <span aria-hidden="true">↗</span>
-          </Link>
+      <section className="pm-section">
+        <SectionHeading
+          eyebrow="La plateforme 2-en-1"
+          title="Explorez les univers de la Petite Maison"
+          description="Le design prépare l’ensemble de la plateforme sans présenter comme actives les fonctions encore en développement."
+        />
+        <div className="pm-universe-grid">
+          {universeCards.map((card) => (
+            <a className="pm-universe-card" href={card.href} key={card.title}>
+              <span className="pm-universe-card__icon" aria-hidden="true">{card.icon}</span>
+              <div>
+                <div className="pm-universe-card__title">
+                  <strong>{card.title}</strong>
+                  {card.available ? (
+                    <RoadmapBadge tone="teal">DISPONIBLE</RoadmapBadge>
+                  ) : (
+                    <RoadmapBadge>BIENTÔT</RoadmapBadge>
+                  )}
+                </div>
+                <p>{card.text}</p>
+              </div>
+            </a>
+          ))}
         </div>
+      </section>
 
-        <form className="home-v2__filters" role="search" onSubmit={(event) => event.preventDefault()}>
-          <label htmlFor="home-v2-search" className="home-v2__search-label">
-            Rechercher un article
-          </label>
-          <div className="home-v2__search-row">
-            <div className="home-v2__search-box">
+      <section className="pm-section pm-future-shop" id="boutique" aria-labelledby="pm-shop-title">
+        <div className="pm-future-shop__copy">
+          <RoadmapBadge>LOT L4–L5</RoadmapBadge>
+          <h2 id="pm-shop-title">La boutique prend place dans la maison.</h2>
+          <p>
+            Le catalogue commercial, les prix, le stock, le panier et les commandes
+            ne sont pas encore activés. Ce lot pose seulement leur identité visuelle.
+          </p>
+          <a className="pm-text-link" href="#annonces">
+            En attendant, découvrir les objets de la communauté →
+          </a>
+        </div>
+        <div className="pm-future-shop__shelves" aria-hidden="true">
+          <span>FIGURINES</span>
+          <span>FANZINES</span>
+          <span>JEUX</span>
+          <span>BD &amp; LIVRES</span>
+        </div>
+      </section>
+
+      <section className="pm-section pm-community-feature">
+        <div>
+          <span className="pm-overline">Le coin des passionnés</span>
+          <h2>Un objet chez vous.<br />Une belle histoire ailleurs.</h2>
+          <p>
+            Proposez un livre, un jeu, une figurine ou un autre objet en don
+            ou en troc. Le parcours existant reste inchangé derrière cette nouvelle interface.
+          </p>
+          <div className="pm-community-feature__actions">
+            <a className="pm-button pm-button--teal" href="#annonces">Voir les annonces ↔</a>
+            <Link className="pm-button pm-button--outline" href="/espace#publier">
+              Déposer une annonce
+            </Link>
+          </div>
+        </div>
+        <div className="pm-swap-illustration" aria-hidden="true">
+          <span>📚</span><strong>⇄</strong><span>🎲</span>
+        </div>
+      </section>
+
+      <section className="pm-section" id="annonces" aria-labelledby="pm-community-title">
+        <SectionHeading
+          eyebrow="Communauté active"
+          title="Tout juste dans la communauté"
+          description="Les données ci-dessous viennent du vrai Catalog Service. Aucun article fictif n’est injecté."
+          action={
+            <Link className="pm-text-link" href="/espace#publier">
+              Déposer un objet ↗
+            </Link>
+          }
+        />
+
+        <form
+          className="pm-search-panel"
+          id="community-search"
+          role="search"
+          onSubmit={(event) => event.preventDefault()}
+        >
+          <label htmlFor="pm-search">Rechercher dans les annonces</label>
+          <div className="pm-search-panel__row">
+            <div className="pm-search-box">
               <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <circle cx="10.7" cy="10.7" r="6.8" />
                 <path d="m16 16 5 5" />
               </svg>
               <input
-                id="home-v2-search"
+                id="pm-search"
                 type="search"
                 value={search}
                 onChange={(event) => updateSearch(event.target.value)}
-                placeholder="Un livre, une lampe, un meuble…"
+                placeholder="Un livre, un jeu, une figurine…"
               />
             </div>
-            <label className="home-v2__filter-type">
+            <label className="pm-select">
               <span>Type</span>
               <select
                 value={type}
                 onChange={(event) => updateType(event.target.value as OperationFilter)}
               >
-                <option value="ALL">Tous les articles</option>
+                <option value="ALL">Tous</option>
                 <option value="DONATION">Dons</option>
                 <option value="TRADE">Trocs</option>
               </select>
@@ -191,50 +271,65 @@ export function HomeExperience() {
           </div>
         </form>
 
+        <div className="pm-real-stats" aria-label="État réel du catalogue">
+          <span><strong>{loading || error ? '—' : approved.length}</strong> annonces publiées</span>
+          <span><strong>{loading || error ? '—' : availableCount}</strong> disponibles</span>
+          <span><strong>{loading || error ? '—' : giftCount}</strong> dons</span>
+        </div>
+
         {loading ? (
-          <div className="home-v2__grid" aria-label="Chargement des articles" aria-busy="true">
+          <div className="pm-listing-grid" aria-label="Chargement des annonces" aria-busy="true">
             {Array.from({ length: HOME_PAGE_SIZE }, (_, index) => (
-              <div className="home-v2__skeleton" key={index} aria-hidden="true" />
+              <div className="pm-skeleton" key={index} aria-hidden="true" />
             ))}
           </div>
         ) : null}
+
         {!loading && error ? (
-          <div className="home-v2__error" role="alert">
-            <strong>Impossible de charger le catalogue.</strong>
+          <div className="pm-error" role="alert">
+            <strong>Impossible de charger les annonces.</strong>
             <p>{error}</p>
-            <button type="button" onClick={() => {
-              setLoading(true);
-              setError(null);
-              setReload((count) => count + 1);
-            }}>
+            <button
+              className="pm-button pm-button--navy"
+              type="button"
+              onClick={() => {
+                setLoading(true);
+                setError(null);
+                setReload((count) => count + 1);
+              }}
+            >
               Réessayer
             </button>
           </div>
         ) : null}
+
         {!loading && !error && filtered.length === 0 ? (
           <EmptyState
-            eyebrow={approved.length === 0 ? 'Premiers articles à venir' : 'Aucun résultat'}
-            title={approved.length === 0
-              ? 'Il n’y a pas encore d’annonces publiées.'
-              : 'Aucun article ne correspond à votre recherche.'}
-            text={approved.length === 0
-              ? 'Les prochaines annonces apparaîtront ici après leur approbation.'
-              : 'Essayez un autre mot ou changez le type de publication.'}
+            eyebrow={approved.length === 0 ? 'Premières annonces à venir' : 'Aucun résultat'}
+            title={
+              approved.length === 0
+                ? 'Il n’y a pas encore d’annonces publiées.'
+                : 'Aucune annonce ne correspond à votre recherche.'
+            }
+            text={
+              approved.length === 0
+                ? 'Les prochaines annonces apparaîtront ici après leur approbation.'
+                : 'Essayez un autre mot ou changez le type de publication.'
+            }
           />
         ) : null}
 
         {!loading && !error && result.items.length > 0 ? (
           <>
-            <p className="home-v2__results" aria-live="polite">
-              {result.start}–{result.end} sur {result.total} article{result.total > 1 ? 's' : ''}
-              <span> · Six articles maximum par page</span>
+            <p className="pm-results" aria-live="polite">
+              {result.start}–{result.end} sur {result.total} annonce{result.total > 1 ? 's' : ''}
             </p>
-            <div className="home-v2__grid">
+            <div className="pm-listing-grid">
               {result.items.map((listing) => (
                 <ListingCard
                   key={listing.id}
                   listing={listing}
-                  href={`/annonces/${listing.id}`}
+                  href={'/annonces/' + listing.id}
                   showAvailability
                 />
               ))}
@@ -243,18 +338,22 @@ export function HomeExperience() {
         ) : null}
 
         {!loading && !error && result.pages > 1 && result.total > 0 ? (
-          <nav className="home-v2__pagination" aria-label="Pagination des annonces">
-            <button type="button" disabled={result.page === 1} onClick={() => setPage(result.page - 1)}>
+          <nav className="pm-pagination" aria-label="Pagination des annonces">
+            <button
+              type="button"
+              disabled={result.page === 1}
+              onClick={() => setPage(result.page - 1)}
+            >
               ← Précédent
             </button>
             {numberedPages.map((number, index) => (
-              <span className="home-v2__page-segment" key={number}>
+              <span key={number}>
                 {index > 0 && number > numberedPages[index - 1] + 1 ? (
-                  <span className="home-v2__gap" aria-hidden="true">…</span>
+                  <span className="pm-pagination__gap" aria-hidden="true">…</span>
                 ) : null}
                 <button
                   type="button"
-                  aria-label={`Page ${number}`}
+                  aria-label={'Page ' + number}
                   aria-current={number === result.page ? 'page' : undefined}
                   className={number === result.page ? 'is-current' : ''}
                   onClick={() => setPage(number)}
@@ -263,12 +362,34 @@ export function HomeExperience() {
                 </button>
               </span>
             ))}
-            <button type="button" disabled={result.page === result.pages} onClick={() => setPage(result.page + 1)}>
+            <button
+              type="button"
+              disabled={result.page === result.pages}
+              onClick={() => setPage(result.page + 1)}
+            >
               Suivant →
             </button>
-            <span className="home-v2__page-counter">Page {result.page} sur {result.pages}</span>
           </nav>
         ) : null}
+      </section>
+
+      <section className="pm-section pm-story-grid">
+        <article id="fanzines">
+          <div className="pm-story-art" aria-hidden="true"><strong>FANZINES</strong><span>☾</span></div>
+          <div>
+            <RoadmapBadge>LOT L6</RoadmapBadge>
+            <h2>Des histoires à dévorer.</h2>
+            <p>Le futur espace fanzine reprendra cette identité lorsque le contenu et les droits d’accès seront réellement cadrés.</p>
+          </div>
+        </article>
+        <article id="actualites">
+          <div className="pm-story-art pm-story-art--festival" aria-hidden="true"><strong>FESTIVAL</strong><span>✦</span></div>
+          <div>
+            <RoadmapBadge>LOT L6</RoadmapBadge>
+            <h2>Le fantastique se vit aussi ensemble.</h2>
+            <p>Les actualités et événements apparaîtront ici sans inventer de dates ni de programmation.</p>
+          </div>
+        </article>
       </section>
     </div>
   );
