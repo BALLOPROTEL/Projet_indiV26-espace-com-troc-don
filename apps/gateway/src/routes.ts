@@ -55,7 +55,9 @@ export function resolveGatewayRoute(
     path === '/api/proposals' ||
     path.startsWith('/api/proposals/') ||
     path === '/api/transactions' ||
-    path.startsWith('/api/transactions/')
+    path.startsWith('/api/transactions/') ||
+    path === '/api/conversations' ||
+    path.startsWith('/api/conversations/')
   ) {
     return {
       target: 'marketplace',
