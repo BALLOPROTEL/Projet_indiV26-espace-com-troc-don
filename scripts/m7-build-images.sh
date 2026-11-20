@@ -48,6 +48,7 @@ build_image projet-indiv26-notification-migrate:m8-local --target migration -f a
 
 build_image projet-indiv26-web:m7-local \
   --build-arg NEXT_PUBLIC_API_URL=/api \
+  --build-arg NEXT_PUBLIC_SITE_URL="${APP_PUBLIC_URL}" \
   --build-arg NEXT_PUBLIC_KEYCLOAK_URL="${AUTH_PUBLIC_URL}" \
   --build-arg NEXT_PUBLIC_KEYCLOAK_REALM=projet-indiv26 \
   --build-arg NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=web \
