@@ -1845,11 +1845,14 @@ async function runFrontV2HomeJourney() {
       'const link=el.querySelector(".listing-card__link");' +
       'const image=el.querySelector(".listing-card__cover img");' +
       'const arrow=el.querySelector(".listing-card__cta span");' +
+      'const cta=el.querySelector(".listing-card__cta");' +
+      'const content=el.querySelector(".listing-card__wishes")||el.querySelector(".listing-card__assets");' +
       'const css=getComputedStyle(el);return {hover:el.matches(":hover"),' +
       'linkHover:link.matches(":hover"),' +
       'transform:css.transform,shadow:css.boxShadow,border:css.borderTopColor,' +
       'imageTransform:getComputedStyle(image).transform,' +
-      'arrowTransform:getComputedStyle(arrow).transform};})()');
+      'arrowTransform:getComputedStyle(arrow).transform,' +
+      'ctaTop:cta?.getBoundingClientRect().top,contentBottom:content?.getBoundingClientRect().bottom};})()');
     assert.equal(touchCard.hover, true, 'F7 must actually apply :hover to the test card');
     assert.equal(touchCard.linkHover, true, 'F7 must apply :hover to the detail link');
     assert.equal(touchCard.transform, 'none', 'F7 touch card must not lift on hover');
@@ -1861,6 +1864,12 @@ async function runFrontV2HomeJourney() {
       'F7 touch must not leave the image scaled');
     assert.equal(touchCard.arrowTransform, 'none',
       'F7 touch must not leave the detail CTA arrow displaced');
+    assert.ok(
+      Number.isFinite(touchCard.ctaTop) &&
+      Number.isFinite(touchCard.contentBottom) &&
+      touchCard.ctaTop >= touchCard.contentBottom + 8,
+      'L1 listing CTA must not overlap metadata or trade wishes: ' + JSON.stringify(touchCard),
+    );
     await command('CSS.forcePseudoState', {
       nodeId: hoverLink.nodeId, forcedPseudoClasses: [],
     });
