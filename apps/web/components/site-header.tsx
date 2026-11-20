@@ -43,7 +43,7 @@ function HeaderIcon({ name }: { name: IconName }) {
 const desktopLinks = [
   { href: '/', label: 'Accueil' },
   { href: '/#boutique', label: 'Boutique' },
-  { href: '/#annonces', label: 'Échanges & dons' },
+  { href: '/echanges', label: 'Échanges & dons' },
   { href: '/#fanzines', label: 'Fanzines' },
   { href: '/#actualites', label: 'Actualités' },
 ] as const;
@@ -51,7 +51,7 @@ const desktopLinks = [
 const mobileLinks = [
   { href: '/', label: 'Accueil', icon: '⌂' },
   { href: '/#boutique', label: 'Boutique', icon: '▣' },
-  { href: '/#annonces', label: 'Échanges', icon: '⇄' },
+  { href: '/echanges', label: 'Échanges', icon: '⇄' },
   { href: '/espace#publier', label: 'Publier', icon: '+' },
   { href: '/espace', label: 'Compte', icon: '◉' },
 ] as const;
