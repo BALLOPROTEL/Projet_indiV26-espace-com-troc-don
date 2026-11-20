@@ -1,10 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { favoritesApi } from '../lib/api';
+import type { Listing } from '../lib/types';
 import { AccountShell } from './account-shell';
 import { useAuth } from './auth-provider';
 import { RoadmapBadge } from './design-system';
+import { ListingCard } from './listing-card';
 
 type PendingAccountView = 'orders' | 'favorites' | 'notifications' | 'settings';
 
@@ -88,20 +91,126 @@ export function OrdersPlaceholderPage() {
 }
 
 export function FavoritesPlaceholderPage() {
+  const { ready, authenticated, getToken } = useAuth();
+  const [items, setItems] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!ready || !authenticated) {
+      setItems([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    let active = true;
+    setLoading(true);
+    setError(null);
+
+    void getToken()
+      .then(favoritesApi.mine)
+      .then((favorites) => {
+        if (active) {
+          setItems(favorites);
+        }
+      })
+      .catch((reason: unknown) => {
+        if (active) {
+          setError(
+            reason instanceof Error
+              ? reason.message
+              : 'Impossible de charger vos favoris.',
+          );
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [ready, authenticated, getToken]);
+
+  async function removeFavorite(listingId: string) {
+    if (busyId) return;
+
+    setBusyId(listingId);
+    setError(null);
+
+    try {
+      const token = await getToken();
+      await favoritesApi.remove(token, listingId);
+      setItems((current) =>
+        current.filter((listing) => listing.id !== listingId),
+      );
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : 'Impossible de retirer ce favori.',
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <PendingAccountShell view="favorites">
       <section className="pm-account-placeholder">
-        <RoadmapBadge>BACKEND FAVORIS REQUIS</RoadmapBadge>
+        <RoadmapBadge>FAVORIS CONNECTÉS</RoadmapBadge>
         <h2>Mes favoris</h2>
         <p>
-          Les favoris seront persistés ici lorsqu’un contrat backend utilisateur
-          sera disponible.
+          Retrouvez ici les annonces approuvées que vous avez réellement
+          enregistrées. La liste est liée à votre compte Keycloak.
         </p>
-        <div className="pm-empty-table" role="status">
-          <span aria-hidden="true">♡</span>
-          <strong>Aucun favori réel enregistré</strong>
-        </div>
-        <Link className="pm-button pm-button--teal" href="/boutique">Découvrir la boutique</Link>
+
+        {error ? (
+          <p role="alert" className="notice notice--error">{error}</p>
+        ) : null}
+
+        {loading ? (
+          <div className="pm-empty-table" role="status" aria-busy="true">
+            <span aria-hidden="true">♡</span>
+            <strong>Chargement de vos favoris…</strong>
+          </div>
+        ) : items.length > 0 ? (
+          <div className="pm-listing-grid" aria-label="Annonces favorites">
+            {items.map((listing) => (
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                href={`/annonces/${listing.id}`}
+                showAvailability
+                footer={(
+                  <button
+                    className="pm-button pm-button--outline"
+                    type="button"
+                    disabled={busyId === listing.id}
+                    onClick={() => void removeFavorite(listing.id)}
+                  >
+                    {busyId === listing.id
+                      ? 'Retrait…'
+                      : 'Retirer des favoris'}
+                  </button>
+                )}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="pm-empty-table" role="status">
+            <span aria-hidden="true">♡</span>
+            <strong>Aucun favori enregistré</strong>
+          </div>
+        )}
+
+        <Link className="pm-button pm-button--teal" href="/echanges">
+          Découvrir les échanges & dons
+        </Link>
       </section>
     </PendingAccountShell>
   );
