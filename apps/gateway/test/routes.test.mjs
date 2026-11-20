@@ -24,6 +24,29 @@ test('routes Catalog public contracts', () => {
   });
 });
 
+test('routes Product public and explicit ADMIN contracts', () => {
+  assert.deepEqual(resolveGatewayRoute('/api/products?q=figurine'), {
+    target: 'catalog',
+    upstreamPath: '/products?q=figurine',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/products/figurine-test'), {
+    target: 'catalog',
+    upstreamPath: '/products/figurine-test',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/admin/products'), {
+    target: 'catalog',
+    upstreamPath: '/admin/products',
+  });
+  assert.deepEqual(
+    resolveGatewayRoute('/api/admin/products/product-1/publish'),
+    {
+      target: 'catalog',
+      upstreamPath: '/admin/products/product-1/publish',
+    },
+  );
+  assert.equal(resolveGatewayRoute('/api/admin/orders'), null);
+});
+
 test('routes Marketplace public contracts', () => {
   assert.deepEqual(resolveGatewayRoute('/api/proposals/me'), {
     target: 'marketplace',

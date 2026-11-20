@@ -156,3 +156,25 @@ export type UserNotification = {
   receivedAt: string;
   event: NotificationEvent;
 };
+
+
+export type ProductVariant = {
+  id: string;
+  sku: string;
+  label: string;
+  priceCents: number;
+  stock: number;
+  active: boolean;
+};
+
+export type Product = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  currency: string;
+  fromPriceCents: number;
+  availableStock: number;
+  variants: ProductVariant[];
+};
