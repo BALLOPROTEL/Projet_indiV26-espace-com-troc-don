@@ -1694,6 +1694,21 @@ async function runFrontV2HomeJourney() {
   assert.equal(firstLinks.length, 6);
   await journeyScreenshot('f1-catalog-six-articles-desktop');
 
+  await journeyOpen('/echanges', '.pm-exchange-hero h1', 'Prototype screen 07 exchanges');
+  await waitUntil('Prototype exchanges shows real Catalog cards',
+    'document.querySelectorAll(".pm-exchange-grid .listing-card__link").length>=6', 120);
+  const exchangeLinks = await evaluate('[...document.querySelectorAll(".pm-exchange-grid .listing-card__link")]' +
+    '.slice(0,6).map(a=>a.getAttribute("href"))');
+  assert.deepEqual(
+    exchangeLinks,
+    publicListings.slice(0, 6).map(item => '/annonces/' + item.id),
+    'Prototype exchanges must render the real Catalog ordering',
+  );
+  assert.equal(await evaluate('document.querySelectorAll(".pm-filter-pills button").length'), 3,
+    'Prototype screen 07 must expose All / Trade / Donation filters');
+  await journeyScreenshot('prototype-07-exchanges-desktop');
+  await journeyOpen('/', '.home-v2__welcome h1', 'Return to prototype homepage after exchanges');
+
   assert.equal(await evaluate('(() => {' +
     'const button=document.querySelector(".home-v2__pagination button[aria-label=\\"Page 2\\"]");' +
     'if(!button)return false;button.click();return true;})()'), true,
