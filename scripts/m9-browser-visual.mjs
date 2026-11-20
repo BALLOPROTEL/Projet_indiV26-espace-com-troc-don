@@ -1803,6 +1803,8 @@ async function runFrontV2HomeJourney() {
       'columns:getComputedStyle(c).gridTemplateColumns.split(" ").length,' +
       'buttons:buttons.map(b=>({w:b.getBoundingClientRect().width,h:b.getBoundingClientRect().height})),' +
       'headerTargets:[...document.querySelectorAll(".pm-header .pm-icon-button,.pm-header .pm-account-menu summary,.pm-header .pm-header__login")]' +
+      '.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height})),' +
+      'footerTargets:[...document.querySelectorAll(".pm-footer a")]' +
       '.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height}))};' +
       '})()');
     assert.ok(checks.scroll <= checks.client + 2,
@@ -1822,6 +1824,9 @@ async function runFrontV2HomeJourney() {
     assert.ok(checks.headerTargets.length >= 2 &&
       checks.headerTargets.every(target => target.w >= 44 && target.h >= 44),
       'L1 header touch targets must stay >=44px: ' + JSON.stringify(checks.headerTargets));
+    assert.ok(checks.footerTargets.length >= 4 &&
+      checks.footerTargets.every(target => target.w >= 44 && target.h >= 44),
+      'Prototype footer touch targets must stay >=44px: ' + JSON.stringify(checks.footerTargets));
     const accountMenuTargets = await evaluate('(() => {' +
       'const root=document.querySelector(".pm-account-menu");' +
       'const summary=root?.querySelector("summary");' +
@@ -1893,6 +1898,30 @@ async function runFrontV2HomeJourney() {
     });
     await journeyScreenshot('f7-catalog-mobile-' + width);
   }
+  await command('Emulation.setDeviceMetricsOverride', {
+    width: 320, height: 480, deviceScaleFactor: 1, mobile: true,
+  });
+  await journeyOpen('/espace', '.pm-account-sidebar', 'Prototype account menu on short mobile viewport');
+  const shortAccountMenu = await evaluate('(() => {' +
+    'const root=document.querySelector(".pm-account-menu");' +
+    'const summary=root?.querySelector("summary");' +
+    'if(!root||!summary)return null;if(!root.open)summary.click();' +
+    'const panel=root.querySelector(".pm-account-menu__panel");' +
+    'const logout=panel?.querySelector("[data-account-action=logout]");' +
+    'if(!panel||!logout)return null;' +
+    'const panelBox=panel.getBoundingClientRect();const logoutBox=logout.getBoundingClientRect();' +
+    'const css=getComputedStyle(panel);return {' +
+    'overflowY:css.overflowY,clientHeight:panel.clientHeight,scrollHeight:panel.scrollHeight,' +
+    'panelTop:panelBox.top,panelBottom:panelBox.bottom,logoutTop:logoutBox.top,' +
+    'viewport:innerHeight};})()');
+  assert.ok(shortAccountMenu &&
+    ['auto','scroll'].includes(shortAccountMenu.overflowY) &&
+    shortAccountMenu.panelBottom <= shortAccountMenu.viewport - 60 &&
+    shortAccountMenu.scrollHeight >= shortAccountMenu.clientHeight,
+    'Prototype account panel must remain scrollable above mobile navigation on 320x480: ' +
+    JSON.stringify(shortAccountMenu));
+  await evaluate('document.querySelector(".pm-account-menu[open] summary")?.click()');
+
   await command('Emulation.setTouchEmulationEnabled', { enabled: false });
   console.log('[FRONT-V2/F1] Chrome: true Catalog ≥7; six per page; page 2 distinct; DON filter; live search; mobile: PASS');
 }
