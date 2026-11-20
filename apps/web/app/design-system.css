@@ -337,7 +337,7 @@ a,
 .pm-account-menu__panel > a,
 .pm-account-menu__panel > button {
   width: 100%;
-  min-height: 42px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   gap: 9px;
