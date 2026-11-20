@@ -152,7 +152,7 @@ export function HomeExperience() {
             <Link className="pm-button pm-button--teal" href="/echanges">
               Voir les annonces ↔
             </Link>
-            <Link className="pm-button pm-button--outline" href="/espace#publier">
+            <Link className="pm-button pm-button--outline" href="/publier">
               Déposer une annonce
             </Link>
           </div>
