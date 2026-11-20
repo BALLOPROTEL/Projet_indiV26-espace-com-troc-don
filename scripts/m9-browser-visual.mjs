@@ -2025,14 +2025,14 @@ async function runFinalAccessibilityAutomation() {
     });
     await command('Network.setBlockedURLs', { urls: ['*/api/listings*'] });
     await journeyOpen('/', '.home-v2', 'F7 Catalog API outage state');
-    await waitUntil('F7 Catalog API error is visible',
+    await waitUntil('F7 Catalog preview API error is visible',
       '!!document.querySelector(".home-v2__error[role=alert]")' +
-      '&&document.querySelector(".home-v2__error")?.innerText.includes("Impossible de charger le catalogue")' +
+      '&&document.querySelector(".home-v2__error")?.innerText.includes("Impossible de charger l’aperçu communautaire")' +
       '&&[...document.querySelectorAll(".home-v2__error button")].some(b=>b.textContent?.trim()==="Réessayer")', 120);
     const outage = await evaluate('({alert:document.querySelector(".home-v2__error")?.innerText??null,' +
       'cards:document.querySelectorAll(".home-v2__grid .listing-card").length})');
-    assert.ok(outage.alert?.includes('Impossible de charger le catalogue') && outage.cards === 0,
-      'Catalog outage must expose a real error state without stale success cards: ' +
+    assert.ok(outage.alert?.includes('Impossible de charger l’aperçu communautaire') && outage.cards === 0,
+      'Catalog preview outage must expose a real error state without stale success cards: ' +
       JSON.stringify(outage));
     await journeyScreenshot('f7-network-outage-error');
 
@@ -2042,14 +2042,14 @@ async function runFinalAccessibilityAutomation() {
       '.find(b=>b.textContent?.trim()==="Réessayer");if(!retry)return false;' +
       'retry.click();return true;})()'), true,
     'Home error state must expose a usable retry control');
-    await waitUntil('F7 network recovery reloads real Catalog cards',
-      'document.querySelectorAll(".home-v2__grid .listing-card").length >= 1' +
+    await waitUntil('F7 network recovery reloads the real community preview',
+      'document.querySelectorAll(".home-v2__grid .listing-card").length === 3' +
       '&&!document.querySelector(".home-v2__error")', 120);
     const recovery = await evaluate('({cards:document.querySelectorAll(".home-v2__grid .listing-card").length,' +
       'scroll:document.documentElement.scrollWidth,' +
       'client:document.documentElement.clientWidth})');
-    assert.ok(recovery.cards >= 1 && recovery.scroll <= recovery.client + 2,
-      'Catalog recovery must restore a usable real view: ' + JSON.stringify(recovery));
+    assert.ok(recovery.cards === 3 && recovery.scroll <= recovery.client + 2,
+      'Catalog recovery must restore the three-card real preview: ' + JSON.stringify(recovery));
     await journeyScreenshot('f7-network-recovery');
 
     slow = {
