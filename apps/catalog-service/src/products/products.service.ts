@@ -179,6 +179,45 @@ export class ProductsService {
     return this.toPublic(product);
   }
 
+  async getInternalVariantSnapshot(
+    productId: string,
+    variantId: string,
+  ) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        variants: {
+          where: { id: variantId },
+          take: 1,
+        },
+        images: {
+          orderBy: { position: 'asc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!product || product.variants.length !== 1) {
+      throw new NotFoundException('Product variant not found');
+    }
+
+    const variant = product.variants[0];
+
+    return {
+      productId: product.id,
+      slug: product.slug,
+      name: product.name,
+      currency: product.currency,
+      status: product.status,
+      variantId: variant.id,
+      variantLabel: variant.label,
+      priceCents: variant.priceCents,
+      stock: variant.stock,
+      active: variant.active,
+      primaryImageId: product.images[0]?.id ?? null,
+    };
+  }
+
   async findAdmin(): Promise<AdminProductView[]> {
     const products = await this.prisma.product.findMany({
       include: adminInclude,
