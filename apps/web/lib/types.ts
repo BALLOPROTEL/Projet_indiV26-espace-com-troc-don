@@ -187,3 +187,42 @@ export type Product = {
   variants: ProductVariant[];
   images: ProductImage[];
 };
+
+
+export type AdminProductStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export type AdminProductImage = {
+  id: string;
+  position: number;
+  mimeType: string;
+  sizeBytes: number;
+};
+
+export type AdminProduct = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  currency: string;
+  status: AdminProductStatus;
+  createdAt: string;
+  updatedAt: string;
+  variants: ProductVariant[];
+  images: AdminProductImage[];
+};
+
+export type AdminProductCreateInput = {
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  currency?: 'EUR';
+  variants: Array<{
+    sku: string;
+    label: string;
+    priceCents: number;
+    stock: number;
+    active?: boolean;
+  }>;
+};

@@ -1,5 +1,8 @@
 import { parseAdminCatalogSummary } from './admin-dashboard';
 import type {
+  AdminProduct,
+  AdminProductCreateInput,
+  AdminProductImage,
   Listing,
   ListingImage,
   ListingInput,
@@ -240,6 +243,93 @@ export const listingsApi = {
 export const adminApi = {
   catalogSummary: (token: string) =>
     request<unknown>('/admin/catalog/summary', {}, token).then(parseAdminCatalogSummary),
+
+  products: (token: string) =>
+    request<AdminProduct[]>('/admin/products', {}, token),
+
+  createProduct: (
+    token: string,
+    input: AdminProductCreateInput,
+  ) =>
+    request<AdminProduct>(
+      '/admin/products',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+
+  updateProduct: (
+    token: string,
+    id: string,
+    input: Partial<Pick<
+      AdminProductCreateInput,
+      'slug' | 'name' | 'description' | 'category'
+    >>,
+  ) =>
+    request<AdminProduct>(
+      `/admin/products/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+
+  updateProductVariant: (
+    token: string,
+    productId: string,
+    variantId: string,
+    input: {
+      label?: string;
+      priceCents?: number;
+      stock?: number;
+      active?: boolean;
+    },
+  ) =>
+    request<AdminProduct>(
+      `/admin/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+
+  replaceProductImages: (
+    token: string,
+    productId: string,
+    files: File[],
+  ) => {
+    const body = new FormData();
+    for (const file of files) {
+      body.append('images', file, file.name);
+    }
+
+    return request<AdminProductImage[]>(
+      `/admin/products/${encodeURIComponent(productId)}/images`,
+      {
+        method: 'PUT',
+        body,
+      },
+      token,
+    );
+  },
+
+  publishProduct: (token: string, id: string) =>
+    request<AdminProduct>(
+      `/admin/products/${encodeURIComponent(id)}/publish`,
+      { method: 'POST' },
+      token,
+    ),
+
+  archiveProduct: (token: string, id: string) =>
+    request<AdminProduct>(
+      `/admin/products/${encodeURIComponent(id)}/archive`,
+      { method: 'POST' },
+      token,
+    ),
 };
 
 export const favoritesApi = {

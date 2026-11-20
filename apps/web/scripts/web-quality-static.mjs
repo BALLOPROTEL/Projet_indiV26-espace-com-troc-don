@@ -12,6 +12,7 @@ const sourceRoots = [
 const staticRoutes = new Set([
   '/',
   '/admin',
+  '/admin/boutique',
   '/espace',
   '/moderation',
   '/boutique',
