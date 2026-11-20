@@ -228,6 +228,7 @@ export function HomeExperience() {
         <SectionHeading
           eyebrow="Communauté active"
           title="Tout juste dans la communauté"
+          titleId="pm-community-title"
           description="Les données ci-dessous viennent du vrai Catalog Service. Aucun article fictif n’est injecté."
           action={
             <Link className="pm-text-link" href="/espace#publier">
