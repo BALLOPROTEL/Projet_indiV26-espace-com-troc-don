@@ -14,6 +14,10 @@ const staticRoutes = new Set([
   '/admin',
   '/espace',
   '/moderation',
+  '/boutique',
+  '/echanges',
+  '/fanzines',
+  '/festival',
 ]);
 
 async function collect(dir) {
