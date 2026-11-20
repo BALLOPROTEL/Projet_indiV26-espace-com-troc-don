@@ -18,15 +18,15 @@ export function SiteFooter() {
 
         <div>
           <h3>Explorer</h3>
-          <a href="/#boutique">La boutique</a>
+          <Link href="/#boutique">La boutique</Link>
           <Link href="/echanges">Dons &amp; échanges</Link>
-          <a href="/#fanzines">Les fanzines</a>
+          <Link href="/#fanzines">Les fanzines</Link>
         </div>
 
         <div>
           <h3>Communauté</h3>
           <Link href="/espace#publier">Publier une annonce</Link>
-          <a href="/#actualites">Festival</a>
+          <Link href="/#actualites">Festival</Link>
           <span className="pm-footer__muted">Notre histoire · bientôt</span>
         </div>
 
