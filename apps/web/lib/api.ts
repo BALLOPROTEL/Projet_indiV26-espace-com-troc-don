@@ -7,6 +7,7 @@ import type {
   MarketplaceProposal,
   MarketplaceTransaction,
   ProposalType,
+  UserNotification,
 } from './types';
 
 const API_URL =
@@ -240,6 +241,11 @@ export const favoritesApi = {
       { method: 'DELETE' },
       token,
     ),
+};
+
+export const notificationsApi = {
+  mine: (token: string) =>
+    request<UserNotification[]>('/notifications/me', {}, token),
 };
 
 export const marketplaceApi = {
