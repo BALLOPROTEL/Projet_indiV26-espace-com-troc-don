@@ -85,3 +85,43 @@ model ListingFavorite {
   @@id([userId, listingId])
   @@index([userId, createdAt])
 }
+
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Product {
+  id          String        @id @default(cuid())
+  slug        String        @unique @db.VarChar(140)
+  name        String        @db.VarChar(160)
+  description String        @db.VarChar(4000)
+  category    String        @db.VarChar(120)
+  currency    String        @default("EUR") @db.Char(3)
+  status      ProductStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  variants ProductVariant[]
+
+  @@index([status, createdAt])
+  @@index([status, category, createdAt])
+}
+
+model ProductVariant {
+  id         String   @id @default(cuid())
+  productId  String
+  sku        String   @unique @db.VarChar(80)
+  label      String   @db.VarChar(120)
+  priceCents Int
+  stock      Int      @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, active])
+}
