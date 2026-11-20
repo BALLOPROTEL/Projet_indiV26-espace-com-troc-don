@@ -14,6 +14,14 @@ test('routes Catalog public contracts', () => {
       upstreamPath: '/moderation/listings/abc/approve',
     },
   );
+  assert.deepEqual(resolveGatewayRoute('/api/favorites'), {
+    target: 'catalog',
+    upstreamPath: '/favorites',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/favorites/listing-1'), {
+    target: 'catalog',
+    upstreamPath: '/favorites/listing-1',
+  });
 });
 
 test('routes Marketplace public contracts', () => {
