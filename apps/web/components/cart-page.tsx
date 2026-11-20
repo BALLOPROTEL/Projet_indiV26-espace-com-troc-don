@@ -353,10 +353,22 @@ export function CartPage() {
                 item.available ||
                 item.unavailableReason ===
                   'INSUFFICIENT_STOCK';
-              const maxQuantity = Math.min(
+              const maxPurchasableQuantity = Math.min(
                 Math.max(item.stock ?? item.quantity, 1),
                 99,
               );
+              const quantityOptions = Array.from(
+                {
+                  length: maxPurchasableQuantity,
+                },
+                (_, index) => index + 1,
+              );
+              if (
+                item.quantity > maxPurchasableQuantity &&
+                item.quantity <= 99
+              ) {
+                quantityOptions.push(item.quantity);
+              }
 
               return (
                 <article
@@ -406,10 +418,7 @@ export function CartPage() {
                       <span>Quantité</span>
                       {canAdjust ? (
                         <select
-                          value={Math.min(
-                            item.quantity,
-                            maxQuantity,
-                          )}
+                          value={item.quantity}
                           disabled={
                             busy ===
                             `quantity:${item.variantId}`
@@ -421,15 +430,20 @@ export function CartPage() {
                             )
                           }
                         >
-                          {Array.from(
-                            { length: maxQuantity },
-                            (_, index) => index + 1,
-                          ).map((quantity) => (
+                          {quantityOptions.map((quantity) => (
                             <option
                               value={quantity}
                               key={quantity}
+                              disabled={
+                                quantity >
+                                maxPurchasableQuantity
+                              }
                             >
                               {quantity}
+                              {quantity >
+                              maxPurchasableQuantity
+                                ? ' — stock insuffisant'
+                                : ''}
                             </option>
                           ))}
                         </select>
