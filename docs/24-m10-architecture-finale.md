@@ -374,3 +374,30 @@ flowchart TB
 **État actualisé au 16 octobre 2026 :** ① M10 fusionné et clôturé (#57) ; ② frontend V2 F0–F5/F7 développé **après accord explicite du propriétaire**, fusionné sur `main` ; ③ recette finale sur vrais appareils (#71) et kit de démonstration jury reproductible (#56) encore à valider ; ④ seulement ensuite dossier de preuves LOT 10-A (#58), puis présentation/répétition/vidéo LOT 10-B (#59). Cette mise à jour du statut n'altère pas les diagrammes techniques décrivant le POC.
 
 Le guide opérationnel associé est [`25-m10-operations-limits.md`](25-m10-operations-limits.md). Les schémas précédents sont des fichiers Markdown avec blocs `mermaid` : ils sont affichés par GitHub et éditables dans la PR.
+
+
+---
+
+## Extension L5A — Commerce / panier
+
+L'évolution Boutique introduit un cinquième microservice métier :
+
+- **Commerce Service `:3104`** : propriétaire du panier utilisateur ;
+- schéma PostgreSQL dédié **`commerce`** ;
+- authentification JWT Keycloak ;
+- accès Catalog uniquement par HTTP interne authentifié ;
+- aucune lecture directe du schéma `catalog` ;
+- aucun prix stocké dans `CartItem`.
+
+La frontière finale devient :
+
+```text
+Gateway
+  ├── Catalog       -> produits / variantes / stocks / médias
+  ├── Marketplace   -> propositions / transactions DON-TROC
+  ├── Notification  -> inbox événementielle utilisateur
+  ├── Commerce      -> paniers utilisateur
+  └── Legacy        -> fallback auth historique uniquement
+```
+
+Le détail de la décision est documenté dans `docs/27-l5a-commerce-cart.md`.
