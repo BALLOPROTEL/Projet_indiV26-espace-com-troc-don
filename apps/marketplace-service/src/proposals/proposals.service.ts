@@ -61,14 +61,34 @@ export class ProposalsService {
       this.rules.assertCanOfferTrade(target, offered, requesterId);
     }
 
-    const created = await this.prisma.proposal.create({
-      data: {
-        targetListingId,
-        requesterId,
-        type,
-        offeredListingId,
-        message,
-      },
+    const created = await this.prisma.$transaction(async (tx) => {
+      const proposal = await tx.proposal.create({
+        data: {
+          targetListingId,
+          requesterId,
+          type,
+          offeredListingId,
+          message,
+        },
+      });
+
+      await tx.conversation.create({
+        data: {
+          proposalId: proposal.id,
+          ownerId: target.ownerId,
+          requesterId,
+          messages: message
+            ? {
+                create: {
+                  senderId: requesterId,
+                  body: message,
+                },
+              }
+            : undefined,
+        },
+      });
+
+      return proposal;
     });
 
     await this.events.publish(
