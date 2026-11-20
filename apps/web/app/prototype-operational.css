@@ -2252,6 +2252,59 @@ body {
   margin: 18px 0;
 }
 
+.pm-notification-list {
+  display: grid;
+  gap: 11px;
+  margin: 18px 0;
+}
+
+.pm-notification-item {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 13px;
+  align-items: start;
+  border: 1px solid var(--pm-border);
+  border-radius: 12px;
+  background: #f9fbfc;
+  padding: 15px;
+}
+
+.pm-notification-item__mark {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e5f7f3;
+  color: var(--pm-teal-dark);
+  font-weight: 900;
+}
+
+.pm-notification-item__heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pm-notification-item__heading strong {
+  color: var(--pm-navy);
+  font-size: .82rem;
+}
+
+.pm-notification-item__heading time,
+.pm-notification-item small {
+  color: #7a8793;
+  font-size: .68rem;
+}
+
+.pm-notification-item p {
+  margin: 7px 0;
+  color: var(--pm-muted);
+  font-size: .76rem;
+  line-height: 1.55;
+}
+
 .pm-settings-form {
   display: grid;
   gap: 14px;
