@@ -5,3 +5,6 @@ metadata:
   namespace: projet-indiv26
 data:
   PORT: "3103"
+  KEYCLOAK_ISSUER: "https://auth.projet-indiv26.test/realms/projet-indiv26"
+  KEYCLOAK_JWKS_URL: "http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs"
+  KEYCLOAK_AUDIENCE: "api"
