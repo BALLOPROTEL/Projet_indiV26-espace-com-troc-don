@@ -38,6 +38,15 @@ test('routes Marketplace public contracts', () => {
   );
 });
 
+test('routes only the authenticated notification inbox', () => {
+  assert.deepEqual(resolveGatewayRoute('/api/notifications/me'), {
+    target: 'notification',
+    upstreamPath: '/notifications/me',
+  });
+  assert.equal(resolveGatewayRoute('/api/notifications/recent'), null);
+  assert.equal(resolveGatewayRoute('/api/notifications/other'), null);
+});
+
 test('keeps temporary auth fallback prefixed with /api', () => {
   assert.deepEqual(resolveGatewayRoute('/api/auth/user'), {
     target: 'legacy',
