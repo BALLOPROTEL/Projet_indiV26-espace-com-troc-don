@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
   ApiError,
+  favoritesApi,
   listingsApi,
 } from '../lib/api';
 import {
@@ -14,12 +15,23 @@ import type { Listing } from '../lib/types';
 import { canRestoreProposalAnchor } from '../lib/listing-navigation';
 import { ListingProposalForm } from './listing-proposal-form';
 import { ListingImageGallery } from './listing-image-gallery';
+import { useAuth } from './auth-provider';
 
 export function ListingDetail({ id }: { id: string }) {
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const {
+    ready: authReady,
+    authenticated,
+    login,
+    getToken,
+  } = useAuth();
+  const [favorited, setFavorited] = useState(false);
+  const [favoriteChecked, setFavoriteChecked] = useState(false);
+  const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -60,6 +72,71 @@ export function ListingDetail({ id }: { id: string }) {
       active = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!authenticated || !listing) {
+      setFavorited(false);
+      setFavoriteChecked(false);
+      setFavoriteError(null);
+      return;
+    }
+
+    let active = true;
+    setFavoriteChecked(false);
+    setFavoriteError(null);
+
+    void getToken()
+      .then((token) => favoritesApi.state(token, listing.id))
+      .then((state) => {
+        if (active) {
+          setFavorited(state.favorited);
+          setFavoriteChecked(true);
+        }
+      })
+      .catch((reason: unknown) => {
+        if (active) {
+          setFavoriteChecked(true);
+          setFavoriteError(
+            reason instanceof Error
+              ? reason.message
+              : 'Impossible de lire vos favoris.',
+          );
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [authenticated, getToken, listing]);
+
+  async function toggleFavorite() {
+    if (!listing || favoriteBusy) return;
+
+    if (!authenticated) {
+      await login();
+      return;
+    }
+
+    setFavoriteBusy(true);
+    setFavoriteError(null);
+
+    try {
+      const token = await getToken();
+      const state = favorited
+        ? await favoritesApi.remove(token, listing.id)
+        : await favoritesApi.add(token, listing.id);
+      setFavorited(state.favorited);
+      setFavoriteChecked(true);
+    } catch (reason) {
+      setFavoriteError(
+        reason instanceof Error
+          ? reason.message
+          : 'Impossible de modifier ce favori.',
+      );
+    } finally {
+      setFavoriteBusy(false);
+    }
+  }
 
   // On first navigation from Keycloak, the browser may consume the hash
   // while only PageLoading exists. Restore the requested form after the
@@ -265,6 +342,27 @@ export function ListingDetail({ id }: { id: string }) {
               <span>Souhaits</span>
               <strong>{listing.tradeWishes.length}</strong>
             </div>
+          ) : null}
+          {authReady ? (
+            <button
+              className="button"
+              type="button"
+              disabled={authenticated && (!favoriteChecked || favoriteBusy)}
+              onClick={() => void toggleFavorite()}
+            >
+              {!authenticated
+                ? 'Se connecter pour enregistrer'
+                : favoriteBusy
+                  ? 'Mise à jour…'
+                  : favorited
+                    ? 'Retirer des favoris'
+                    : 'Ajouter aux favoris'}
+            </button>
+          ) : null}
+          {favoriteError ? (
+            <p role="alert" className="notice notice--error">
+              {favoriteError}
+            </p>
           ) : null}
         </aside>
       </div>
