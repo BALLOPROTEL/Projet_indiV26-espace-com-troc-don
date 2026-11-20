@@ -28,7 +28,7 @@ const universeCards = [
     icon: '♻️',
     title: 'Dons & trocs',
     text: 'Le parcours communautaire réel : annonces, modération, demandes et échanges.',
-    href: '#annonces',
+    href: '/echanges',
     available: true,
   },
   {
@@ -130,9 +130,9 @@ export function HomeExperience() {
             <a className="pm-button pm-button--orange" href="#boutique">
               Découvrir la future boutique →
             </a>
-            <a className="pm-button pm-button--light" href="#annonces">
+            <Link className="pm-button pm-button--light" href="/echanges">
               Voir les échanges ↔
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -213,7 +213,7 @@ export function HomeExperience() {
             ou en troc. Le parcours existant reste inchangé derrière cette nouvelle interface.
           </p>
           <div className="pm-community-feature__actions">
-            <a className="pm-button pm-button--teal" href="#annonces">Voir les annonces ↔</a>
+            <Link className="pm-button pm-button--teal" href="/echanges">Voir les annonces ↔</Link>
             <Link className="pm-button pm-button--outline" href="/espace#publier">
               Déposer une annonce
             </Link>
