@@ -814,35 +814,35 @@ async function runRealBrowserJourneys() {
   // UX V4: exercise the actual header account dropdown with a Keycloak
   // USER session, not only the static shortcuts within PersonalSpace.
   await journeyOpen('/espace', '.marketplace-dashboard', 'UX V4 USER account dropdown');
-  for (const targetId of ['publier', 'mes-articles', 'mes-echanges']) {
+  const memberDestinations = [
+    ['/publier', '.workspace-v3--publish .form-panel'],
+    ['/mes-annonces', '.workspace-v3--listings .shelf-panel'],
+    ['/messages', '.workspace-v3--exchanges .marketplace-dashboard'],
+  ];
+  for (const [href, selector] of memberDestinations) {
     const menu = await evaluate('(() => {' +
       'const root=document.querySelector(".pm-account-menu");' +
       'const summary=root?.querySelector("summary");' +
-      'if(!summary)return null;summary.click();return {' +
+      'if(!summary)return null;if(!root.open)summary.click();return {' +
       'open:root.open, links:[...root.querySelectorAll(".pm-account-menu__panel a")]' +
       '.map(a=>a.getAttribute("href"))};})()');
-    assert.equal(menu?.open, true, 'L1 USER account menu must open');
+    assert.equal(menu?.open, true, 'Prototype USER account menu must open');
     for (const required of ['/espace', '/publier', '/mes-annonces', '/messages']) {
       assert.ok(menu?.links.includes(required),
-        'L1 USER account menu must include ' + required);
+        'Prototype USER account menu must include ' + required);
     }
-    // Serialize the href as a JS string literal rather than nesting quoted
-    // CSS attribute selectors; otherwise Chrome throws a SyntaxError.
-    const expectedHref = '/espace#' + targetId;
     const clicked = await evaluate('(() => {' +
-      'const href=' + JSON.stringify(expectedHref) + ';' +
+      'const href=' + JSON.stringify(href) + ';' +
       'const link=[...document.querySelectorAll(".pm-account-menu__panel a")]' +
       '.find(a=>a.getAttribute("href")===href);' +
       'if(!link)return false;link.click();return true;})()');
-    assert.equal(clicked, true, 'UX V4 USER must click account dropdown target ' + targetId);
-    await waitUntil('UX V4 USER account menu navigates to ' + targetId,
-      '(() => {const el=document.getElementById(' + JSON.stringify(targetId) + ');' +
-      'if(location.hash!=="#"+' + JSON.stringify(targetId) + '||!el)return false;' +
-      'const rect=el.getBoundingClientRect();return !document.querySelector(".pm-account-menu")?.open' +
-      '&& rect.top>=56 && rect.top<Math.min(innerHeight*.8,600)' +
-      '&& rect.bottom>56;})()', 120);
+    assert.equal(clicked, true, 'Prototype USER must click account destination ' + href);
+    await waitUntil('Prototype USER account menu navigates to ' + href,
+      'location.pathname===' + JSON.stringify(href) +
+      '&&!document.querySelector(".pm-account-menu")?.open' +
+      '&&!!document.querySelector(' + JSON.stringify(selector) + ')', 120);
   }
-  console.log('[UX V4] USER account dropdown: all three real destinations and viewport focus PASS');
+  console.log('[#149] USER account dropdown: dedicated member destinations PASS');
 
   // Unlike a same-document hash transition, a new document forces the
   // asynchronous Keycloak bootstrap and PersonalSpace mount. Otherwise the
@@ -853,21 +853,17 @@ async function runRealBrowserJourneys() {
 
   // UX V4: member navigation anchors must survive the delayed Keycloak
   // bootstrap and preserve the real sent/received/hand-over dashboard.
-  await journeyOpen('/messages', '.marketplace-dashboard',
-    'UX V4 member exchange section after login');
+  await journeyOpen('/messages', '.workspace-v3--exchanges .marketplace-dashboard',
+    'Prototype Messages page after login');
   const memberTargets = await evaluate('[...document.querySelectorAll(".pm-account-nav a")]' +
     '.map(a=>a.getAttribute("href")).filter(Boolean)');
   assert.ok(memberTargets.includes('/mes-annonces'),
     'Prototype account sidebar must link to Mes annonces');
   assert.ok(memberTargets.includes('/messages'),
     'Prototype account sidebar must link to Messages & échanges');
-  await waitUntil('UX V4 member deep link restored after Keycloak bootstrap',
-    '(() => {const target=document.getElementById("mes-echanges");' +
-    'return location.hash==="#mes-echanges" && window.scrollY>0 && !!target' +
-    '&& target.getBoundingClientRect().top>=56' +
-    '&& target.getBoundingClientRect().top<Math.min(innerHeight*.8,600)' +
-    '&& target.getBoundingClientRect().bottom>56;})()', 120);
-  await journeyScreenshot('uxv4-member-exchange-deep-link');
+  assert.equal(await evaluate('location.pathname'), '/messages',
+    'Messages must be a dedicated member route after Keycloak bootstrap');
+  await journeyScreenshot('prototype-10-messages-page');
   await journeyOpen('/espace', '.marketplace-dashboard', 'requester outgoing dashboard');
   await journeyWaitCard(browserIds.donation, 'En attente');
   await journeyWaitCard(browserIds.rejected, 'En attente');
