@@ -27,11 +27,27 @@ export function ListingDetail({ id }: { id: string }) {
     authenticated,
     login,
     getToken,
+    subject,
   } = useAuth();
-  const [favorited, setFavorited] = useState(false);
-  const [favoriteChecked, setFavoriteChecked] = useState(false);
+  const [favoriteState, setFavoriteState] = useState<{
+    context: string;
+    favorited: boolean;
+    error: string | null;
+  } | null>(null);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
-  const [favoriteError, setFavoriteError] = useState<string | null>(null);
+  const favoriteContext =
+    authenticated && subject && listing
+      ? `${subject}:${listing.id}`
+      : null;
+  const favoriteChecked =
+    favoriteContext !== null &&
+    favoriteState?.context === favoriteContext;
+  const favorited = favoriteChecked
+    ? favoriteState.favorited
+    : false;
+  const favoriteError = favoriteChecked
+    ? favoriteState.error
+    : null;
 
   useEffect(() => {
     let active = true;
@@ -74,40 +90,41 @@ export function ListingDetail({ id }: { id: string }) {
   }, [id]);
 
   useEffect(() => {
-    if (!authenticated || !listing) {
-      setFavorited(false);
-      setFavoriteChecked(false);
-      setFavoriteError(null);
+    if (!favoriteContext || !listing) {
       return;
     }
 
     let active = true;
-    setFavoriteChecked(false);
-    setFavoriteError(null);
+    const context = favoriteContext;
 
     void getToken()
       .then((token) => favoritesApi.state(token, listing.id))
       .then((state) => {
         if (active) {
-          setFavorited(state.favorited);
-          setFavoriteChecked(true);
+          setFavoriteState({
+            context,
+            favorited: state.favorited,
+            error: null,
+          });
         }
       })
       .catch((reason: unknown) => {
         if (active) {
-          setFavoriteChecked(true);
-          setFavoriteError(
-            reason instanceof Error
-              ? reason.message
-              : 'Impossible de lire vos favoris.',
-          );
+          setFavoriteState({
+            context,
+            favorited: false,
+            error:
+              reason instanceof Error
+                ? reason.message
+                : 'Impossible de lire vos favoris.',
+          });
         }
       });
 
     return () => {
       active = false;
     };
-  }, [authenticated, getToken, listing]);
+  }, [favoriteContext, getToken, listing]);
 
   async function toggleFavorite() {
     if (!listing || favoriteBusy) return;
@@ -117,22 +134,31 @@ export function ListingDetail({ id }: { id: string }) {
       return;
     }
 
+    if (!favoriteContext) {
+      return;
+    }
+
     setFavoriteBusy(true);
-    setFavoriteError(null);
 
     try {
       const token = await getToken();
       const state = favorited
         ? await favoritesApi.remove(token, listing.id)
         : await favoritesApi.add(token, listing.id);
-      setFavorited(state.favorited);
-      setFavoriteChecked(true);
+      setFavoriteState({
+        context: favoriteContext,
+        favorited: state.favorited,
+        error: null,
+      });
     } catch (reason) {
-      setFavoriteError(
-        reason instanceof Error
-          ? reason.message
-          : 'Impossible de modifier ce favori.',
-      );
+      setFavoriteState({
+        context: favoriteContext,
+        favorited,
+        error:
+          reason instanceof Error
+            ? reason.message
+            : 'Impossible de modifier ce favori.',
+      });
     } finally {
       setFavoriteBusy(false);
     }
