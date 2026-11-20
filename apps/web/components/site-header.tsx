@@ -115,9 +115,9 @@ export function SiteHeader() {
           <div className="pm-header__actions">
             <Link
               className="pm-icon-button pm-icon-button--future"
-              href="/boutique"
-              aria-label="Favoris — en préparation"
-              title="Favoris — en préparation"
+              href="/favoris"
+              aria-label="Mes favoris"
+              title="Mes favoris"
             >
               <HeaderIcon name="heart" />
             </Link>
@@ -131,9 +131,9 @@ export function SiteHeader() {
             </Link>
             <Link
               className="pm-icon-button pm-icon-button--future"
-              href="/espace"
-              aria-label="Notifications — en préparation"
-              title="Notifications — en préparation"
+              href="/notifications"
+              aria-label="Mes notifications"
+              title="Mes notifications"
             >
               <HeaderIcon name="bell" />
             </Link>
