@@ -21,6 +21,9 @@ const staticRoutes = new Set([
   '/publier',
   '/mes-annonces',
   '/messages',
+  '/faq',
+  '/notre-histoire',
+  '/contact',
 ]);
 
 async function collect(dir) {
@@ -170,6 +173,9 @@ const seoChecks = [
   ['app/echanges/page.tsx', ['canonical', '/echanges']],
   ['app/fanzines/page.tsx', ['canonical', '/fanzines']],
   ['app/festival/page.tsx', ['canonical', '/festival']],
+  ['app/faq/page.tsx', ['canonical', '/faq']],
+  ['app/notre-histoire/page.tsx', ['canonical', '/notre-histoire']],
+  ['app/contact/page.tsx', ['canonical', '/contact']],
   ['app/opengraph-image.tsx', ['ImageResponse', '1200', '630']],
   ['app/twitter-image.tsx', ['ImageResponse', '1200', '630']],
   ['app/icon.svg', ['<svg']],
