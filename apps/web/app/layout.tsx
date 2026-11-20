@@ -6,6 +6,7 @@ import { SiteHeader } from '../components/site-header';
 import { getSiteUrl } from '../lib/site-url';
 import './globals.css';
 import './design-system.css';
+import './prototype-operational.css';
 
 const siteName = 'La Petite Maison de l’Épouvante';
 const description =
