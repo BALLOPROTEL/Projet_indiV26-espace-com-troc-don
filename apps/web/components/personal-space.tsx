@@ -378,23 +378,24 @@ export function PersonalSpace() {
         <p>Un seul endroit pour publier vos objets, retrouver vos annonces et suivre vos échanges.</p>
       </section>
 
-      <nav className="workspace-v3__quick-nav" aria-label="Aller directement à une activité">
-        <Link className="workspace-v3__quick-link" href="#publier">
-          <span className="workspace-v3__quick-number" aria-hidden="true">01</span>
-          <span><strong>Déposer un objet</strong><small>Don ou troc, en quelques étapes</small></span>
-          <span aria-hidden="true">↗</span>
-        </Link>
-        <Link className="workspace-v3__quick-link" href="#mes-articles">
-          <span className="workspace-v3__quick-number" aria-hidden="true">02</span>
-          <span><strong>Mes annonces</strong><small>Retrouver les statuts et corrections</small></span>
-          <span aria-hidden="true">↗</span>
-        </Link>
-        <Link className="workspace-v3__quick-link" href="#mes-echanges">
-          <span className="workspace-v3__quick-number" aria-hidden="true">03</span>
-          <span><strong>Mes échanges</strong><small>Demandes reçues, envoyées et suivi</small></span>
-          <span aria-hidden="true">↗</span>
-        </Link>
-      </nav>
+      <div className="pm-account-metrics" aria-label="Résumé de mes annonces">
+        <article>
+          <strong>{listings.length.toString().padStart(2, '0')}</strong>
+          <span>Mes annonces</span>
+        </article>
+        <article>
+          <strong>{listings.filter((item) => item.status === 'APPROVED').length.toString().padStart(2, '0')}</strong>
+          <span>Publiées</span>
+        </article>
+        <article>
+          <strong>{listings.filter((item) => item.status === 'PENDING').length.toString().padStart(2, '0')}</strong>
+          <span>En relecture</span>
+        </article>
+        <article>
+          <strong>{listings.filter((item) => item.status === 'REJECTED').length.toString().padStart(2, '0')}</strong>
+          <span>À corriger</span>
+        </article>
+      </div>
 
       <div className="workspace-grid">
         <section className="form-panel" id="publier" aria-labelledby="workspace-publish-title">
