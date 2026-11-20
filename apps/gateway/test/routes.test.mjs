@@ -61,6 +61,19 @@ test('routes Marketplace public contracts', () => {
   );
 });
 
+test('routes only the cart contract to Commerce', () => {
+  assert.deepEqual(resolveGatewayRoute('/api/cart'), {
+    target: 'commerce',
+    upstreamPath: '/cart',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/cart/items/variant-1'), {
+    target: 'commerce',
+    upstreamPath: '/cart/items/variant-1',
+  });
+  assert.equal(resolveGatewayRoute('/api/orders'), null);
+  assert.equal(resolveGatewayRoute('/api/checkout'), null);
+});
+
 test('routes only the authenticated notification inbox', () => {
   assert.deepEqual(resolveGatewayRoute('/api/notifications/me'), {
     target: 'notification',
