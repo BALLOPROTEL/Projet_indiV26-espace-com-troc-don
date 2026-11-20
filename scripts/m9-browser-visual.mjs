@@ -1632,10 +1632,10 @@ async function runFrontV2HomeJourney() {
     'footerColumns:document.querySelectorAll(".pm-footer__columns > div").length' +
     '}))()');
   assert.deepEqual(l1Navigation.desktop,
-    ['/', '/#boutique', '/#annonces', '/#fanzines', '/#actualites'],
+    ['/', '/#boutique', '/echanges', '/#fanzines', '/#actualites'],
     'L1 desktop header must match the five prototype destinations');
   assert.deepEqual(l1Navigation.mobile,
-    ['/', '/#boutique', '/#annonces', '/espace#publier', '/espace'],
+    ['/', '/#boutique', '/echanges', '/espace#publier', '/espace'],
     'L1 mobile bar must expose five task-oriented destinations');
   assert.equal(l1Navigation.footerColumns, 4,
     'L1 footer must keep the four-column prototype structure');
