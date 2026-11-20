@@ -2,6 +2,7 @@ export type GatewayTarget =
   | 'gateway'
   | 'catalog'
   | 'marketplace'
+  | 'notification'
   | 'legacy';
 
 export type GatewayRoute = {
@@ -62,6 +63,15 @@ export function resolveGatewayRoute(
     return {
       target: 'marketplace',
       upstreamPath: `${stripApiPrefix(path)}${url.search}`,
+    };
+  }
+
+  // Expose only the authenticated user inbox. The global technical
+  // /notifications/recent endpoint stays unreachable through the Gateway.
+  if (path === '/api/notifications/me') {
+    return {
+      target: 'notification',
+      upstreamPath: `/notifications/me${url.search}`,
     };
   }
 
