@@ -2589,3 +2589,70 @@ body {
     align-items: flex-start;
   }
 }
+
+
+/* L4B — real product media streamed from Catalog/MinIO. */
+.pm-real-product-visual {
+  overflow: hidden;
+}
+
+.pm-real-product-visual > img {
+  width: 100%;
+  height: 178px;
+  display: block;
+  object-fit: cover;
+}
+
+.pm-real-product-gallery {
+  min-width: 0;
+}
+
+.pm-real-product-gallery > .pm-real-product-visual {
+  min-height: 500px;
+  border-radius: 20px;
+}
+
+.pm-real-product-gallery > .pm-real-product-visual > img {
+  height: 500px;
+}
+
+.pm-real-product-gallery__thumbs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.pm-real-product-gallery__thumbs img {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+  object-fit: cover;
+  border: 1px solid var(--pm-border);
+  border-radius: 9px;
+  background: #fff;
+}
+
+@media (max-width: 980px) {
+  .pm-real-product-gallery > .pm-real-product-visual {
+    min-height: 340px;
+  }
+
+  .pm-real-product-gallery > .pm-real-product-visual > img {
+    height: 340px;
+  }
+}
+
+@media (max-width: 620px) {
+  .pm-real-product-gallery > .pm-real-product-visual {
+    min-height: 260px;
+  }
+
+  .pm-real-product-gallery > .pm-real-product-visual > img {
+    height: 260px;
+  }
+
+  .pm-real-product-gallery__thumbs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
