@@ -19,6 +19,13 @@ import {
 
 export const MAX_PRODUCT_IMAGES = 8;
 
+export type AdminProductImageView = {
+  id: string;
+  position: number;
+  mimeType: string;
+  sizeBytes: number;
+};
+
 export type ProductImageContent = {
   body: Buffer;
   contentType: string;
@@ -37,7 +44,7 @@ export class ProductImagesService {
   async replaceImages(
     productId: string,
     files: UploadedImageFile[],
-  ): Promise<ProductImage[]> {
+  ): Promise<AdminProductImageView[]> {
     if (
       files.length < 1 ||
       files.length > MAX_PRODUCT_IMAGES
@@ -147,7 +154,12 @@ export class ProductImagesService {
       'cleanup of replaced product images',
     );
 
-    return images;
+    return images.map((image) => ({
+      id: image.id,
+      position: image.position,
+      mimeType: image.mimeType,
+      sizeBytes: image.sizeBytes,
+    }));
   }
 
   async deleteDraftImages(
