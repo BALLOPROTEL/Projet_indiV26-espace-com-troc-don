@@ -118,7 +118,7 @@ export function AdminDashboard() {
               <span>Contrôler les annonces visibles aux visiteurs</span>
               <span aria-hidden="true">↗</span>
             </Link>
-            <Link href="/espace#mes-echanges">
+            <Link href="/messages">
               <strong>Mes échanges personnels</strong>
               <span>Suivre mes propres dons et trocs</span>
               <span aria-hidden="true">↗</span>
