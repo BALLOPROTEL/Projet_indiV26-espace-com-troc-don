@@ -43,7 +43,7 @@ describe('UX V4 task-first entry points', () => {
   });
 
   it('links the listing detail to its actual proposal form and back to catalogue', () => {
-    expect(detail).toContain('href="/#annonces"');
+    expect(detail).toContain('href="/echanges"');
     expect(detail).toContain('href="#faire-une-demande"');
     expect(detail).toContain('id="faire-une-demande"');
     expect(detail).toContain('<ListingProposalForm listing={listing} />');
