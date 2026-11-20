@@ -369,6 +369,10 @@ a,
   display: none;
 }
 
+.dialog-backdrop {
+  z-index: 80;
+}
+
 .pm-home {
   width: min(1240px, calc(100vw - 44px));
   margin-left: 50%;
@@ -906,6 +910,7 @@ a,
 
 .pm-home .listing-card__link {
   color: var(--pm-ink);
+  padding-bottom: 72px;
 }
 
 .pm-home .listing-card h3 {
