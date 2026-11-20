@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
+import { FavoritesModule } from './favorites/favorites.module';
 import { HealthModule } from './health/health.module';
 import { InternalModule } from './internal/internal.module';
 import { ListingsModule } from './listings/listings.module';
@@ -19,6 +20,7 @@ import { StorageModule } from './storage/storage.module';
     AuthModule,
     MarketplaceModule,
     ListingsModule,
+    FavoritesModule,
     InternalModule,
     HealthModule,
   ],
