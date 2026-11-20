@@ -12,24 +12,24 @@ Règle de lecture :
 |---|---|---|---|---|---|---|
 | 01 | Accueil | `/` | Oui | Oui, aperçu Catalog | Oui | Fait |
 | 02 | Boutique | `/boutique` | Oui | Non, backend e-commerce absent | Oui | Visuel fait |
-| 03 | Fiche produit | — | Non | Non | Non | L4 |
+| 03 | Fiche produit | `/boutique/produit` | Oui | Non, backend produits absent | Oui | Visuel fait, actions désactivées |
 | 04 | Fanzines | `/fanzines` | Oui | Non, contenu réel absent | Oui | Visuel fait |
-| 05 | Lecteur fanzine | — | Non | Non | Non | L6 |
+| 05 | Lecteur fanzine | `/fanzines/lecteur` | Oui | Non, contenu éditorial absent | Oui | Visuel fait |
 | 06 | Festival & actualités | `/festival` | Oui | Non, flux éditorial absent | Oui | Visuel fait |
 | 07 | Dons & trocs | `/echanges` | Oui | Oui | Oui | Fait |
 | 08 | Détail annonce | `/annonces/[id]` | Oui | Oui | Oui | Fait |
 | 09 | Publier une annonce | `/publier` | Oui | Oui | Oui | Fait |
 | 10 | Messagerie | `/messages` | Oui | Partiel via échanges/transactions | Oui | Route dédiée, chat temps réel à compléter si requis |
-| 11 | Panier | — | Non | Non | Non | L5 |
-| 12 | Passer commande | — | Non | Non | Non | L5 |
-| 13 | Confirmation | — | Non | Non | Non | L5 |
+| 11 | Panier | `/panier` | Oui | Non, backend panier absent | Oui | Visuel fait |
+| 12 | Passer commande | `/commande` | Oui | Non, checkout absent | Oui | Visuel fait, formulaire désactivé |
+| 13 | Confirmation | `/commande/confirmation` | Oui | Non, commande réelle absente | Oui | Visuel fait |
 | 14 | Connexion / inscription | Keycloak OIDC | Oui, externe | Oui | Oui | Fait |
 | 15 | Tableau de bord | `/espace` | Oui | Oui | Oui | Fait |
-| 16 | Mes commandes | — | Non | Non | Non | L5 |
+| 16 | Mes commandes | `/mes-commandes` | Oui | Non, backend commandes absent | Oui | Visuel fait, aucun faux historique |
 | 17 | Mes annonces | `/mes-annonces` | Oui | Oui | Oui | Fait |
-| 18 | Favoris | — | Non | Non | Visuel seulement dans navigation | L3/L4 |
-| 19 | Notifications | — | Non | Notifications backend présentes, écran dédié absent | Partiel | À créer |
-| 20 | Paramètres | — | Non | Non vérifié / écran absent | Non | L3 |
+| 18 | Favoris | `/favoris` | Oui | Non, persistance absente | Oui | Visuel fait, aucun faux favori |
+| 19 | Notifications | `/notifications` | Oui | Service technique global présent, inbox utilisateur absente | Oui | Visuel fait, données techniques non exposées |
+| 20 | Paramètres | `/parametres` | Oui | Persistance profil/préférences absente | Oui | Visuel fait, enregistrement désactivé |
 | 21 | Modération | `/moderation` | Oui | Oui | Oui | Fait |
 | 22 | Aide / FAQ | `/faq` | Oui | Contenu statique | Oui | Fait |
 | 23 | Notre histoire | `/notre-histoire` | Oui | Contenu statique | Oui | Fait |
