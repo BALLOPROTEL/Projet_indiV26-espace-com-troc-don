@@ -165,6 +165,38 @@ async function run() {
   assert.equal(draftProduct.variants[0].stock, 3);
 
   await request(gateway, '/api/products/' + productSlug, {}, 404);
+  await request(
+    gateway,
+    '/api/admin/products/' + draftProduct.id + '/publish',
+    {
+      method: 'POST',
+      headers: auth(admin),
+    },
+    409,
+  );
+
+  const productImageBytes = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl9ZVQAAAAASUVORK5CYII=',
+    'base64',
+  );
+  const productImagesBody = new FormData();
+  productImagesBody.append(
+    'images',
+    new Blob([productImageBytes], { type: 'image/png' }),
+    'm8-product.png',
+  );
+  const uploadedProductImages = await request(
+    gateway,
+    '/api/admin/products/' + draftProduct.id + '/images',
+    {
+      method: 'PUT',
+      headers: auth(admin),
+      body: productImagesBody,
+    },
+    200,
+  );
+  assert.equal(uploadedProductImages.length, 1);
+  assert.equal(uploadedProductImages[0].mimeType, 'image/png');
 
   const publishedProduct = await request(
     gateway,
@@ -186,7 +218,19 @@ async function run() {
   assert.equal(publicProduct.slug, productSlug);
   assert.equal(publicProduct.fromPriceCents, 2599);
   assert.equal(publicProduct.availableStock, 3);
+  assert.equal(publicProduct.images.length, 1);
   assert.equal('status' in publicProduct, false);
+
+  const publicImageResponse = await fetch(
+    new URL(publicProduct.images[0].contentUrl, gateway),
+    { signal: AbortSignal.timeout(12000) },
+  );
+  assert.equal(publicImageResponse.status, 200);
+  assert.equal(
+    publicImageResponse.headers.get('content-type'),
+    'image/png',
+  );
+  assert.ok((await publicImageResponse.arrayBuffer()).byteLength > 0);
 
   const searchedProducts = await request(
     gateway,
