@@ -107,6 +107,7 @@ async function run() {
   await request(gateway, '/api/auth/protected', {}, 401);
   await request(gateway, '/api/internal/listings/unreachable', {}, 404);
   await request(gateway, '/api/notifications/recent', {}, 404);
+  await request(gateway, '/api/notifications/me', {}, 401);
   info('Gateway paths, legacy fallback, protected and private routes: PASS');
 
   seed(owner.subject);
@@ -198,6 +199,34 @@ async function run() {
     assert.equal(item.event.source, 'marketplace-service');
     assert.equal(typeof item.event.eventId, 'string');
   }
+
+  const ownerInbox = await request(gateway, '/api/notifications/me', {
+    headers: auth(owner),
+  }, 200);
+  const requesterInbox = await request(gateway, '/api/notifications/me', {
+    headers: auth(requester),
+  }, 200);
+  const ownerTypes = new Set(
+    ownerInbox
+      .filter(item => item.event?.data?.targetListingId === listingId)
+      .map(item => item.event.type),
+  );
+  const requesterTypes = new Set(
+    requesterInbox
+      .filter(item => item.event?.data?.targetListingId === listingId)
+      .map(item => item.event.type),
+  );
+  assert.deepEqual(
+    ownerTypes,
+    new Set(['proposal.created', 'transaction.completed']),
+    'Owner inbox must contain only owner-targeted events',
+  );
+  assert.deepEqual(
+    requesterTypes,
+    new Set(['proposal.accepted', 'transaction.completed']),
+    'Requester inbox must contain only requester-targeted events',
+  );
+  info('Gateway -> Notification JWT user inbox isolation: PASS');
   info('Marketplace -> RabbitMQ -> Notification real event delivery: PASS (' + events.length + ' unique events)');
   info('M8-B integration: PASS');
 }
