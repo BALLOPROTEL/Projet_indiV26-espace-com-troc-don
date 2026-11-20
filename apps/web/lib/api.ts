@@ -216,6 +216,32 @@ export const adminApi = {
     request<unknown>('/admin/catalog/summary', {}, token).then(parseAdminCatalogSummary),
 };
 
+export const favoritesApi = {
+  mine: (token: string) =>
+    request<Listing[]>('/favorites', {}, token),
+
+  state: (token: string, listingId: string) =>
+    request<{ listingId: string; favorited: boolean }>(
+      `/favorites/${encodeURIComponent(listingId)}`,
+      {},
+      token,
+    ),
+
+  add: (token: string, listingId: string) =>
+    request<{ listingId: string; favorited: boolean }>(
+      `/favorites/${encodeURIComponent(listingId)}`,
+      { method: 'POST' },
+      token,
+    ),
+
+  remove: (token: string, listingId: string) =>
+    request<{ listingId: string; favorited: boolean }>(
+      `/favorites/${encodeURIComponent(listingId)}`,
+      { method: 'DELETE' },
+      token,
+    ),
+};
+
 export const marketplaceApi = {
   mine: (token: string) =>
     request<MarketplaceProposal[]>('/proposals/me', {}, token),

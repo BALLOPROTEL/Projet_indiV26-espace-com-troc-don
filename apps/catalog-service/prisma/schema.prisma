@@ -39,6 +39,7 @@ model Listing {
 
   images      ListingImage[]
   tradeWishes ListingTradeWish[]
+  favorites   ListingFavorite[]
 
   @@index([ownerId, createdAt])
   @@index([status, createdAt])
@@ -71,4 +72,16 @@ model ListingTradeWish {
 
   @@unique([listingId, position])
   @@index([listingId])
+}
+
+
+model ListingFavorite {
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@id([userId, listingId])
+  @@index([userId, createdAt])
 }
