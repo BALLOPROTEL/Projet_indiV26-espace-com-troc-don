@@ -9,6 +9,7 @@ const admin = readFileSync(new URL('../app/admin/admin-v2.css', import.meta.url)
 const header = readFileSync(new URL('../components/site-header.tsx', import.meta.url), 'utf8');
 const account = readFileSync(new URL('../components/account-shell.tsx', import.meta.url), 'utf8');
 const exchanges = readFileSync(new URL('../components/exchange-space.tsx', import.meta.url), 'utf8');
+const showcase = readFileSync(new URL('../components/prototype-showcase-pages.tsx', import.meta.url), 'utf8');
 const keycloak = readFileSync(
   new URL('../../../infra/keycloak/themes/petite-maison/login/resources/css/login.css', import.meta.url),
   'utf8',
@@ -37,11 +38,15 @@ describe('#149 prototype visual contract', () => {
     }
   });
 
-  it('exposes a real exchange screen rather than only the old homepage anchor', () => {
-    expect(header).toContain("href: '/echanges'");
+  it('exposes five dedicated prototype destinations', () => {
+    for (const route of ['/boutique', '/echanges', '/fanzines', '/festival']) {
+      expect(header).toContain(`href: '${route}'`);
+    }
     expect(exchanges).toContain('pm-exchange-hero');
     expect(exchanges).toContain('listingsApi.public()');
-    expect(exchanges).toContain('<ListingCard');
+    expect(showcase).toContain('pm-shop-layout');
+    expect(showcase).toContain('pm-editorial-hero');
+    expect(showcase).toContain('pm-festival-hero');
   });
 
   it('uses the prototype account sidebar for operational member surfaces', () => {
