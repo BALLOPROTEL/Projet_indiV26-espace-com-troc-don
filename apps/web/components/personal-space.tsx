@@ -32,7 +32,9 @@ import { EmptyState } from './empty-state';
 import { AccountShell } from './account-shell';
 import { MarketplaceDashboard } from './marketplace-dashboard';
 
-export function PersonalSpace() {
+type PersonalSpaceView = 'all' | 'publish' | 'listings' | 'exchanges';
+
+export function PersonalSpace({ view = 'all' }: { view?: PersonalSpaceView }) {
   const {
     ready,
     authenticated,
@@ -361,21 +363,44 @@ export function PersonalSpace() {
     );
   }
 
+  const viewCopy = {
+    all: {
+      eyebrow: 'Mon espace',
+      title: `Bonjour, ${username ?? 'bienvenue'}.`,
+      text: 'Un seul tableau de bord pour retrouver vos activités.',
+    },
+    publish: {
+      eyebrow: 'Publication',
+      title: 'Déposer un objet',
+      text: 'Créez une annonce de don ou de troc, puis envoyez-la en modération.',
+    },
+    listings: {
+      eyebrow: 'Mes annonces',
+      title: 'Suivre mes publications',
+      text: 'Retrouvez le statut de chaque annonce et corrigez celles qui le nécessitent.',
+    },
+    exchanges: {
+      eyebrow: 'Messages & échanges',
+      title: 'Suivre mes échanges',
+      text: 'Retrouvez vos demandes reçues, envoyées et les remises terminées.',
+    },
+  }[view];
+
   return (
     <AccountShell
       username={username}
-      active="overview"
+      active={view === 'listings' ? 'listings' : view === 'exchanges' ? 'exchanges' : view === 'publish' ? 'publish' : 'overview'}
       canModerate={hasAnyRole('MODERATOR', 'ADMIN')}
       isAdmin={roles.includes('ADMIN')}
       onLogout={() => void logout()}
     >
-      <div className="workspace workspace-v3">
+      <div className={'workspace workspace-v3 workspace-v3--' + view}>
       <section className="workspace-intro">
         <div>
-          <span className="eyebrow">Mon espace</span>
-          <h1>Bonjour, {username ?? 'bienvenue'}.</h1>
+          <span className="eyebrow">{viewCopy.eyebrow}</span>
+          <h1>{viewCopy.title}</h1>
         </div>
-        <p>Un seul endroit pour publier vos objets, retrouver vos annonces et suivre vos échanges.</p>
+        <p>{viewCopy.text}</p>
       </section>
 
       <div className="pm-account-metrics" aria-label="Résumé de mes annonces">
