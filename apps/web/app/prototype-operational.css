@@ -1056,3 +1056,89 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Prototype 15 — real account metrics. */
+.pm-account-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.pm-account-metrics article {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  border: 1px solid var(--pm-border);
+  border-radius: 12px;
+  background: #fff;
+  padding: 18px 16px;
+}
+
+.pm-account-metrics strong {
+  color: var(--pm-navy);
+  font-size: 1.65rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.pm-account-metrics span {
+  color: #7e8996;
+  font-size: .7rem;
+}
+
+/* Prototype 21 — moderation is a white account panel, not a coloured legacy hero. */
+.pm-account-main .management-v2__hero {
+  min-height: 0;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  border: 1px solid var(--pm-border);
+  background: #fff;
+  color: var(--pm-navy);
+  padding: 22px 24px;
+}
+
+.pm-account-main .management-v2__hero h1 {
+  color: var(--pm-navy);
+}
+
+.pm-account-main .management-v2__hero p {
+  color: var(--pm-muted);
+}
+
+.pm-account-main .management-v2__hero .management-v2__eyebrow {
+  color: var(--pm-teal-dark);
+}
+
+.pm-account-main .management-v2__hero .management-v2__role {
+  background: #e5f7f3;
+  color: #13877b;
+}
+
+/* Keep deep links visible below the prototype header. */
+.workspace-v3 #publier,
+.workspace-v3 #mes-articles,
+.workspace-v3 #mes-echanges,
+.workspace-v3 #echanges-recus,
+.workspace-v3 #echanges-envoyes,
+.workspace-v3 #echanges-remises,
+.management-v2 #file-moderation {
+  scroll-margin-top: 106px;
+}
+
+@media (max-width: 860px) {
+  .pm-account-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .pm-account-metrics {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+
+  .pm-account-metrics article {
+    padding: 14px 12px;
+  }
+}
