@@ -113,7 +113,7 @@ export function AdminDashboard() {
               <span>Accepter ou refuser les publications en attente</span>
               <span aria-hidden="true">↗</span>
             </Link>
-            <Link href="/#annonces">
+            <Link href="/echanges">
               <strong>Voir le catalogue public</strong>
               <span>Contrôler les annonces visibles aux visiteurs</span>
               <span aria-hidden="true">↗</span>
