@@ -42,6 +42,7 @@ legacy_port="${LEGACY_API_HOST_PORT:-3099}"
 catalog_port="${CATALOG_HOST_PORT:-3101}"
 marketplace_port="${MARKETPLACE_HOST_PORT:-3102}"
 notification_port="${NOTIFICATION_HOST_PORT:-3103}"
+commerce_port="${COMMERCE_HOST_PORT:-3104}"
 gateway_port="${GATEWAY_HOST_PORT:-3000}"
 web_port="${WEB_HOST_PORT:-3001}"
 
@@ -54,6 +55,7 @@ wait_for_url "Legacy API" "http://127.0.0.1:${legacy_port}/api/health/live"
 wait_for_url "Catalog Service" "http://127.0.0.1:${catalog_port}/health/ready"
 wait_for_url "Marketplace Service" "http://127.0.0.1:${marketplace_port}/health/ready"
 wait_for_url "Notification Service" "http://127.0.0.1:${notification_port}/health/ready"
+wait_for_url "Commerce Service" "http://127.0.0.1:${commerce_port}/health/ready"
 wait_for_url "API Gateway" "http://127.0.0.1:${gateway_port}/api/health/ready"
 wait_for_url "Web" "http://127.0.0.1:${web_port}"
 
@@ -63,16 +65,16 @@ echo "PostgreSQL: PASS"
 "${compose[@]}" exec -T rabbitmq rabbitmq-diagnostics -q ping >/dev/null
 echo "RabbitMQ: PASS"
 
-for schema_table in 'public."Listing"' 'catalog."Listing"' 'catalog."ListingFavorite"' 'catalog."Product"' 'catalog."ProductVariant"' 'catalog."ProductImage"' 'marketplace."Proposal"' 'notification."notification_events"'; do
+for schema_table in 'public."Listing"' 'catalog."Listing"' 'catalog."ListingFavorite"' 'catalog."Product"' 'catalog."ProductVariant"' 'catalog."ProductImage"' 'marketplace."Proposal"' 'notification."notification_events"' 'commerce."Cart"' 'commerce."CartItem"'; do
   exists="$("${compose[@]}" exec -T postgres psql -U app -d projet_indiv26 -Atqc "SELECT to_regclass('${schema_table}') IS NOT NULL;")"
   if [[ "${exists}" != "t" ]]; then
     echo "[FAIL] Missing migrated table: ${schema_table}"
     exit 1
   fi
 done
-echo "PostgreSQL public/catalog/marketplace ownership: PASS"
+echo "PostgreSQL public/catalog/marketplace/notification/commerce ownership: PASS"
 
-for migration in legacy-migrate catalog-migrate marketplace-migrate notification-migrate minio-init; do
+for migration in legacy-migrate catalog-migrate marketplace-migrate notification-migrate commerce-migrate minio-init; do
   container_id="$("${compose[@]}" ps -aq "${migration}" | head -n 1)"
   if [[ -z "${container_id}" ]]; then
     echo "[FAIL] Missing one-shot service: ${migration}"
@@ -93,6 +95,7 @@ const targets = [
   ['catalog', 'http://catalog-service:3101/health/ready'],
   ['marketplace', 'http://marketplace-service:3102/health/ready'],
   ['notification', 'http://notification-service:3103/health/ready'],
+  ['commerce', 'http://commerce-service:3104/health/ready'],
 ];
 
 (async () => {
@@ -116,6 +119,20 @@ fetch('http://catalog-service:3101/health/ready')
       throw new Error(`Catalog internal readiness failed: ${response.status}`);
     }
     console.log('Marketplace -> Catalog Docker DNS: PASS');
+  })
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+NODE
+
+"${compose[@]}" exec -T commerce-service node - <<'NODE'
+fetch('http://catalog-service:3101/health/ready')
+  .then((response) => {
+    if (!response.ok) {
+      throw new Error(`Catalog internal readiness failed: ${response.status}`);
+    }
+    console.log('Commerce -> Catalog Docker DNS: PASS');
   })
   .catch((error) => {
     console.error(error);
