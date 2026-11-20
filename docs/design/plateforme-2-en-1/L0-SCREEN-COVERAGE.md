@@ -49,13 +49,14 @@ L’Accueil ne doit plus héberger les écrans complets de ces univers.
 
 Pour la suite, la même règle s’applique : un écran du prototype qui représente une page autonome doit devenir une vraie route dédiée quand son lot est traité. Une section `#hash` peut rester comme compatibilité temporaire, mais ne doit pas être considérée comme la page finale.
 
-## Prochaine extraction logique sans nouveau backend
+## État après séparation 24/24
 
-Les écrans suivants peuvent être séparés en vraies routes tout en réutilisant les fonctions existantes, sans inventer de métier :
+Les 24 écrans du prototype possèdent maintenant une destination dédiée ou, pour l’authentification, l’écran Keycloak externe.
 
-1. `/notifications` — écran 19, après vérification de l’API de notification existante ;
-2. `/parametres` — écran 20, après vérification des préférences réellement persistées ;
-3. `/favoris` — écran 18, seulement après contrat backend réel ;
-4. `/mes-commandes` — écran 16, avec le backend e-commerce L4/L5.
+Pour les écrans dont le backend métier n’existe pas encore, la route est ouverte uniquement comme **surface visuelle non transactionnelle** :
+- aucun faux prix, faux stock, faux favori, faux historique de commande ou fausse notification ;
+- les actions sensibles restent désactivées ;
+- aucun paiement, aucune commande et aucune préférence ne sont persistés ;
+- l’activation fonctionnelle reste réservée aux lots backend correspondants.
 
-Aucune route e-commerce transactionnelle ne doit être ouverte avant les lots L4/L5 et leurs contrats backend.
+La prochaine phase n’est donc plus la création de pages, mais le branchement progressif des contrats métier manquants.
