@@ -9,9 +9,10 @@ datasource db {
 }
 
 model NotificationEvent {
-  eventId    String   @id @db.VarChar(128)
-  event      Json
-  receivedAt DateTime @default(now())
+  eventId      String   @id @db.VarChar(128)
+  event        Json
+  recipientIds String[] @default([])
+  receivedAt   DateTime @default(now())
 
   @@index([receivedAt])
   @@map("notification_events")
