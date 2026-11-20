@@ -45,12 +45,20 @@ describe('#149 dedicated-page navigation', () => {
     expect(designSystemCss).toContain('z-index: 80');
   });
 
-  it('provides a real target for every member shortcut', () => {
+  it('provides real targets for publication, listings and exchanges', () => {
     for (const id of ['publier', 'mes-articles', 'mes-echanges']) {
       expect(space).toContain(`id="${id}"`);
-      expect(accountShell).toContain(`href="/espace#${id}"`);
       expect(header).toContain(`href="/espace#${id}"`);
     }
+
+    // The prototype account sidebar deliberately keeps publication out of its
+    // navigation. Publication remains reachable from the shared header/mobile
+    // action, while the sidebar exposes the persistent account destinations.
+    for (const id of ['mes-articles', 'mes-echanges']) {
+      expect(accountShell).toContain(`href="/espace#${id}"`);
+    }
+    expect(accountShell).not.toContain('href="/espace#publier"');
+
     expect(space).toContain('workspaceSectionFromHash(window.location.hash)');
     expect(space).toContain('requestAnimationFrame');
     expect(space).toContain('<MarketplaceDashboard />');
