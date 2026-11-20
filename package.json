@@ -96,7 +96,8 @@
     "jury:assets:sources:check": "node scripts/jury-assets-fetch.mjs --check",
     "jury:assets:fetch": "node scripts/jury-assets-fetch.mjs --fetch",
     "jury:assets:fetch:test": "node --test scripts/jury-assets-fetch.test.mjs",
-    "security:web:static": "node scripts/security-web-audit.mjs"
+    "security:web:static": "node scripts/security-web-audit.mjs",
+    "web:quality:static": "pnpm --filter web quality:static"
   },
   "pnpm": {
     "overrides": {

@@ -26,6 +26,8 @@ jobs:
           node-version: '24'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Static web quality audit
+        run: pnpm web:quality:static
       - name: Lint
         run: pnpm web:lint
       - name: Typecheck

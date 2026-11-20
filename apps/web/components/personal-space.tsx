@@ -55,6 +55,7 @@ export function PersonalSpace() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const loadMine = useCallback(async () => {
     if (!authenticated) {
@@ -166,6 +167,11 @@ export function PersonalSpace() {
 
   async function createListing(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (savingRef.current) {
+      return;
+    }
+
     setFeedback(null);
     setError(null);
 
@@ -180,6 +186,7 @@ export function PersonalSpace() {
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
     let draftId = pendingCreateId;
 
@@ -229,6 +236,7 @@ export function PersonalSpace() {
         );
       }
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -261,7 +269,7 @@ export function PersonalSpace() {
   async function saveEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!editing) {
+    if (!editing || savingRef.current) {
       return;
     }
 
@@ -279,6 +287,7 @@ export function PersonalSpace() {
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
 
     try {
@@ -319,6 +328,7 @@ export function PersonalSpace() {
       await loadMine();
       setError(mutationError);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -420,10 +430,10 @@ export function PersonalSpace() {
 
           <div className="feedback-stack" aria-live="polite">
             {feedback ? (
-              <div className="notice notice--success">{feedback}</div>
+              <div className="notice notice--success" role="status">{feedback}</div>
             ) : null}
             {error ? (
-              <div className="notice notice--error">{error}</div>
+              <div className="notice notice--error" role="alert">{error}</div>
             ) : null}
           </div>
 
@@ -616,7 +626,7 @@ function ListingForm({
   }
 
   return (
-    <form className="listing-form" onSubmit={(event) => {
+    <form className="listing-form" aria-busy={disabled} onSubmit={(event) => {
       if (wizard && step < PUBLICATION_STEPS.length - 1) {
         event.preventDefault();
         advance();

@@ -38,7 +38,7 @@ jobs:
           node --check scripts/m9-browser-visual.mjs
           node --check scripts/lot9bf-media-certification.mjs
           bash -n scripts/m6-compose-smoke.sh
-      - name: Preload official Docker images from ECR Public to avoid Docker Hub anonymous limits
+      - name: Preload official Docker images with registry fallbacks
         run: |
           set -euo pipefail
           for spec in \
@@ -46,23 +46,37 @@ jobs:
             rabbitmq:4.1-management-alpine \
             node:24.20.0-alpine3.24 \
             alpine:3.24.1; do
-            mirror="public.ecr.aws/docker/library/${spec}"
             success=false
-            for attempt in 1 2 3; do
-              if docker pull "${mirror}"; then
-                docker tag "${mirror}" "${spec}"
-                success=true
-                break
-              fi
-              echo "[WARN] ECR pull attempt ${attempt}/3 failed for ${spec}"
-              sleep "$(( attempt * 5 ))"
+
+            for candidate in \
+              "public.ecr.aws/docker/library/${spec}" \
+              "mirror.gcr.io/library/${spec}" \
+              "${spec}"; do
+              for attempt in 1 2; do
+                echo "[INFO] Pulling ${candidate} (attempt ${attempt}/2) for ${spec}"
+                if docker pull "${candidate}"; then
+                  if [ "${candidate}" != "${spec}" ]; then
+                    docker tag "${candidate}" "${spec}"
+                  fi
+                  success=true
+                  break 2
+                fi
+                echo "[WARN] Pull failed: ${candidate} (attempt ${attempt}/2)"
+                sleep "$(( attempt * 3 ))"
+              done
             done
+
             if [ "${success}" != "true" ]; then
-              echo "[FAIL] Unable to preload ${spec} from ECR public."
+              echo "[FAIL] Unable to preload ${spec} from ECR Public, mirror.gcr.io, or Docker Hub."
               exit 1
             fi
           done
-          docker image inspect postgres:16-alpine rabbitmq:4.1-management-alpine node:24.20.0-alpine3.24 alpine:3.24.1 >/dev/null
+
+          docker image inspect \
+            postgres:16-alpine \
+            rabbitmq:4.1-management-alpine \
+            node:24.20.0-alpine3.24 \
+            alpine:3.24.1 >/dev/null
       - name: Execute isolated stack and real M8-B cross-service integration
         env:
           M8_RUN_INTEGRATION: 'true'
