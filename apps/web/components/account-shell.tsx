@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 type ActiveItem =
   | 'overview'
+  | 'publish'
   | 'listings'
   | 'exchanges'
   | 'moderation'
@@ -135,9 +136,9 @@ export function AccountShell({
           <nav className="pm-account-nav">
             <Item href="/espace" label="Vue d’ensemble" icon="overview" active={active === 'overview'} />
             <Item label="Mes commandes" icon="orders" disabled />
-            <Item href="/espace#mes-articles" label="Mes annonces" icon="listings" active={active === 'listings'} />
+            <Item href="/mes-annonces" label="Mes annonces" icon="listings" active={active === 'listings'} />
             <Item label="Mes favoris" icon="favorites" disabled />
-            <Item href="/espace#mes-echanges" label="Messages & échanges" icon="messages" active={active === 'exchanges'} />
+            <Item href="/messages" label="Messages & échanges" icon="messages" active={active === 'exchanges'} />
             <Item label="Notifications" icon="notifications" disabled />
             <Item label="Paramètres" icon="settings" disabled />
             {canModerate ? (
