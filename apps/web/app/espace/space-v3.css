@@ -328,3 +328,31 @@
     scroll-behavior: auto !important;
   }
 }
+
+
+/* #149 — dedicated member screens reuse the proven PersonalSpace logic
+   while exposing one prototype screen per URL. */
+.workspace-v3--publish .pm-account-metrics,
+.workspace-v3--publish .shelf-panel,
+.workspace-v3--publish .workspace-v3__exchanges {
+  display: none;
+}
+
+.workspace-v3--publish .workspace-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace-v3--listings .pm-account-metrics,
+.workspace-v3--listings .form-panel,
+.workspace-v3--listings .workspace-v3__exchanges {
+  display: none;
+}
+
+.workspace-v3--listings .workspace-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace-v3--exchanges .pm-account-metrics,
+.workspace-v3--exchanges .workspace-grid {
+  display: none;
+}
