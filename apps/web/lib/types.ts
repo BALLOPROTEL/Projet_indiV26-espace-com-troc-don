@@ -158,6 +158,14 @@ export type UserNotification = {
 };
 
 
+export type ProductImage = {
+  id: string;
+  position: number;
+  mimeType: string;
+  sizeBytes: number;
+  contentUrl: string;
+};
+
 export type ProductVariant = {
   id: string;
   sku: string;
@@ -177,4 +185,5 @@ export type Product = {
   fromPriceCents: number;
   availableStock: number;
   variants: ProductVariant[];
+  images: ProductImage[];
 };
