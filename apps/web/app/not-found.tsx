@@ -7,13 +7,20 @@ export const metadata: Metadata = {
   robots: {
     index: false,
     follow: false,
-    noarchive: true,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
   },
 };
 
 export default function NotFound() {
   return (
-    <section className="detail-missing" aria-labelledby="not-found-title">
+    <section
+      aria-labelledby="not-found-title"
+      style={{ maxWidth: 760, margin: '72px auto', padding: '32px 24px' }}
+    >
       <span className="eyebrow">Erreur 404</span>
       <h1 id="not-found-title">Cette page s’est égarée.</h1>
       <p>
