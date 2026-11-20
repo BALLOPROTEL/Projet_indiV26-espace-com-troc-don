@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import {
-  FormEvent,
   useEffect,
   useState,
+  type FormEvent,
 } from 'react';
 import { adminApi } from '../lib/api';
 import { canAccessAdmin } from '../lib/admin-dashboard';
@@ -96,6 +96,7 @@ export function AdminProductCatalog() {
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
+  const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [variants, setVariants] = useState<VariantDraft[]>([emptyVariant()]);
@@ -344,6 +345,7 @@ export function AdminProductCatalog() {
           ? await adminApi.publishProduct(token, product.id)
           : await adminApi.archiveProduct(token, product.id);
       replaceProduct(updated);
+      setConfirmArchiveId(null);
     } catch (reason) {
       setActionError(
         reason instanceof Error
@@ -869,16 +871,36 @@ export function AdminProductCatalog() {
                     </button>
                   ) : null}
                   {product.status !== 'ARCHIVED' ? (
-                    <button
-                      className="pm-button pm-button--outline"
-                      type="button"
-                      disabled={busy === `archive:${product.id}`}
-                      onClick={() =>
-                        void transition(product, 'archive')
-                      }
-                    >
-                      Archiver
-                    </button>
+                    confirmArchiveId === product.id ? (
+                      <div className="admin-products__archive-confirm" role="group" aria-label="Confirmation d’archivage">
+                        <strong>Retirer définitivement ce produit de la vitrine ?</strong>
+                        <button
+                          className="pm-button pm-button--outline"
+                          type="button"
+                          disabled={busy === `archive:${product.id}`}
+                          onClick={() =>
+                            void transition(product, 'archive')
+                          }
+                        >
+                          Confirmer l’archivage
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy === `archive:${product.id}`}
+                          onClick={() => setConfirmArchiveId(null)}
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="pm-button pm-button--outline"
+                        type="button"
+                        onClick={() => setConfirmArchiveId(product.id)}
+                      >
+                        Archiver
+                      </button>
+                    )
                   ) : null}
                   {product.status === 'DRAFT' &&
                   product.images.length === 0 ? (
