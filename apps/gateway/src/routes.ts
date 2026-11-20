@@ -32,11 +32,31 @@ export function resolveGatewayRoute(
     };
   }
 
-  // Explicit ADMIN-only route. Do not forward /api/admin/* broadly.
+  // Explicit ADMIN-only routes. Do not forward /api/admin/* broadly.
   if (path === '/api/admin/catalog/summary') {
     return {
       target: 'catalog',
       upstreamPath: `/admin/catalog/summary${url.search}`,
+    };
+  }
+
+  if (
+    path === '/api/admin/products' ||
+    path.startsWith('/api/admin/products/')
+  ) {
+    return {
+      target: 'catalog',
+      upstreamPath: `${stripApiPrefix(path)}${url.search}`,
+    };
+  }
+
+  if (
+    path === '/api/products' ||
+    path.startsWith('/api/products/')
+  ) {
+    return {
+      target: 'catalog',
+      upstreamPath: `${stripApiPrefix(path)}${url.search}`,
     };
   }
 
