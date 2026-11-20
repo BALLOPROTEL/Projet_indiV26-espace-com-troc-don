@@ -12,6 +12,7 @@ const admin = readFileSync(new URL('../components/admin-dashboard.tsx', import.m
 const moderation = readFileSync(new URL('../components/moderation-space.tsx', import.meta.url), 'utf8');
 const accountShell = readFileSync(new URL('../components/account-shell.tsx', import.meta.url), 'utf8');
 const designSystemCss = readFileSync(new URL('../app/design-system.css', import.meta.url), 'utf8');
+const operationalCss = readFileSync(new URL('../app/prototype-operational.css', import.meta.url), 'utf8');
 
 describe('#149 dedicated-page navigation', () => {
   it('uses five real top-level routes instead of homepage pseudo-pages', () => {
@@ -43,6 +44,13 @@ describe('#149 dedicated-page navigation', () => {
     expect(designSystemCss).toContain('padding-bottom: 72px');
     expect(designSystemCss).toContain('.dialog-backdrop');
     expect(designSystemCss).toContain('z-index: 80');
+  });
+
+  it('lets long listing titles wrap inside the detail breadcrumb', () => {
+    expect(operationalCss).toContain('.listing-detail__breadcrumbs');
+    expect(operationalCss).toContain('flex-wrap: wrap');
+    expect(operationalCss).toContain("span[aria-current='page']");
+    expect(operationalCss).toContain('overflow-wrap: anywhere');
   });
 
   it('provides real targets for publication, listings and exchanges', () => {
