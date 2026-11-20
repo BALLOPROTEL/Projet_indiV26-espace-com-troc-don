@@ -1514,7 +1514,8 @@ a,
 }
 
 @media (hover: none), (pointer: coarse) {
-  .pm-home .listing-card--interactive:hover {
+  .pm-home .listing-card--interactive:hover,
+  .pm-exchange-page .listing-card--interactive:hover {
     border-color: var(--pm-border);
     box-shadow: 0 3px 12px rgba(21, 47, 74, 0.025);
     transform: none;
@@ -1522,7 +1523,10 @@ a,
 
   .pm-home .listing-card--interactive:hover .listing-card__cover img,
   .pm-home .listing-card__link:hover .listing-card__cover img,
-  .pm-home .listing-card__link:hover .listing-card__cta span {
+  .pm-home .listing-card__link:hover .listing-card__cta span,
+  .pm-exchange-page .listing-card--interactive:hover .listing-card__cover img,
+  .pm-exchange-page .listing-card__link:hover .listing-card__cover img,
+  .pm-exchange-page .listing-card__link:hover .listing-card__cta span {
     transform: none;
   }
 }
