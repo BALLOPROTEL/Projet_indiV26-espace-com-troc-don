@@ -413,6 +413,7 @@ export function PersonalSpace({ view = 'all' }: { view?: PersonalSpaceView }) {
         <p>{viewCopy.text}</p>
       </section>
 
+      {view === 'all' ? (
       <div className="pm-account-metrics" aria-label="Résumé de mes annonces">
         <article>
           <strong>{listings.length.toString().padStart(2, '0')}</strong>
@@ -431,8 +432,11 @@ export function PersonalSpace({ view = 'all' }: { view?: PersonalSpaceView }) {
           <span>À corriger</span>
         </article>
       </div>
+      ) : null}
 
+      {(view === 'all' || view === 'publish' || view === 'listings') ? (
       <div className="workspace-grid">
+        {(view === 'all' || view === 'publish') ? (
         <section className="form-panel" id="publier" aria-labelledby="workspace-publish-title">
           <span className="form-panel__index">PUBLIER</span>
           <div className="form-panel__heading">
@@ -463,7 +467,9 @@ export function PersonalSpace({ view = 'all' }: { view?: PersonalSpaceView }) {
             onSubmit={createListing}
           />
         </section>
+        ) : null}
 
+        {(view === 'all' || view === 'listings') ? (
         <section className="shelf-panel" id="mes-articles" aria-labelledby="workspace-listings-title">
           <div className="section-heading section-heading--compact">
             <div>
@@ -533,11 +539,15 @@ export function PersonalSpace({ view = 'all' }: { view?: PersonalSpaceView }) {
             })}
           </div>
         </section>
+        ) : null}
       </div>
+      ) : null}
 
+      {(view === 'all' || view === 'exchanges') ? (
       <section className="workspace-v3__exchanges" id="mes-echanges" aria-label="Mes échanges">
         <MarketplaceDashboard />
       </section>
+      ) : null}
 
       {editing ? (
         <div className="dialog-backdrop">
