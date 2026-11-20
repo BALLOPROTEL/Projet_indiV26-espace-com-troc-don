@@ -7,8 +7,9 @@ import { useAuth } from './auth-provider';
 import { BrandMark } from './design-system';
 
 type IconName =
-  | 'search'
-  | 'bag'
+  | 'heart'
+  | 'message'
+  | 'bell'
   | 'account'
   | 'chevron'
   | 'shield'
@@ -16,8 +17,9 @@ type IconName =
 
 function HeaderIcon({ name }: { name: IconName }) {
   const paths: Record<IconName, ReactNode> = {
-    search: <><circle cx="10.8" cy="10.8" r="6.6" /><path d="m16 16 5 5" /></>,
-    bag: <><path d="M5 8h14l-1 12H6L5 8Z" /><path d="M9 8a3 3 0 0 1 6 0" /></>,
+    heart: <path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.5-7 10-7 10Z" />,
+    message: <><path d="M4 5h16v11H8l-4 4V5Z" /><path d="M8 9h8M8 12h5" /></>,
+    bell: <><path d="M6 16h12l-1.5-2V10a4.5 4.5 0 0 0-9 0v4L6 16Z" /><path d="M10 19h4" /></>,
     account: <><circle cx="12" cy="8" r="3.5" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" /></>,
     chevron: <path d="m7 10 5 5 5-5" />,
     shield: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></>,
@@ -45,7 +47,7 @@ const desktopLinks = [
   { href: '/#boutique', label: 'Boutique' },
   { href: '/echanges', label: 'Échanges & dons' },
   { href: '/#fanzines', label: 'Fanzines' },
-  { href: '/#actualites', label: 'Actualités' },
+  { href: '/#actualites', label: 'Festival' },
 ] as const;
 
 const mobileLinks = [
@@ -112,20 +114,28 @@ export function SiteHeader() {
 
           <div className="pm-header__actions">
             <Link
-              className="pm-icon-button"
-              href="/#community-search"
-              aria-label="Rechercher dans les annonces"
-              title="Rechercher"
+              className="pm-icon-button pm-icon-button--future"
+              href="/#boutique"
+              aria-label="Favoris — en préparation"
+              title="Favoris — en préparation"
             >
-              <HeaderIcon name="search" />
+              <HeaderIcon name="heart" />
+            </Link>
+            <Link
+              className="pm-icon-button"
+              href="/espace#mes-echanges"
+              aria-label="Mes échanges"
+              title="Mes échanges"
+            >
+              <HeaderIcon name="message" />
             </Link>
             <Link
               className="pm-icon-button pm-icon-button--future"
-              href="/#boutique"
-              aria-label="Panier — disponible avec la future boutique"
-              title="Panier — en préparation"
+              href="/espace"
+              aria-label="Notifications — en préparation"
+              title="Notifications — en préparation"
             >
-              <HeaderIcon name="bag" />
+              <HeaderIcon name="bell" />
             </Link>
 
             {ready && authenticated ? (
