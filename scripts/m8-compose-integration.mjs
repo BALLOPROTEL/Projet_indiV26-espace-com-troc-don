@@ -240,6 +240,114 @@ async function run() {
   );
   assert.ok(searchedProducts.some(item => item.id === draftProduct.id));
 
+  await request(gateway, '/api/cart', {}, 401);
+  const emptyCart = await request(gateway, '/api/cart', {
+    headers: auth(requester),
+  }, 200);
+  assert.deepEqual(emptyCart.items, []);
+  assert.equal(emptyCart.subtotalCents, 0);
+
+  await request(gateway, '/api/cart/items', {
+    method: 'POST',
+    headers: {
+      ...auth(requester),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      productId: draftProduct.id,
+      variantId: publicProduct.variants[0].id,
+      quantity: 1,
+      priceCents: 1,
+    }),
+  }, 400);
+
+  await request(gateway, '/api/cart/items', {
+    method: 'POST',
+    headers: {
+      ...auth(requester),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      productId: draftProduct.id,
+      variantId: publicProduct.variants[0].id,
+      quantity: 4,
+    }),
+  }, 409);
+
+  const addedCart = await request(gateway, '/api/cart/items', {
+    method: 'POST',
+    headers: {
+      ...auth(requester),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      productId: draftProduct.id,
+      variantId: publicProduct.variants[0].id,
+      quantity: 2,
+    }),
+  }, 201);
+  assert.equal(addedCart.items.length, 1);
+  assert.equal(addedCart.items[0].unitPriceCents, 2599);
+  assert.equal(addedCart.items[0].lineTotalCents, 5198);
+  assert.equal(addedCart.subtotalCents, 5198);
+
+  const secondUserCart = await request(gateway, '/api/cart', {
+    headers: auth(owner),
+  }, 200);
+  assert.deepEqual(secondUserCart.items, []);
+
+  const productAfterCart = await request(
+    gateway,
+    '/api/products/' + productSlug,
+    {},
+    200,
+  );
+  assert.equal(
+    productAfterCart.variants[0].stock,
+    3,
+    'Cart must not reserve product stock',
+  );
+
+  const quantityCart = await request(
+    gateway,
+    '/api/cart/items/' + publicProduct.variants[0].id,
+    {
+      method: 'PATCH',
+      headers: {
+        ...auth(requester),
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ quantity: 3 }),
+    },
+    200,
+  );
+  assert.equal(quantityCart.subtotalCents, 7797);
+
+  await request(
+    gateway,
+    '/api/admin/products/' + draftProduct.id +
+      '/variants/' + publicProduct.variants[0].id,
+    {
+      method: 'PATCH',
+      headers: {
+        ...auth(admin),
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        priceCents: 2999,
+        stock: 5,
+      }),
+    },
+    200,
+  );
+
+  const repricedCart = await request(gateway, '/api/cart', {
+    headers: auth(requester),
+  }, 200);
+  assert.equal(repricedCart.items[0].unitPriceCents, 2999);
+  assert.equal(repricedCart.items[0].stock, 5);
+  assert.equal(repricedCart.subtotalCents, 8997);
+
   await request(
     gateway,
     '/api/admin/products/' + draftProduct.id + '/archive',
@@ -250,6 +358,28 @@ async function run() {
     200,
   );
   await request(gateway, '/api/products/' + productSlug, {}, 404);
+
+  const archivedCart = await request(gateway, '/api/cart', {
+    headers: auth(requester),
+  }, 200);
+  assert.equal(archivedCart.hasUnavailableItems, true);
+  assert.equal(
+    archivedCart.items[0].unavailableReason,
+    'PRODUCT_NOT_PUBLISHED',
+  );
+  assert.equal(archivedCart.subtotalCents, 0);
+
+  const clearedCart = await request(
+    gateway,
+    '/api/cart/items/' + publicProduct.variants[0].id,
+    {
+      method: 'DELETE',
+      headers: auth(requester),
+    },
+    200,
+  );
+  assert.deepEqual(clearedCart.items, []);
+  info('Commerce Cart: JWT isolation + server price/stock + no reservation: PASS');
   info('Commercial Product: ADMIN RBAC + DRAFT/PUBLISHED/ARCHIVED visibility: PASS');
 
   seed(owner.subject);

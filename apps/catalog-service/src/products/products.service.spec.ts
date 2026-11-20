@@ -97,6 +97,55 @@ describe('ProductsService', () => {
     expect('status' in result[0]).toBe(false);
   });
 
+  it('returns the current internal variant snapshot for Commerce', async () => {
+    (prisma.product.findUnique as jest.Mock).mockResolvedValue(
+      product({ status: ProductStatus.PUBLISHED }),
+    );
+
+    await expect(
+      service.getInternalVariantSnapshot(
+        'product-1',
+        'variant-1',
+      ),
+    ).resolves.toEqual({
+      productId: 'product-1',
+      slug: 'product-one',
+      name: 'Product One',
+      currency: 'EUR',
+      status: ProductStatus.PUBLISHED,
+      variantId: 'variant-1',
+      variantLabel: 'Standard',
+      priceCents: 2500,
+      stock: 4,
+      active: true,
+      primaryImageId: 'image-1',
+    });
+
+    expect(prisma.product.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'product-1' },
+        include: expect.objectContaining({
+          variants: expect.objectContaining({
+            where: { id: 'variant-1' },
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('returns 404 internally when Commerce references an unknown variant', async () => {
+    (prisma.product.findUnique as jest.Mock).mockResolvedValue(
+      product({ variants: [] }),
+    );
+
+    await expect(
+      service.getInternalVariantSnapshot(
+        'product-1',
+        'missing-variant',
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
   it('never resolves a draft product through the public detail contract', async () => {
     (prisma.product.findFirst as jest.Mock).mockResolvedValue(null);
 

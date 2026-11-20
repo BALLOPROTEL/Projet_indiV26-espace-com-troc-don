@@ -21,6 +21,7 @@ type TargetMap = {
   catalog: URL;
   marketplace: URL;
   notification: URL;
+  commerce: URL;
   legacy: URL;
 };
 

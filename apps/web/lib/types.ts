@@ -226,3 +226,33 @@ export type AdminProductCreateInput = {
     active?: boolean;
   }>;
 };
+
+
+export type CartUnavailableReason =
+  | 'PRODUCT_NOT_FOUND'
+  | 'PRODUCT_NOT_PUBLISHED'
+  | 'VARIANT_INACTIVE'
+  | 'INSUFFICIENT_STOCK';
+
+export type CartItem = {
+  productId: string;
+  variantId: string;
+  quantity: number;
+  productName: string | null;
+  productSlug: string | null;
+  variantLabel: string | null;
+  currency: 'EUR' | null;
+  unitPriceCents: number | null;
+  stock: number | null;
+  available: boolean;
+  unavailableReason: CartUnavailableReason | null;
+  lineTotalCents: number | null;
+  imageUrl: string | null;
+};
+
+export type Cart = {
+  items: CartItem[];
+  currency: 'EUR';
+  subtotalCents: number;
+  hasUnavailableItems: boolean;
+};

@@ -3,6 +3,7 @@ import type {
   AdminProduct,
   AdminProductCreateInput,
   AdminProductImage,
+  Cart,
   Listing,
   ListingImage,
   ListingInput,
@@ -107,6 +108,56 @@ export function apiAssetUrl(path: string): string {
 export function listingAssetUrl(path: string): string {
   return apiAssetUrl(path);
 }
+
+export const cartApi = {
+  mine: (token: string) =>
+    request<Cart>('/cart', {}, token),
+
+  add: (
+    token: string,
+    input: {
+      productId: string;
+      variantId: string;
+      quantity: number;
+    },
+  ) =>
+    request<Cart>(
+      '/cart/items',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+
+  updateQuantity: (
+    token: string,
+    variantId: string,
+    quantity: number,
+  ) =>
+    request<Cart>(
+      `/cart/items/${encodeURIComponent(variantId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ quantity }),
+      },
+      token,
+    ),
+
+  remove: (token: string, variantId: string) =>
+    request<Cart>(
+      `/cart/items/${encodeURIComponent(variantId)}`,
+      { method: 'DELETE' },
+      token,
+    ),
+
+  clear: (token: string) =>
+    request<Cart>(
+      '/cart',
+      { method: 'DELETE' },
+      token,
+    ),
+};
 
 export const productsApi = {
   public: (filters: { q?: string; category?: string } = {}) => {
