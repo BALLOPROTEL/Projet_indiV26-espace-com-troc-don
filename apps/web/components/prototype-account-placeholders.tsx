@@ -373,33 +373,54 @@ export function NotificationsPlaceholderPage() {
 }
 
 export function SettingsPlaceholderPage() {
-  const { username } = useAuth();
+  const { username, email, roles } = useAuth();
 
   return (
     <PendingAccountShell view="settings">
       <section className="pm-account-placeholder">
-        <RoadmapBadge>PERSISTANCE PROFIL À CONNECTER</RoadmapBadge>
+        <RoadmapBadge>IDENTITÉ KEYCLOAK CONNECTÉE</RoadmapBadge>
         <h2>Profil & préférences</h2>
         <p>
-          La maquette 20 est prête, mais aucune préférence locale ne sera
-          présentée comme enregistrée tant qu’un contrat backend n’existe pas.
+          Les informations d’identité ci-dessous proviennent directement de
+          votre session Keycloak. Les préférences applicatives restent
+          volontairement désactivées tant qu’un contrat de persistance dédié
+          n’existe pas.
         </p>
 
-        <div className="pm-settings-form" aria-label="Préférences non persistées">
+        <div className="pm-settings-form" aria-label="Profil Keycloak et préférences">
           <label>
             <span>Compte connecté</span>
-            <input value={username ?? ''} readOnly />
+            <input value={username ?? 'Compte Keycloak'} readOnly />
           </label>
           <label>
             <span>Adresse e-mail</span>
-            <input value="" placeholder="Donnée gérée par Keycloak" readOnly />
+            <input
+              value={email ?? ''}
+              placeholder="Non exposée par le jeton Keycloak"
+              readOnly
+            />
+          </label>
+          <label>
+            <span>Rôle applicatif</span>
+            <input
+              value={roles.length > 0 ? roles.join(', ') : 'Aucun rôle applicatif'}
+              readOnly
+            />
           </label>
           <label>
             <span>Ville</span>
-            <input value="" placeholder="Non renseignée" readOnly />
+            <input
+              value=""
+              placeholder="Aucune donnée de ville persistée"
+              readOnly
+            />
           </label>
 
-          <h3>Notifications</h3>
+          <h3>Préférences de notifications</h3>
+          <p className="pm-settings-hint">
+            Ces choix ne sont pas enregistrés aujourd’hui : ils restent
+            désactivés pour ne pas créer de faux état utilisateur.
+          </p>
           <label className="pm-settings-toggle">
             <input type="checkbox" disabled />
             <span>Recevoir les actualités et nouveautés</span>
@@ -410,7 +431,7 @@ export function SettingsPlaceholderPage() {
           </label>
 
           <button className="pm-button pm-button--navy" type="button" disabled>
-            Enregistrement non activé
+            Préférences non persistées
           </button>
         </div>
       </section>
