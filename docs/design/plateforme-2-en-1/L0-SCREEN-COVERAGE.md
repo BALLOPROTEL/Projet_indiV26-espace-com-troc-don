@@ -18,15 +18,15 @@ Règle de lecture :
 | 06 | Festival & actualités | `/festival` | Oui | Non, flux éditorial absent | Oui | Visuel fait |
 | 07 | Dons & trocs | `/echanges` | Oui | Oui | Oui | Fait |
 | 08 | Détail annonce | `/annonces/[id]` | Oui | Oui | Oui | Fait |
-| 09 | Publier une annonce | `/espace#publier` | Non | Oui | Oui | À extraire en page dédiée |
-| 10 | Messagerie | `/espace#mes-echanges` / parcours demandes | Non | Partiel via échanges/transactions | Oui partiel | À séparer |
+| 09 | Publier une annonce | `/publier` | Oui | Oui | Oui | Fait |
+| 10 | Messagerie | `/messages` | Oui | Partiel via échanges/transactions | Oui | Route dédiée, chat temps réel à compléter si requis |
 | 11 | Panier | — | Non | Non | Non | L5 |
 | 12 | Passer commande | — | Non | Non | Non | L5 |
 | 13 | Confirmation | — | Non | Non | Non | L5 |
 | 14 | Connexion / inscription | Keycloak OIDC | Oui, externe | Oui | Oui | Fait |
 | 15 | Tableau de bord | `/espace` | Oui | Oui | Oui | Fait |
 | 16 | Mes commandes | — | Non | Non | Non | L5 |
-| 17 | Mes annonces | `/espace#mes-articles` | Non | Oui | Oui | À extraire en page dédiée |
+| 17 | Mes annonces | `/mes-annonces` | Oui | Oui | Oui | Fait |
 | 18 | Favoris | — | Non | Non | Visuel seulement dans navigation | L3/L4 |
 | 19 | Notifications | — | Non | Notifications backend présentes, écran dédié absent | Partiel | À créer |
 | 20 | Paramètres | — | Non | Non vérifié / écran absent | Non | L3 |
@@ -53,9 +53,9 @@ Pour la suite, la même règle s’applique : un écran du prototype qui représ
 
 Les écrans suivants peuvent être séparés en vraies routes tout en réutilisant les fonctions existantes, sans inventer de métier :
 
-1. `/publier` — écran 09, en réutilisant le formulaire actuel ;
-2. `/mes-annonces` — écran 17, en réutilisant les annonces du membre ;
-3. `/messages` ou `/echanges/messages` — écran 10, seulement si les contrats actuels couvrent réellement l’expérience ;
-4. `/notifications` — écran 19, seulement après vérification de l’API de notification existante.
+1. `/notifications` — écran 19, après vérification de l’API de notification existante ;
+2. `/parametres` — écran 20, après vérification des préférences réellement persistées ;
+3. `/favoris` — écran 18, seulement après contrat backend réel ;
+4. `/mes-commandes` — écran 16, avec le backend e-commerce L4/L5.
 
 Aucune route e-commerce transactionnelle ne doit être ouverte avant les lots L4/L5 et leurs contrats backend.
