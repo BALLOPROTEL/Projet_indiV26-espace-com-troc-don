@@ -3,6 +3,7 @@ export type GatewayTarget =
   | 'catalog'
   | 'marketplace'
   | 'notification'
+  | 'commerce'
   | 'legacy';
 
 export type GatewayRoute = {
@@ -82,6 +83,16 @@ export function resolveGatewayRoute(
   ) {
     return {
       target: 'marketplace',
+      upstreamPath: `${stripApiPrefix(path)}${url.search}`,
+    };
+  }
+
+  if (
+    path === '/api/cart' ||
+    path.startsWith('/api/cart/')
+  ) {
+    return {
+      target: 'commerce',
       upstreamPath: `${stripApiPrefix(path)}${url.search}`,
     };
   }
