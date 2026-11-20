@@ -27,13 +27,13 @@ export function SiteFooter() {
           <h3>Communauté</h3>
           <Link href="/espace#publier">Publier une annonce</Link>
           <Link href="/festival">Festival</Link>
-          <span className="pm-footer__muted">Notre histoire · bientôt</span>
+          <Link href="/notre-histoire">Notre histoire</Link>
         </div>
 
         <div>
           <h3>Besoin d&apos;aide ?</h3>
-          <span className="pm-footer__muted">FAQ · bientôt</span>
-          <span className="pm-footer__muted">Nous contacter · bientôt</span>
+          <Link href="/faq">FAQ</Link>
+          <Link href="/contact">Nous contacter</Link>
           <span className="pm-footer__muted">Préférences · bientôt</span>
         </div>
       </div>
