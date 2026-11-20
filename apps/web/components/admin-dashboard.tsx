@@ -108,6 +108,11 @@ export function AdminDashboard() {
           </header>
 
           <nav className="admin-v2__quick-actions" aria-label="Actions principales d'administration">
+            <Link href="/admin/boutique">
+              <strong>Gérer la boutique</strong>
+              <span>Produits, prix, stocks, images et publication</span>
+              <span aria-hidden="true">↗</span>
+            </Link>
             <Link href="/moderation">
               <strong>Examiner les annonces</strong>
               <span>Accepter ou refuser les publications en attente</span>
