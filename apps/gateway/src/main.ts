@@ -75,6 +75,10 @@ async function bootstrap(): Promise<void> {
         process.env.NOTIFICATION_SERVICE_URL ??
           'http://127.0.0.1:3103',
       ),
+      commerce: new URL(
+        process.env.COMMERCE_SERVICE_URL ??
+          'http://127.0.0.1:3104',
+      ),
       legacy: new URL(
         process.env.LEGACY_API_URL ??
           'http://127.0.0.1:3099',
