@@ -1,31 +1,45 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-// Static contract test: the first UX navigation layer must point to real
-// in-page destinations; browser E2E still verifies the live experience.
 const home = readFileSync(new URL('../components/home-experience.tsx', import.meta.url), 'utf8');
 const space = readFileSync(new URL('../components/personal-space.tsx', import.meta.url), 'utf8');
 const detail = readFileSync(new URL('../components/listing-detail.tsx', import.meta.url), 'utf8');
 const header = readFileSync(new URL('../components/site-header.tsx', import.meta.url), 'utf8');
 const exchanges = readFileSync(new URL('../components/marketplace-dashboard.tsx', import.meta.url), 'utf8');
+const exchangePage = readFileSync(new URL('../components/exchange-space.tsx', import.meta.url), 'utf8');
+const showcase = readFileSync(new URL('../components/prototype-showcase-pages.tsx', import.meta.url), 'utf8');
 const admin = readFileSync(new URL('../components/admin-dashboard.tsx', import.meta.url), 'utf8');
 const moderation = readFileSync(new URL('../components/moderation-space.tsx', import.meta.url), 'utf8');
 const accountShell = readFileSync(new URL('../components/account-shell.tsx', import.meta.url), 'utf8');
 const designSystemCss = readFileSync(new URL('../app/design-system.css', import.meta.url), 'utf8');
 
-describe('UX V4 task-first entry points', () => {
-  it('offers the L1 2-in-1 entry points without inventing active commerce', () => {
-    expect(home).toContain('href="#boutique"');
-    expect(home).toContain('id="boutique"');
-    expect(home).toContain('href="#annonces"');
-    expect(home).toContain('id="annonces"');
-    expect(home).toContain('href="/espace#publier"');
-    expect(home).toContain('ne sont pas encore activés');
-    expect(home).not.toContain('data-product');
-    expect(home).not.toContain('data-add');
+describe('#149 dedicated-page navigation', () => {
+  it('uses five real top-level routes instead of homepage pseudo-pages', () => {
+    for (const href of ['/', '/boutique', '/echanges', '/fanzines', '/festival']) {
+      expect(header).toContain(`href: '${href}'`);
+    }
+
+    expect(home).toContain('href="/boutique"');
+    expect(home).toContain('href="/echanges"');
+    expect(home).toContain('href="/fanzines"');
+    expect(home).toContain('href="/festival"');
+    expect(home).not.toContain('href="#boutique"');
+    expect(home).not.toContain('id="boutique"');
+    expect(home).not.toContain('id="fanzines"');
+    expect(home).not.toContain('id="actualites"');
   });
 
-  it('keeps catalogue CTAs and edit dialogs clear of L1 fixed navigation', () => {
+  it('keeps future commercial and editorial pages honest', () => {
+    expect(showcase).toContain('BoutiqueShowcase');
+    expect(showcase).toContain('FanzinesShowcase');
+    expect(showcase).toContain('FestivalShowcase');
+    expect(showcase).toContain('Les produits, prix, stocks, favoris, panier et commandes');
+    expect(showcase).toContain('Aucun article fictif');
+    expect(showcase).not.toContain('39,90');
+    expect(showcase).not.toContain('29,00');
+  });
+
+  it('keeps catalogue CTAs and edit dialogs clear of fixed navigation', () => {
     expect(designSystemCss).toContain('padding-bottom: 72px');
     expect(designSystemCss).toContain('.dialog-backdrop');
     expect(designSystemCss).toContain('z-index: 80');
@@ -43,7 +57,7 @@ describe('UX V4 task-first entry points', () => {
     expect(space).toContain('<ListingForm');
   });
 
-  it('links the listing detail to its actual proposal form and back to catalogue', () => {
+  it('links the listing detail to its actual proposal form and exchange catalogue', () => {
     expect(detail).toContain('href="/echanges"');
     expect(detail).toContain('href="#faire-une-demande"');
     expect(detail).toContain('id="faire-une-demande"');
@@ -52,6 +66,7 @@ describe('UX V4 task-first entry points', () => {
     expect(detail).toContain('requestAnimationFrame');
     expect(detail).toContain("document.getElementById('faire-une-demande')");
     expect(detail).toContain('href="/espace#publier"');
+    expect(exchangePage).toContain('listingsApi.public()');
   });
 
   it('exposes concrete sections for received, sent and completed exchange steps', () => {
@@ -59,9 +74,9 @@ describe('UX V4 task-first entry points', () => {
       expect(exchanges).toContain(`href="#${section}"`);
       expect(exchanges).toContain(`id="${section}"`);
     }
-    expect(exchanges).toContain("marketplaceApi.received");
-    expect(exchanges).toContain("marketplaceApi.mine");
-    expect(exchanges).toContain("marketplaceApi.transactions");
+    expect(exchanges).toContain('marketplaceApi.received');
+    expect(exchanges).toContain('marketplaceApi.mine');
+    expect(exchanges).toContain('marketplaceApi.transactions');
   });
 
   it('keeps administrators and moderators on real existing destinations', () => {
@@ -72,7 +87,7 @@ describe('UX V4 task-first entry points', () => {
     expect(moderation).toContain("hasAnyRole('MODERATOR', 'ADMIN')");
   });
 
-  it('does not offer invented functional pages or bypass role-based menus', () => {
+  it('does not invent unsupported functional pages or bypass role-based menus', () => {
     expect(header).not.toContain('href="/messages"');
     expect(header).not.toContain('href="/favoris"');
     expect(header).toContain("roles.includes('ADMIN')");
