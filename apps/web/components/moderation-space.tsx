@@ -415,6 +415,8 @@ function ModerationGallery({
           <img
             src={url}
             alt={`${listing.title} — photo ${index + 1}`}
+            loading="lazy"
+            decoding="async"
           />
           <figcaption>
             {(index + 1).toString().padStart(2, '0')}

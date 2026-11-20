@@ -143,13 +143,110 @@ async function capture(route, width, height, filename, expected, selector) {
   assert.ok(ready,
     `Hydrated UI not ready on ${route}, expected ${JSON.stringify(expected)}; DOM starts with: ${last}`);
 
+  // Hydration can finish before the browser's navigation lifecycle. Never
+  // archive a zero loadEventEnd as if it were a valid performance measure.
+  await waitUntil('completed navigation timing on ' + route, `(() => {
+    const nav = performance.getEntriesByType('navigation')[0];
+    return document.readyState === 'complete' &&
+      Number.isFinite(nav?.domContentLoadedEventEnd) &&
+      nav.domContentLoadedEventEnd > 0 &&
+      Number.isFinite(nav?.loadEventEnd) &&
+      nav.loadEventEnd > 0;
+  })()`, 45);
+
+  // ResourceTiming is sampled only after it has been stable across three
+  // bounded observations. This keeps late image/font requests from making
+  // the artifact depend on the exact capture instant.
+  let stableResourceSamples = 0;
+  let previousResourceSignature = null;
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const snapshot = await evaluate(`(() => {
+      const resources = performance.getEntriesByType('resource');
+      return {
+        count: resources.length,
+        transferBytes: Math.round(resources.reduce(
+          (sum, entry) => sum + (entry.transferSize || 0), 0)),
+        decodedBodyBytes: Math.round(resources.reduce(
+          (sum, entry) => sum + (entry.decodedBodySize || 0), 0)),
+        lastResponseEndMs: Math.round(resources.reduce(
+          (latest, entry) => Math.max(latest, entry.responseEnd || 0), 0)),
+      };
+    })()`);
+    const signature = JSON.stringify(snapshot);
+    if (signature === previousResourceSignature) stableResourceSamples++;
+    else stableResourceSamples = 0;
+    previousResourceSignature = signature;
+    if (stableResourceSamples >= 2) break;
+    await sleep(250);
+  }
+  assert.ok(stableResourceSamples >= 2,
+    'Resource timing did not settle before capture on ' + route);
+
   const image = await command('Page.captureScreenshot', {
     format: 'png', captureBeyondViewport: true,
   });
   const file = join(output, filename + '.png');
   writeFileSync(file, Buffer.from(image.data, 'base64'));
   assert.ok(statSync(file).size > 8000, 'Screenshot too small: ' + file);
+
+  const performanceMetrics = await evaluate(`(() => {
+    const nav = performance.getEntriesByType('navigation')[0];
+    const resources = performance.getEntriesByType('resource');
+    const images = resources.filter(entry => entry.initiatorType === 'img');
+    const paints = Object.fromEntries(
+      performance.getEntriesByType('paint').map(entry => [
+        entry.name,
+        Math.round(entry.startTime),
+      ]),
+    );
+    const round = value =>
+      Number.isFinite(value) ? Math.round(value) : null;
+
+    return {
+      url: location.href,
+      domContentLoadedMs: round(nav?.domContentLoadedEventEnd),
+      loadEventMs: round(nav?.loadEventEnd),
+      responseEndMs: round(nav?.responseEnd),
+      resourceCount: resources.length,
+      imageResourceCount: images.length,
+      transferBytes: Math.round(
+        resources.reduce((sum, entry) => sum + (entry.transferSize || 0), 0),
+      ),
+      decodedBodyBytes: Math.round(
+        resources.reduce((sum, entry) => sum + (entry.decodedBodySize || 0), 0),
+      ),
+      paints,
+    };
+  })()`);
+
+  assert.ok(
+    Number.isFinite(performanceMetrics?.domContentLoadedMs) &&
+      performanceMetrics.domContentLoadedMs > 0 &&
+      Number.isFinite(performanceMetrics?.loadEventMs) &&
+      performanceMetrics.loadEventMs > 0 &&
+      Number.isFinite(performanceMetrics?.responseEndMs) &&
+      performanceMetrics.responseEndMs >= 0,
+    'Completed navigation timing missing for ' + filename,
+  );
+
+  const performanceFile = join(
+    output,
+    filename + '-performance.json',
+  );
+  writeFileSync(
+    performanceFile,
+    JSON.stringify(performanceMetrics, null, 2) + '\n',
+  );
+
   console.log('[M9 Browser] ' + filename + ': PASS (' + file + ')');
+  console.log(
+    '[M9 Performance] ' + filename +
+      ': DOMContentLoaded=' + performanceMetrics.domContentLoadedMs + 'ms' +
+      ', load=' + performanceMetrics.loadEventMs + 'ms' +
+      ', resources=' + performanceMetrics.resourceCount +
+      ', images=' + performanceMetrics.imageResourceCount +
+      ', transfer=' + performanceMetrics.transferBytes + ' bytes',
+  );
 }
 
 async function evaluate(expression) {

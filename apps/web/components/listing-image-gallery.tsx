@@ -52,6 +52,8 @@ export function ListingImageGallery({
           src={listingAssetUrl(current.contentUrl)}
           alt={`${listingTitle} — photo ${selected + 1} sur ${count}`}
           loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
         <figcaption aria-live="polite">
           Photo {selected + 1} / {count}
@@ -90,6 +92,7 @@ export function ListingImageGallery({
                 src={listingAssetUrl(image.contentUrl)}
                 alt=""
                 loading="lazy"
+                decoding="async"
               />
             </button>
           ))}

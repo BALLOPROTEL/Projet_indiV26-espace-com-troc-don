@@ -113,10 +113,10 @@ export function ListingProposalForm({ listing }: { listing: Listing }) {
         {selected ? (
           <div className="marketplace-compare">
             <div><strong>Objet demandé</strong><p>{listing.title}</p>
-              {listing.images[0] ? <img src={listingAssetUrl(listing.images[0].contentUrl)} alt={listing.title} /> : null}
+              {listing.images[0] ? <img src={listingAssetUrl(listing.images[0].contentUrl)} alt={listing.title} loading="lazy" decoding="async" /> : null}
             </div>
             <div><strong>Votre contrepartie</strong><p>{selected.title}</p>
-              {selected.images[0] ? <img src={listingAssetUrl(selected.images[0].contentUrl)} alt={selected.title} /> : null}
+              {selected.images[0] ? <img src={listingAssetUrl(selected.images[0].contentUrl)} alt={selected.title} loading="lazy" decoding="async" /> : null}
             </div>
           </div>
         ) : null}
