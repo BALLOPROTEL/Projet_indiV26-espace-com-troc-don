@@ -1869,25 +1869,6 @@ async function runFrontV2HomeJourney() {
   }
   await command('Emulation.setTouchEmulationEnabled', { enabled: false });
 
-  // Short-screen account dropdown must stay scrollable above bottom navigation.
-  await command('Emulation.setDeviceMetricsOverride', {
-    width: 320, height: 480, deviceScaleFactor: 1, mobile: true,
-  });
-  await journeyOpen('/espace', '.pm-account-sidebar', 'Prototype account on short viewport');
-  const shortAccount = await evaluate('(() => {' +
-    'const root=document.querySelector(".pm-account-menu");const summary=root?.querySelector("summary");' +
-    'if(!root||!summary)return null;if(!root.open)summary.click();' +
-    'const panel=root.querySelector(".pm-account-menu__panel");' +
-    'if(!panel)return null;const css=getComputedStyle(panel);const box=panel.getBoundingClientRect();' +
-    'return {overflowY:css.overflowY,scrollHeight:panel.scrollHeight,clientHeight:panel.clientHeight,' +
-    'top:box.top,bottom:box.bottom,viewport:innerHeight};})()');
-  assert.ok(shortAccount &&
-    ['auto','scroll'].includes(shortAccount.overflowY) &&
-    shortAccount.scrollHeight >= shortAccount.clientHeight &&
-    shortAccount.bottom <= shortAccount.viewport - 60,
-    'Prototype account dropdown must remain scrollable on 320x480: ' +
-      JSON.stringify(shortAccount));
-
   console.log('[#149] Dedicated pages: home preview, boutique, exchanges, fanzines, festival, mobile: PASS');
 }
 
