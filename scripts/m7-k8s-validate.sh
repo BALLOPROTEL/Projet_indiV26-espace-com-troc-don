@@ -57,26 +57,30 @@ require_rendered() {
   fi
 }
 
-for name in gateway legacy-api catalog-service marketplace-service notification-service web rabbitmq keycloak postgres minio; do
+for name in gateway legacy-api catalog-service marketplace-service notification-service commerce-service web rabbitmq keycloak postgres minio; do
   require_rendered "name: ${name}$" "resource ${name}"
 done
 
-for image in   projet-indiv26-gateway:m7-local   projet-indiv26-legacy-api:m7-local   projet-indiv26-catalog-service:m7-local   projet-indiv26-marketplace-service:m7-local   projet-indiv26-notification-service:m8-local   projet-indiv26-web:m7-local; do
+for image in   projet-indiv26-gateway:m7-local   projet-indiv26-legacy-api:m7-local   projet-indiv26-catalog-service:m7-local   projet-indiv26-marketplace-service:m7-local   projet-indiv26-notification-service:m8-local   projet-indiv26-commerce-service:l5a-local   projet-indiv26-web:m7-local; do
   require_rendered "image: ${image}" "image ${image}"
 done
 
-for job in legacy-migrate catalog-migrate marketplace-migrate notification-migrate minio-bootstrap; do
+for job in legacy-migrate catalog-migrate marketplace-migrate notification-migrate commerce-migrate minio-bootstrap; do
   require_rendered "name: ${job}$" "job ${job}"
 done
 
 require_rendered 'image: projet-indiv26-notification-migrate:m8-local' 'notification Prisma migration image'
 require_rendered 'name: notification-migrate' 'Notification migration job'
+require_rendered 'image: projet-indiv26-commerce-migrate:l5a-local' 'commerce Prisma migration image'
+require_rendered 'name: commerce-migrate' 'Commerce migration job'
 require_rendered 'replicas: 2' 'two Notification replicas'
 grep -Fq 'replicas: 2' "${K8S_DIR}/notification-deployment.yaml"
 grep -Fq 'NOTIFICATION_DATABASE_URL' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
 require_rendered 'CATALOG_SERVICE_URL: http://catalog-service:3101' 'Gateway -> Catalog DNS'
 require_rendered 'MARKETPLACE_SERVICE_URL: http://marketplace-service:3102' 'Gateway -> Marketplace DNS'
 require_rendered 'NOTIFICATION_SERVICE_URL: http://notification-service:3103' 'Gateway -> Notification DNS'
+require_rendered 'COMMERCE_SERVICE_URL: http://commerce-service:3104' 'Gateway -> Commerce DNS'
+require_rendered 'CATALOG_INTERNAL_URL: http://catalog-service:3101' 'Commerce -> Catalog DNS'
 require_rendered 'LEGACY_API_URL: http://legacy-api:3099' 'Gateway -> legacy DNS'
 require_rendered 'CATALOG_INTERNAL_URL: http://catalog-service:3101' 'Marketplace -> Catalog DNS'
 require_rendered 'KEYCLOAK_JWKS_URL: http://keycloak:8080/' 'internal Keycloak JWKS'
@@ -200,11 +204,11 @@ command -v curl >/dev/null 2>&1 || {
   exit 1
 }
 
-for deployment in   postgres rabbitmq minio keycloak   legacy-api catalog-service marketplace-service notification-service   gateway web prometheus grafana; do
+for deployment in   postgres rabbitmq minio keycloak   legacy-api catalog-service marketplace-service notification-service commerce-service   gateway web prometheus grafana; do
   kubectl -n "${NAMESPACE}" rollout status "deployment/${deployment}" --timeout=240s
 done
 
-for job in minio-bootstrap legacy-migrate catalog-migrate marketplace-migrate notification-migrate; do
+for job in minio-bootstrap legacy-migrate catalog-migrate marketplace-migrate notification-migrate commerce-migrate; do
   kubectl -n "${NAMESPACE}" wait --for=condition=complete "job/${job}" --timeout=180s
 done
 
@@ -233,6 +237,7 @@ const targets = [
   ['catalog', 'http://catalog-service:3101/health/ready'],
   ['marketplace', 'http://marketplace-service:3102/health/ready'],
   ['notification', 'http://notification-service:3103/health/ready'],
+  ['commerce', 'http://commerce-service:3104/health/ready'],
 ];
 (async () => {
   for (const [name, url] of targets) {
@@ -251,7 +256,7 @@ const targets = [
   }
 })().catch((error) => { console.error(error); process.exit(1); });
 "
-echo "[OK] Gateway -> Legacy/Catalog/Marketplace/Notification Kubernetes DNS."
+echo "[OK] Gateway -> Legacy/Catalog/Marketplace/Notification/Commerce Kubernetes DNS."
 
 kubectl -n "${NAMESPACE}" exec deployment/marketplace-service -- node -e "
 (async () => {
@@ -269,6 +274,23 @@ kubectl -n "${NAMESPACE}" exec deployment/marketplace-service -- node -e "
 })().catch((error) => { console.error(error); process.exit(1); });
 "
 echo "[OK] Marketplace -> Catalog Kubernetes DNS."
+
+kubectl -n "${NAMESPACE}" exec deployment/commerce-service -- node -e "
+(async () => {
+  let last;
+  for (let attempt = 1; attempt <= 25; attempt++) {
+    try {
+      const response = await fetch('http://catalog-service:3101/health/ready',
+        { signal: AbortSignal.timeout(3000) });
+      if (response.ok) return;
+      last = new Error('Catalog HTTP ' + response.status);
+    } catch (error) { last = error; }
+    if (attempt < 25) await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  throw last;
+})().catch((error) => { console.error(error); process.exit(1); });
+"
+echo "[OK] Commerce -> Catalog Kubernetes DNS."
 
 MIN_REPLICAS="$(kubectl -n "${NAMESPACE}" get hpa gateway -o jsonpath='{.spec.minReplicas}')"
 MAX_REPLICAS="$(kubectl -n "${NAMESPACE}" get hpa gateway -o jsonpath='{.spec.maxReplicas}')"
