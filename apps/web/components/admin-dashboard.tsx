@@ -6,6 +6,7 @@ import { adminApi } from '../lib/api';
 import { adminCatalogBars, canAccessAdmin, formatAdminCount } from '../lib/admin-dashboard';
 import type { AdminCatalogSummary } from '../lib/types';
 import { useAuth } from './auth-provider';
+import { AccountShell } from './account-shell';
 
 type SummaryState =
   | { status: 'loading' }
@@ -25,7 +26,7 @@ function Metric({
 }
 
 export function AdminDashboard() {
-  const { ready, authenticated, roles, username, getToken, login } = useAuth();
+  const { ready, authenticated, roles, username, getToken, login, logout } = useAuth();
   const authorized = canAccessAdmin(authenticated, roles);
   const [result, setResult] = useState<SummaryState>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
@@ -87,7 +88,14 @@ export function AdminDashboard() {
   const breakdown = summary ? adminCatalogBars(summary) : [];
 
   return (
-    <section className="admin-v2" aria-labelledby="admin-v2-title">
+    <AccountShell
+      username={username}
+      active="admin"
+      canModerate
+      isAdmin
+      onLogout={() => void logout()}
+    >
+      <section className="admin-v2" aria-labelledby="admin-v2-title">
       <div className="admin-v2__layout">
         <div className="admin-v2__body">
           <header className="admin-v2__hero">
@@ -105,12 +113,12 @@ export function AdminDashboard() {
               <span>Accepter ou refuser les publications en attente</span>
               <span aria-hidden="true">↗</span>
             </Link>
-            <Link href="/#annonces">
+            <Link href="/echanges">
               <strong>Voir le catalogue public</strong>
               <span>Contrôler les annonces visibles aux visiteurs</span>
               <span aria-hidden="true">↗</span>
             </Link>
-            <Link href="/espace#mes-echanges">
+            <Link href="/messages">
               <strong>Mes échanges personnels</strong>
               <span>Suivre mes propres dons et trocs</span>
               <span aria-hidden="true">↗</span>
@@ -220,6 +228,7 @@ export function AdminDashboard() {
           </p>
         </div>
       </div>
-    </section>
+      </section>
+    </AccountShell>
   );
 }

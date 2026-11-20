@@ -1,0 +1,62 @@
+# #149 — Matrice de couverture des 24 écrans
+
+Référence : `docs/design/plateforme-2-en-1/BRIEF-CODEX.md` et `prototype.html`.
+
+Règle de lecture :
+- **Route dédiée** = vraie page App Router ou écran OIDC externe clairement séparé.
+- **Métier réel** = données/actions branchées sur les API existantes.
+- **Visuel migré** = langage graphique du prototype, sans retour au design legacy.
+- **À faire** = écran encore absent ou seulement présent comme section interne.
+
+| # | Écran prototype | Route / écran actuel | Route dédiée | Métier réel | Visuel migré | Statut |
+|---|---|---|---|---|---|---|
+| 01 | Accueil | `/` | Oui | Oui, aperçu Catalog | Oui | Fait |
+| 02 | Boutique | `/boutique` | Oui | Non, backend e-commerce absent | Oui | Visuel fait |
+| 03 | Fiche produit | `/boutique/produit` | Oui | Non, backend produits absent | Oui | Visuel fait, actions désactivées |
+| 04 | Fanzines | `/fanzines` | Oui | Non, contenu réel absent | Oui | Visuel fait |
+| 05 | Lecteur fanzine | `/fanzines/lecteur` | Oui | Non, contenu éditorial absent | Oui | Visuel fait |
+| 06 | Festival & actualités | `/festival` | Oui | Non, flux éditorial absent | Oui | Visuel fait |
+| 07 | Dons & trocs | `/echanges` | Oui | Oui | Oui | Fait |
+| 08 | Détail annonce | `/annonces/[id]` | Oui | Oui | Oui | Fait |
+| 09 | Publier une annonce | `/publier` | Oui | Oui | Oui | Fait |
+| 10 | Messagerie | `/messages` | Oui | Partiel via échanges/transactions | Oui | Route dédiée, chat temps réel à compléter si requis |
+| 11 | Panier | `/panier` | Oui | Non, backend panier absent | Oui | Visuel fait |
+| 12 | Passer commande | `/commande` | Oui | Non, checkout absent | Oui | Visuel fait, formulaire désactivé |
+| 13 | Confirmation | `/commande/confirmation` | Oui | Non, commande réelle absente | Oui | Visuel fait |
+| 14 | Connexion / inscription | Keycloak OIDC | Oui, externe | Oui | Oui | Fait |
+| 15 | Tableau de bord | `/espace` | Oui | Oui | Oui | Fait |
+| 16 | Mes commandes | `/mes-commandes` | Oui | Non, backend commandes absent | Oui | Visuel fait, aucun faux historique |
+| 17 | Mes annonces | `/mes-annonces` | Oui | Oui | Oui | Fait |
+| 18 | Favoris | `/favoris` | Oui | Non, persistance absente | Oui | Visuel fait, aucun faux favori |
+| 19 | Notifications | `/notifications` | Oui | Service technique global présent, inbox utilisateur absente | Oui | Visuel fait, données techniques non exposées |
+| 20 | Paramètres | `/parametres` | Oui | Persistance profil/préférences absente | Oui | Visuel fait, enregistrement désactivé |
+| 21 | Modération | `/moderation` | Oui | Oui | Oui | Fait |
+| 22 | Aide / FAQ | `/faq` | Oui | Contenu statique | Oui | Fait |
+| 23 | Notre histoire | `/notre-histoire` | Oui | Contenu statique | Oui | Fait |
+| 24 | Contact | `/contact` | Oui | Envoi désactivé, backend absent | Oui | Visuel fait, transmission non active |
+
+## Décision d’architecture
+
+Les cinq destinations publiques principales sont désormais de vraies pages :
+
+- `/`
+- `/boutique`
+- `/echanges`
+- `/fanzines`
+- `/festival`
+
+L’Accueil ne doit plus héberger les écrans complets de ces univers.
+
+Pour la suite, la même règle s’applique : un écran du prototype qui représente une page autonome doit devenir une vraie route dédiée quand son lot est traité. Une section `#hash` peut rester comme compatibilité temporaire, mais ne doit pas être considérée comme la page finale.
+
+## État après séparation 24/24
+
+Les 24 écrans du prototype possèdent maintenant une destination dédiée ou, pour l’authentification, l’écran Keycloak externe.
+
+Pour les écrans dont le backend métier n’existe pas encore, la route est ouverte uniquement comme **surface visuelle non transactionnelle** :
+- aucun faux prix, faux stock, faux favori, faux historique de commande ou fausse notification ;
+- les actions sensibles restent désactivées ;
+- aucun paiement, aucune commande et aucune préférence ne sont persistés ;
+- l’activation fonctionnelle reste réservée aux lots backend correspondants.
+
+La prochaine phase n’est donc plus la création de pages, mais le branchement progressif des contrats métier manquants.

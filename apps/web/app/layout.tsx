@@ -1,14 +1,23 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { AuthProvider } from '../components/auth-provider';
 import { SiteFooter } from '../components/site-footer';
 import { SiteHeader } from '../components/site-header';
 import { getSiteUrl } from '../lib/site-url';
 import './globals.css';
+import './design-system.css';
+import './prototype-operational.css';
 
 const siteName = 'La Petite Maison de l’Épouvante';
 const description =
-  'Plateforme communautaire de don et de troc pour faire circuler les objets et leur donner une seconde vie.';
+  'Communauté de don et de troc pour passionnés d’horreur et de fantastique, en évolution vers une plateforme boutique + communauté.';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#0d2338',
+};
 
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
@@ -29,7 +38,7 @@ export const metadata: Metadata = {
         url: '/opengraph-image',
         width: 1200,
         height: 630,
-        alt: 'La Petite Maison de l’Épouvante — don et troc communautaires',
+        alt: 'La Petite Maison de l’Épouvante — boutique et communauté',
       },
     ],
   },

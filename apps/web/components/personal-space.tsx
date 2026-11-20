@@ -29,14 +29,20 @@ import type {
 } from '../lib/types';
 import { useAuth } from './auth-provider';
 import { EmptyState } from './empty-state';
+import { AccountShell } from './account-shell';
 import { MarketplaceDashboard } from './marketplace-dashboard';
 
-export function PersonalSpace() {
+type PersonalSpaceView = 'all' | 'publish' | 'listings' | 'exchanges';
+
+export function PersonalSpace({ view = 'all' }: { view?: PersonalSpaceView }) {
   const {
     ready,
     authenticated,
     username,
+    roles,
+    hasAnyRole,
     login,
+    logout,
     getToken,
   } = useAuth();
 
@@ -357,35 +363,80 @@ export function PersonalSpace() {
     );
   }
 
+  const viewCopy = {
+    all: {
+      eyebrow: 'Mon espace',
+      title: `Bonjour, ${username ?? 'bienvenue'}.`,
+      text: 'Un seul tableau de bord pour retrouver vos activités.',
+    },
+    publish: {
+      eyebrow: 'Publication',
+      title: 'Déposer un objet',
+      text: 'Créez une annonce de don ou de troc, puis envoyez-la en modération.',
+    },
+    listings: {
+      eyebrow: 'Mes annonces',
+      title: 'Suivre mes publications',
+      text: 'Retrouvez le statut de chaque annonce et corrigez celles qui le nécessitent.',
+    },
+    exchanges: {
+      eyebrow: 'Messages & échanges',
+      title: 'Suivre mes échanges',
+      text: 'Retrouvez vos demandes reçues, envoyées et les remises terminées.',
+    },
+  }[view];
+
   return (
-    <div className="workspace workspace-v3">
+    <AccountShell
+      username={username}
+      active={view === 'listings' ? 'listings' : view === 'exchanges' ? 'exchanges' : view === 'publish' ? 'publish' : 'overview'}
+      canModerate={hasAnyRole('MODERATOR', 'ADMIN')}
+      isAdmin={roles.includes('ADMIN')}
+      onLogout={() => void logout()}
+      heading={
+        view === 'publish'
+          ? 'Publier une annonce'
+          : view === 'listings'
+            ? 'Mes annonces'
+            : view === 'exchanges'
+              ? 'Messages & échanges'
+              : 'Mon espace'
+      }
+      description={viewCopy.text}
+    >
+      <div className={'workspace workspace-v3 workspace-v3--' + view}>
       <section className="workspace-intro">
         <div>
-          <span className="eyebrow">Mon espace</span>
-          <h1>Bonjour, {username ?? 'bienvenue'}.</h1>
+          <span className="eyebrow">{viewCopy.eyebrow}</span>
+          <h1>{viewCopy.title}</h1>
         </div>
-        <p>Un seul endroit pour publier vos objets, retrouver vos annonces et suivre vos échanges.</p>
+        <p>{viewCopy.text}</p>
       </section>
 
-      <nav className="workspace-v3__quick-nav" aria-label="Aller directement à une activité">
-        <Link className="workspace-v3__quick-link" href="#publier">
-          <span className="workspace-v3__quick-number" aria-hidden="true">01</span>
-          <span><strong>Déposer un objet</strong><small>Don ou troc, en quelques étapes</small></span>
-          <span aria-hidden="true">↗</span>
-        </Link>
-        <Link className="workspace-v3__quick-link" href="#mes-articles">
-          <span className="workspace-v3__quick-number" aria-hidden="true">02</span>
-          <span><strong>Mes annonces</strong><small>Retrouver les statuts et corrections</small></span>
-          <span aria-hidden="true">↗</span>
-        </Link>
-        <Link className="workspace-v3__quick-link" href="#mes-echanges">
-          <span className="workspace-v3__quick-number" aria-hidden="true">03</span>
-          <span><strong>Mes échanges</strong><small>Demandes reçues, envoyées et suivi</small></span>
-          <span aria-hidden="true">↗</span>
-        </Link>
-      </nav>
+      {view === 'all' ? (
+      <div className="pm-account-metrics" aria-label="Résumé de mes annonces">
+        <article>
+          <strong>{listings.length.toString().padStart(2, '0')}</strong>
+          <span>Mes annonces</span>
+        </article>
+        <article>
+          <strong>{listings.filter((item) => item.status === 'APPROVED').length.toString().padStart(2, '0')}</strong>
+          <span>Publiées</span>
+        </article>
+        <article>
+          <strong>{listings.filter((item) => item.status === 'PENDING').length.toString().padStart(2, '0')}</strong>
+          <span>En relecture</span>
+        </article>
+        <article>
+          <strong>{listings.filter((item) => item.status === 'REJECTED').length.toString().padStart(2, '0')}</strong>
+          <span>À corriger</span>
+        </article>
+      </div>
+      ) : null}
 
+      {(view === 'all' || view === 'publish' || view === 'listings') ? (
       <div className="workspace-grid">
+        {(view === 'all' || view === 'publish') ? (
         <section className="form-panel" id="publier" aria-labelledby="workspace-publish-title">
           <span className="form-panel__index">PUBLIER</span>
           <div className="form-panel__heading">
@@ -416,7 +467,9 @@ export function PersonalSpace() {
             onSubmit={createListing}
           />
         </section>
+        ) : null}
 
+        {(view === 'all' || view === 'listings') ? (
         <section className="shelf-panel" id="mes-articles" aria-labelledby="workspace-listings-title">
           <div className="section-heading section-heading--compact">
             <div>
@@ -486,11 +539,15 @@ export function PersonalSpace() {
             })}
           </div>
         </section>
+        ) : null}
       </div>
+      ) : null}
 
+      {(view === 'all' || view === 'exchanges') ? (
       <section className="workspace-v3__exchanges" id="mes-echanges" aria-label="Mes échanges">
         <MarketplaceDashboard />
       </section>
+      ) : null}
 
       {editing ? (
         <div className="dialog-backdrop">
@@ -538,7 +595,8 @@ export function PersonalSpace() {
           </section>
         </div>
       ) : null}
-    </div>
+      </div>
+    </AccountShell>
   );
 }
 

@@ -325,8 +325,10 @@ async function loginAsDemoOwner() {
 
 async function loginAsDemoRequester() {
   const logoutClicked = await evaluate(`(() => {
-    const button = [...document.querySelectorAll('header button')]
-      .find(element => element.textContent?.trim() === 'Sortir');
+    const root = document.querySelector('.pm-account-menu');
+    if (!root) return false;
+    if (!root.open) root.querySelector('summary')?.click();
+    const button = root.querySelector('[data-account-action="logout"]');
     if (!button) return false;
     button.click();
     return true;
@@ -335,7 +337,7 @@ async function loginAsDemoRequester() {
 
   await waitUntil('Keycloak logout returns to the public app', `(
     location.origin === ${JSON.stringify(new URL(base).origin)} &&
-    !document.body.innerText.includes('Demo Moderator')
+    !document.querySelector('.pm-account-menu')
   )`, 100);
 
   await command('Page.navigate', { url: new URL('/espace', base).href });
@@ -675,13 +677,14 @@ async function assertKeycloakPasswordLayout(viewport) {
 }
 
 async function journeySwitchUser(username) {
-  const logout = '(() => {const button=[...document.querySelectorAll("header button")]' +
-    '.find(el=>el.textContent?.trim()==="Sortir");if(!button)return false;' +
-    'button.click();return true;})()';
+  const logout = '(() => {const root=document.querySelector(".pm-account-menu");' +
+    'if(!root)return false;if(!root.open)root.querySelector("summary")?.click();' +
+    'const button=root.querySelector("[data-account-action=logout]");' +
+    'if(!button)return false;button.click();return true;})()';
   assert.equal(await evaluate(logout), true, 'Missing real browser logout');
   await waitUntil('Keycloak logout and app return',
     'location.origin===' + JSON.stringify(new URL(base).origin) +
-    '&& ![...document.querySelectorAll("header button")].some(el=>el.textContent?.trim()==="Sortir")', 120);
+    '&& !document.querySelector(".pm-account-menu")', 120);
   await journeyOpen('/espace', '.gate-card button', 'member sign-in after logout');
   assert.equal(await evaluate('(() => {const b=document.querySelector(".gate-card button");if(!b)return false;b.click();return true;})()'),
     true, 'Missing sign-in button');
@@ -811,34 +814,35 @@ async function runRealBrowserJourneys() {
   // UX V4: exercise the actual header account dropdown with a Keycloak
   // USER session, not only the static shortcuts within PersonalSpace.
   await journeyOpen('/espace', '.marketplace-dashboard', 'UX V4 USER account dropdown');
-  for (const targetId of ['publier', 'mes-articles', 'mes-echanges']) {
+  const memberDestinations = [
+    ['/publier', '.workspace-v3--publish .form-panel'],
+    ['/mes-annonces', '.workspace-v3--listings .shelf-panel'],
+    ['/messages', '.workspace-v3--exchanges .marketplace-dashboard'],
+  ];
+  for (const [href, selector] of memberDestinations) {
     const menu = await evaluate('(() => {' +
-      'const root=document.querySelector(".session__menu");' +
+      'const root=document.querySelector(".pm-account-menu");' +
       'const summary=root?.querySelector("summary");' +
-      'if(!summary)return null;summary.click();return {' +
-      'open:root.open, links:[...root.querySelectorAll(".session__dropdown a")]' +
+      'if(!summary)return null;if(!root.open)summary.click();return {' +
+      'open:root.open, links:[...root.querySelectorAll(".pm-account-menu__panel a")]' +
       '.map(a=>a.getAttribute("href"))};})()');
-    assert.deepEqual(menu, {
-      open: true,
-      links: ['/espace#publier', '/espace#mes-articles', '/espace#mes-echanges'],
-    }, 'UX V4 USER dropdown must open with exactly three authorized destinations');
-    // Serialize the href as a JS string literal rather than nesting quoted
-    // CSS attribute selectors; otherwise Chrome throws a SyntaxError.
-    const expectedHref = '/espace#' + targetId;
+    assert.equal(menu?.open, true, 'Prototype USER account menu must open');
+    for (const required of ['/espace', '/publier', '/mes-annonces', '/messages']) {
+      assert.ok(menu?.links.includes(required),
+        'Prototype USER account menu must include ' + required);
+    }
     const clicked = await evaluate('(() => {' +
-      'const href=' + JSON.stringify(expectedHref) + ';' +
-      'const link=[...document.querySelectorAll(".session__dropdown a")]' +
+      'const href=' + JSON.stringify(href) + ';' +
+      'const link=[...document.querySelectorAll(".pm-account-menu__panel a")]' +
       '.find(a=>a.getAttribute("href")===href);' +
       'if(!link)return false;link.click();return true;})()');
-    assert.equal(clicked, true, 'UX V4 USER must click account dropdown target ' + targetId);
-    await waitUntil('UX V4 USER account menu navigates to ' + targetId,
-      '(() => {const el=document.getElementById(' + JSON.stringify(targetId) + ');' +
-      'if(location.hash!=="#"+' + JSON.stringify(targetId) + '||!el)return false;' +
-      'const rect=el.getBoundingClientRect();return !document.querySelector(".session__menu")?.open' +
-      '&& rect.top>=56 && rect.top<Math.min(innerHeight*.8,600)' +
-      '&& rect.bottom>56;})()', 120);
+    assert.equal(clicked, true, 'Prototype USER must click account destination ' + href);
+    await waitUntil('Prototype USER account menu navigates to ' + href,
+      'location.pathname===' + JSON.stringify(href) +
+      '&&!document.querySelector(".pm-account-menu")?.open' +
+      '&&!!document.querySelector(' + JSON.stringify(selector) + ')', 120);
   }
-  console.log('[UX V4] USER account dropdown: all three real destinations and viewport focus PASS');
+  console.log('[#149] USER account dropdown: dedicated member destinations PASS');
 
   // Unlike a same-document hash transition, a new document forces the
   // asynchronous Keycloak bootstrap and PersonalSpace mount. Otherwise the
@@ -849,19 +853,17 @@ async function runRealBrowserJourneys() {
 
   // UX V4: member navigation anchors must survive the delayed Keycloak
   // bootstrap and preserve the real sent/received/hand-over dashboard.
-  await journeyOpen('/espace#mes-echanges', '.marketplace-dashboard',
-    'UX V4 member exchange section after login');
-  const memberTargets = await evaluate('[...document.querySelectorAll(".workspace-v3__quick-nav a")]' +
-    '.map(a=>a.getAttribute("href"))');
-  assert.deepEqual(memberTargets, ['#publier', '#mes-articles', '#mes-echanges'],
-    'UX V4 member quick links must target the three real activity sections');
-  await waitUntil('UX V4 member deep link restored after Keycloak bootstrap',
-    '(() => {const target=document.getElementById("mes-echanges");' +
-    'return location.hash==="#mes-echanges" && window.scrollY>0 && !!target' +
-    '&& target.getBoundingClientRect().top>=56' +
-    '&& target.getBoundingClientRect().top<Math.min(innerHeight*.8,600)' +
-    '&& target.getBoundingClientRect().bottom>56;})()', 120);
-  await journeyScreenshot('uxv4-member-exchange-deep-link');
+  await journeyOpen('/messages', '.workspace-v3--exchanges .marketplace-dashboard',
+    'Prototype Messages page after login');
+  const memberTargets = await evaluate('[...document.querySelectorAll(".pm-account-nav a")]' +
+    '.map(a=>a.getAttribute("href")).filter(Boolean)');
+  assert.ok(memberTargets.includes('/mes-annonces'),
+    'Prototype account sidebar must link to Mes annonces');
+  assert.ok(memberTargets.includes('/messages'),
+    'Prototype account sidebar must link to Messages & échanges');
+  assert.equal(await evaluate('location.pathname'), '/messages',
+    'Messages must be a dedicated member route after Keycloak bootstrap');
+  await journeyScreenshot('prototype-10-messages-page');
   await journeyOpen('/espace', '.marketplace-dashboard', 'requester outgoing dashboard');
   await journeyWaitCard(browserIds.donation, 'En attente');
   await journeyWaitCard(browserIds.rejected, 'En attente');
@@ -1606,9 +1608,7 @@ async function runFrontV2HomeJourney() {
   const moderatorToken = await browserToken('demo-moderator');
   let publicListings = await browserApi(moderatorToken, '/api/listings');
 
-  // Ensure a real approved catalogue spanning at least two pages.
-  // New fixtures are published through the actual Chrome form and approved
-  // after private gallery review, never inserted directly into the UI.
+  // Keep enough real approved fixtures to exercise a meaningful catalogue.
   const needed = Math.max(0, 7 - publicListings.length);
   if (needed) await journeySwitchUser('demo-moderator');
   for (let index = 0; index < needed; index++) {
@@ -1616,126 +1616,161 @@ async function runFrontV2HomeJourney() {
     await enrichedModerate(entry, moderatorToken);
   }
   publicListings = await browserApi(moderatorToken, '/api/listings');
-  assert.ok(publicListings.length >= 7, 'F1 requires at least seven real approved articles');
+  assert.ok(publicListings.length >= 7,
+    'F1 requires at least seven real approved articles');
 
   await command('Emulation.setDeviceMetricsOverride', {
     width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false,
   });
-  await journeyOpen('/', '.home-v2__welcome h1', 'FRONT-V2 F1 public homepage');
-  // UX V4: validate the actual task-oriented landing navigation in Chrome.
-  const homeGuideReady = await evaluate('(() => {' +
-    'const links=[...document.querySelectorAll(".home-v2__hero-actions a")].map(a=>a.getAttribute("href"));' +
-    'const guide=document.querySelector("#fonctionnement");' +
-    'return links.includes("#annonces") && links.includes("/espace#publier")' +
-    '&& guide?.querySelectorAll(".home-v2__step").length===3' +
-    '&& !!document.querySelector(\'.home-v2__helper-link[href="#fonctionnement"]\');})()');
-  assert.equal(homeGuideReady, true, 'UX V4 must expose real catalogue, publish and help destinations');
+
+  // Screen 01 — Accueil is a landing page with previews, not a collection of pseudo-pages.
+  await journeyOpen('/', '.home-v2__welcome h1', 'Prototype 01 public homepage');
+  const navigation = await evaluate('(() => ({' +
+    'desktop:[...document.querySelectorAll(".pm-main-nav a")].map(a=>a.getAttribute("href")),' +
+    'mobile:[...document.querySelectorAll(".pm-mobilebar a")].map(a=>a.getAttribute("href")),' +
+    'footerColumns:document.querySelectorAll(".pm-footer__columns > div").length' +
+    '}))()');
+  assert.deepEqual(
+    navigation.desktop,
+    ['/', '/boutique', '/echanges', '/fanzines', '/festival'],
+    'Prototype desktop header must expose five dedicated pages',
+  );
+  assert.deepEqual(
+    navigation.mobile,
+    ['/', '/boutique', '/echanges', '/publier', '/espace'],
+    'Prototype mobile bar must expose task-oriented destinations',
+  );
+  assert.equal(navigation.footerColumns, 4,
+    'Prototype footer must keep four columns');
+
+  const homeContract = await evaluate('(() => {' +
+    'const hero=[...document.querySelectorAll(".home-v2__hero-actions a")].map(a=>a.getAttribute("href"));' +
+    'const links=[...document.querySelectorAll(".home-v2__grid .listing-card__link")].map(a=>a.getAttribute("href"));' +
+    'const fake=document.querySelectorAll("[data-product],[data-add],[data-cartqty]");' +
+    'return {hero,links,fake:fake.length,' +
+    'shop:!!document.querySelector(\'.pm-home-shop-teaser a[href="/boutique"]\'),' +
+    'fanzine:!!document.querySelector(\'.pm-story-grid a[href="/fanzines"]\'),' +
+    'festival:!!document.querySelector(\'.pm-story-grid a[href="/festival"]\')};})()');
+  assert.deepEqual(homeContract.hero, ['/boutique', '/echanges'],
+    'Homepage hero must navigate to dedicated Boutique and Exchanges pages');
+  assert.equal(homeContract.fake, 0,
+    'Homepage must not expose fake commerce controls');
+  assert.equal(homeContract.shop && homeContract.fanzine && homeContract.festival, true,
+    'Homepage previews must link to their dedicated pages');
+
+  await waitUntil('Prototype home real community preview',
+    'document.querySelectorAll(".home-v2__grid .listing-card").length===3', 120);
+  const homePreviewLinks = await evaluate(
+    '[...document.querySelectorAll(".home-v2__grid .listing-card__link")].map(a=>a.getAttribute("href"))',
+  );
+  assert.deepEqual(
+    homePreviewLinks,
+    publicListings.slice(0, 3).map(item => '/annonces/' + item.id),
+    'Homepage community section must be a three-item real-data preview',
+  );
+  await journeyScreenshot('prototype-01-home-desktop');
+
+  // Screen 02 — Boutique has its own route and must not invent commercial data.
+  await journeyOpen('/boutique', '.pm-shop-layout', 'Prototype 02 Boutique');
+  const boutique = await evaluate('(() => ({' +
+    'filters:document.querySelectorAll(".pm-shop-filters label").length,' +
+    'universes:document.querySelectorAll(".pm-category-showcase article").length,' +
+    'fake:document.querySelectorAll("[data-product],[data-add],[data-cartqty]").length,' +
+    'text:document.body.innerText}))()');
+  assert.ok(boutique.filters >= 8 && boutique.universes === 6,
+    'Boutique must reproduce the prototype filter/category structure');
+  assert.equal(boutique.fake, 0, 'Boutique must not invent transactional product data');
+  assert.ok(boutique.text.includes('Le design de la boutique est prêt.'),
+    'Boutique must explain that its backend data is not active yet');
+  await journeyScreenshot('prototype-02-boutique-desktop');
+
+  // Screen 04 — Fanzines is a dedicated editorial page.
+  await journeyOpen('/fanzines', '.pm-editorial-hero', 'Prototype 04 Fanzines');
+  assert.equal(
+    await evaluate('document.querySelectorAll(".pm-formula-grid article").length'),
+    3,
+    'Fanzines must expose the three prototype formula cards',
+  );
+  assert.equal(
+    await evaluate('document.body.innerText.includes("39,90 €") || document.body.innerText.includes("29,00 €")'),
+    false,
+    'Fanzines must not invent prototype prices before real subscriptions exist',
+  );
+  await journeyScreenshot('prototype-04-fanzines-desktop');
+
+  // Screen 06 — Festival has its own page.
+  await journeyOpen('/festival', '.pm-festival-hero', 'Prototype 06 Festival');
+  assert.equal(
+    await evaluate('document.querySelectorAll(".pm-news-grid article").length'),
+    3,
+    'Festival must keep the three-column editorial structure',
+  );
+  await journeyScreenshot('prototype-06-festival-desktop');
+
+  // Screen 07 — real donation/trade catalogue lives here, not on Accueil.
+  await journeyOpen('/echanges', '.pm-exchange-hero', 'Prototype 07 Exchanges');
+  await waitUntil('Prototype 07 real Catalog cards',
+    'document.querySelectorAll(".pm-exchange-grid .listing-card").length>=' +
+      publicListings.length, 120);
+  let exchangeLinks = await evaluate(
+    '[...document.querySelectorAll(".pm-exchange-grid .listing-card__link")].map(a=>a.getAttribute("href"))',
+  );
+  assert.deepEqual(
+    exchangeLinks,
+    publicListings.map(item => '/annonces/' + item.id),
+    'Exchanges page must render the real approved Catalog ordering',
+  );
+
+  const filters = await evaluate(
+    '[...document.querySelectorAll(".pm-filter-pills button")].map(b=>b.textContent.trim())',
+  );
+  assert.equal(filters.length, 3,
+    'Prototype 07 must expose All / Trades / Donations filters');
+
+  // Real DON filter.
   assert.equal(await evaluate('(() => {' +
-    'const link=document.querySelector(".home-v2__helper-link");' +
-    'if(!link)return false;link.click();return true;})()'), true,
-  'UX V4 help link must be clickable');
-  await waitUntil('UX V4 live guide fragment navigation',
-    'location.hash==="#fonctionnement" && !!document.querySelector("#fonctionnement")', 40);
-  await journeyScreenshot('uxv4-how-it-works-desktop');
-  await journeyOpen('/', '.home-v2__welcome h1', 'F1 homepage after guide navigation');
-  await waitUntil('F1 exactly six cards on the first page',
-    'document.querySelectorAll(".home-v2__grid .listing-card").length===6' +
-    '&&document.querySelector(".home-v2__results")?.innerText.includes("sur")', 120);
-
-  const reportedTotal = Number(await evaluate(
-    'document.querySelector(".home-v2__facts strong")?.textContent',
-  ));
-  assert.equal(reportedTotal, publicListings.length,
-    'The hero must show the actual number of approved Catalog listings');
-  const firstLinks = await evaluate('([...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
-    '.map(a=>a.getAttribute("href")) )');
-  assert.equal(firstLinks.length, 6);
-  await journeyScreenshot('f1-catalog-six-articles-desktop');
-
-  assert.equal(await evaluate('(() => {' +
-    'const button=document.querySelector(".home-v2__pagination button[aria-label=\\"Page 2\\"]");' +
-    'if(!button)return false;button.click();return true;})()'), true,
-  'F1 must display a usable second page');
-  const secondSize = Math.min(6, publicListings.length - 6);
-  await waitUntil('F1 second page has new records and correct count',
-    '(() => {const cards=[...document.querySelectorAll(".home-v2__grid .listing-card__link")];' +
-    'return cards.length===' + secondSize +
-    '&&document.querySelector(".home-v2__pagination button[aria-current=page]")?.textContent==="2"' +
-    '&&cards[0]?.getAttribute("href")!==' + JSON.stringify(firstLinks[0]) + ';})()', 120);
-  const secondLinks = await evaluate('[...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
-    '.map(a=>a.getAttribute("href"))');
-  assert.ok(secondLinks.every(url => !firstLinks.includes(url)),
-    'No duplicate listing may appear across the first two pages');
-  await journeyScreenshot('f1-catalog-second-page');
-
-  // Changing the type while page 2 is active must reset pagination to page 1.
-  const filterSet = await evaluate('(() => {const select=document.querySelector(".home-v2__filter-type select");' +
-    'if(!select)return false;select.value="DONATION";' +
-    'select.dispatchEvent(new Event("change",{bubbles:true}));return true;})()');
-  assert.equal(filterSet, true, 'Missing real DON filter');
-  const donationIds = publicListings.filter(item => item.operationType === 'DONATION')
+    'const button=[...document.querySelectorAll(".pm-filter-pills button")]' +
+    '.find(el=>el.textContent.includes("Dons"));if(!button)return false;button.click();return true;})()'),
+    true, 'Prototype 07 must expose a Donations filter');
+  const donationLinks = publicListings
+    .filter(item => item.operationType === 'DONATION')
     .map(item => '/annonces/' + item.id);
-  const expectedDonLinks = donationIds.slice(0, 6);
-  await waitUntil('F1 DON filter shows only donation listings and resets page', '(() => {' +
-    'const links=[...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
-    '.map(a=>a.getAttribute("href"));' +
-    'const expected=' + JSON.stringify(expectedDonLinks) + ';' +
-    'return document.querySelector(".home-v2__filter-type select")?.value==="DONATION"' +
-    ' && links.length===expected.length && links.every((href,i)=>href===expected[i])' +
-    ' && !document.querySelector(".home-v2__pagination button[aria-current=page]")?.textContent?.includes("2");' +
-    '})()', 120);
-  assert.deepEqual(await evaluate('[...document.querySelectorAll(".home-v2__grid .listing-card__link")]' +
-    '.map(a=>a.getAttribute("href"))'), expectedDonLinks,
-    'Every filtered page-one card must have type DONATION');
+  await waitUntil('Prototype 07 DON filter',
+    'document.querySelectorAll(".pm-exchange-grid .listing-card__link").length===' + donationLinks.length,
+    120);
+  exchangeLinks = await evaluate(
+    '[...document.querySelectorAll(".pm-exchange-grid .listing-card__link")].map(a=>a.getAttribute("href"))',
+  );
+  assert.deepEqual(exchangeLinks, donationLinks,
+    'DON filter must show only real donation listings');
 
-  // Search for a real title, never for a mocked or hardcoded catalogue item.
-  const title = publicListings.find(item => item.title.startsWith('9BF Chrome'))?.title;
-  assert.ok(title, 'Missing real Chrome enriched listing to test search');
-  const searchSet = await evaluate('(() => {const select=document.querySelector(".home-v2__filter-type select");' +
-    'select.value="ALL";select.dispatchEvent(new Event("change",{bubbles:true}));return true;})()');
-  assert.equal(searchSet, true);
-  await sleep(150);
-  assert.equal(await evaluate('(() => {const input=document.querySelector("#home-v2-search");' +
-    'if(!input)return false;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,' +
-    JSON.stringify(title) + ');input.dispatchEvent(new Event("input",{bubbles:true}));return true;})()'),
-    true, 'F1 search input must be interactive');
-  await waitUntil('F1 search finds exactly the real listing',
-    '(() => {const cards=[...document.querySelectorAll(".home-v2__grid .listing-card")];' +
-    'return cards.length===1&&cards[0].textContent.includes(' + JSON.stringify(title) + ');})()', 120);
-  await journeyScreenshot('f1-catalog-search-live-title');
+  // Return to All before visual/accessibility checks.
+  assert.equal(await evaluate('(() => {' +
+    'const button=[...document.querySelectorAll(".pm-filter-pills button")]' +
+    '.find(el=>el.textContent.includes("Toutes"));if(!button)return false;button.click();return true;})()'),
+    true, 'Prototype 07 must expose an All filter');
+  await waitUntil('Prototype 07 all listings restored',
+    'document.querySelectorAll(".pm-exchange-grid .listing-card").length===' + publicListings.length, 120);
 
-  // F7/#81 break-ui: a real approved legacy fixture without images must
-  // display a neutral, accessible placeholder rather than a blank 185px void.
+  // F7/#81: a real approved fixture without images must display the existing accessible placeholder.
   const noPhoto = publicListings.find(item =>
     item.status === 'APPROVED' && item.images.length === 0);
   assert.ok(noPhoto, 'F7 #81 requires an approved no-photo Catalog fixture');
-  assert.equal(await evaluate('(() => {' +
-    'const input=document.querySelector("#home-v2-search");' +
-    'if(!input)return false;' +
-    'Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(input,' +
-    JSON.stringify(noPhoto.title) + ');' +
-    'input.dispatchEvent(new Event("input",{bubbles:true}));return true;})()'),
-    true, 'F7 #81 no-photo search input must work');
-  await waitUntil('F7 #81 no-photo card visible', '(() => {' +
-    'const cards=[...document.querySelectorAll(".home-v2__grid .listing-card")];' +
-    'return cards.length===1 &&' +
-    'cards[0].querySelector("h3")?.textContent===' + JSON.stringify(noPhoto.title) + ' &&' +
-    '!!cards[0].querySelector(".listing-card__cover--empty");})()', 120);
   const missingImage = await evaluate('(() => {' +
-    'const card=document.querySelector(".home-v2__grid .listing-card");' +
-    'const cover=card.querySelector(".listing-card__cover--empty");' +
-    'return {label:cover.innerText.trim(),images:cover.querySelectorAll("img").length,' +
-    'height:cover.getBoundingClientRect().height,' +
-    'link:card.querySelector(".listing-card__link")?.getAttribute("href")};})()');
+    'const link=document.querySelector(' +
+      JSON.stringify('.pm-exchange-grid .listing-card__link[href="/annonces/' + noPhoto.id + '"]') + ');' +
+    'const card=link?.closest(".listing-card");const cover=card?.querySelector(".listing-card__cover--empty");' +
+    'if(!card||!cover)return null;return {label:cover.innerText.trim(),' +
+    'images:cover.querySelectorAll("img").length,height:cover.getBoundingClientRect().height,' +
+    'link:link.getAttribute("href")};})()');
+  assert.ok(missingImage, 'No-photo real listing must be present on Exchanges');
   assert.equal(missingImage.label, 'Aucune photo disponible');
-  assert.equal(missingImage.images, 0, 'F7 #81 must never invent a product photo');
-  assert.ok(missingImage.height >= 175, 'F7 #81 placeholder occupies the existing cover area');
-  assert.equal(missingImage.link, '/annonces/' + noPhoto.id,
-    'F7 #81 placeholder must preserve the real product detail link');
-  await journeyScreenshot('f7-catalog-no-photo-desktop');
+  assert.equal(missingImage.images, 0, 'No fake product photo may be invented');
+  assert.ok(missingImage.height >= 175, 'Placeholder must preserve the cover area');
+  assert.equal(missingImage.link, '/annonces/' + noPhoto.id);
+  await journeyScreenshot('prototype-07-exchanges-desktop');
 
-  // F7/mobile-native: mobile metrics alone do NOT emulate a touch pointer.
-  // Real CDP touch emulation is necessary to exercise (any-pointer: coarse).
+  // Mobile 320/390 — dedicated pages must remain usable and touch-friendly.
   await command('Emulation.setTouchEmulationEnabled', {
     enabled: true, maxTouchPoints: 1,
   });
@@ -1743,39 +1778,43 @@ async function runFrontV2HomeJourney() {
     await command('Emulation.setDeviceMetricsOverride', {
       width, height: 844, deviceScaleFactor: 1, mobile: true,
     });
-    await journeyOpen('/', '.home-v2__welcome h1',
-      'F7 mobile homepage at ' + width + 'px');
-    await waitUntil('F7 six cards at ' + width + 'px',
-      'document.querySelectorAll(".home-v2__grid .listing-card").length===6', 120);
+    await journeyOpen('/echanges', '.pm-exchange-hero h1',
+      'Prototype 07 mobile at ' + width + 'px');
+    await waitUntil('Prototype 07 mobile real cards at ' + width + 'px',
+      'document.querySelectorAll(".pm-exchange-grid .listing-card").length>=1', 120);
+
     const checks = await evaluate('(() => {' +
       'const root=document.documentElement;' +
-      'const search=document.querySelector("#home-v2-search");' +
-      'const type=document.querySelector(".home-v2__filter-type select");' +
-      'const c=document.querySelector(".home-v2__grid");' +
-      'const buttons=[...document.querySelectorAll(".home-v2__pagination button:not(:disabled)")];' +
+      'const grid=document.querySelector(".pm-exchange-grid");' +
+      'const filters=[...document.querySelectorAll(".pm-filter-pills button")];' +
+      'const headerTargets=[...document.querySelectorAll(".pm-header .pm-icon-button,.pm-header .pm-account-menu summary,.pm-header .pm-header__login")];' +
+      'const footerTargets=[...document.querySelectorAll(".pm-footer a")];' +
       'return {scroll:root.scrollWidth,client:root.clientWidth,' +
-      'touch:matchMedia("(any-pointer: coarse)").matches,' +
-      'touchPoints:navigator.maxTouchPoints,' +
-      'searchFont:parseFloat(getComputedStyle(search).fontSize),' +
-      'typeFont:parseFloat(getComputedStyle(type).fontSize),' +
-      'columns:getComputedStyle(c).gridTemplateColumns.split(" ").length,' +
-      'buttons:buttons.map(b=>({w:b.getBoundingClientRect().width,h:b.getBoundingClientRect().height}))};' +
-      '})()');
+      'touch:matchMedia("(any-pointer: coarse)").matches,touchPoints:navigator.maxTouchPoints,' +
+      'columns:getComputedStyle(grid).gridTemplateColumns.split(" ").length,' +
+      'filters:filters.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height})),' +
+      'header:headerTargets.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height})),' +
+      'footer:footerTargets.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height}))};})()');
     assert.ok(checks.scroll <= checks.client + 2,
-      'F7 mobile homepage must not overflow at ' + width + 'px: ' + JSON.stringify(checks));
-    assert.equal(checks.columns, 1, 'F7 expects one card column on phone');
-    assert.equal(checks.touch, true, 'F7 must emulate coarse touch media at ' + width + 'px');
-    assert.ok(checks.touchPoints >= 1, 'F7 Chrome must expose at least one touch point');
-    assert.ok(checks.searchFont >= 16 && checks.typeFont >= 16,
-      'F7 mobile fields must use >=16px to prevent iOS zoom: ' + JSON.stringify(checks));
-    assert.ok(checks.buttons.length > 0 && checks.buttons.every(b=>b.w>=44 && b.h>=44),
-      'F7 pagination touch targets >=44px: ' + JSON.stringify(checks));
-    // Force :hover at the CSS engine level. Merely moving a mouse under touch
-    // emulation can be ignored and would produce a false-positive regression.
+      'Prototype mobile page must not overflow: ' + JSON.stringify(checks));
+    assert.equal(checks.columns, 1,
+      'Exchanges catalogue must use one card column on phones');
+    assert.equal(await evaluate('getComputedStyle(document.querySelector(".pm-mobilebar")).display'),
+      'grid', 'Prototype mobile bottom navigation must be visible');
+    assert.equal(checks.touch, true);
+    assert.ok(checks.touchPoints >= 1);
+    assert.ok(checks.filters.length === 3 && checks.filters.every(t=>t.h>=44),
+      'Prototype filter touch targets must be >=44px: ' + JSON.stringify(checks.filters));
+    assert.ok(checks.header.length >= 2 && checks.header.every(t=>t.w>=44&&t.h>=44),
+      'Prototype header touch targets must be >=44px');
+    assert.ok(checks.footer.length >= 4 && checks.footer.every(t=>t.w>=44&&t.h>=44),
+      'Prototype footer touch targets must be >=44px');
+
+    // Force :hover under touch emulation to ensure cards do not lift/zoom.
     await command('DOM.enable');
     await command('CSS.enable');
     const documentNode = await command('DOM.getDocument', { depth: 1 });
-    const cardSelector = '.home-v2__grid .listing-card--interactive:has(.listing-card__cover img)';
+    const cardSelector = '.pm-exchange-grid .listing-card--interactive:has(.listing-card__cover img)';
     const hoverNode = await command('DOM.querySelector', {
       nodeId: documentNode.root.nodeId, selector: cardSelector,
     });
@@ -1783,7 +1822,7 @@ async function runFrontV2HomeJourney() {
       nodeId: documentNode.root.nodeId, selector: cardSelector + ' .listing-card__link',
     });
     assert.ok(hoverNode.nodeId && hoverLink.nodeId,
-      'F7 must find a real Catalog card with photo and detail link');
+      'Touch test requires one real Catalog card with photo');
     await command('CSS.forcePseudoState', {
       nodeId: hoverNode.nodeId, forcedPseudoClasses: ['hover'],
     });
@@ -1795,32 +1834,38 @@ async function runFrontV2HomeJourney() {
       'const link=el.querySelector(".listing-card__link");' +
       'const image=el.querySelector(".listing-card__cover img");' +
       'const arrow=el.querySelector(".listing-card__cta span");' +
-      'const css=getComputedStyle(el);return {hover:el.matches(":hover"),' +
-      'linkHover:link.matches(":hover"),' +
-      'transform:css.transform,shadow:css.boxShadow,border:css.borderTopColor,' +
-      'imageTransform:getComputedStyle(image).transform,' +
-      'arrowTransform:getComputedStyle(arrow).transform};})()');
-    assert.equal(touchCard.hover, true, 'F7 must actually apply :hover to the test card');
-    assert.equal(touchCard.linkHover, true, 'F7 must apply :hover to the detail link');
-    assert.equal(touchCard.transform, 'none', 'F7 touch card must not lift on hover');
-    assert.equal(touchCard.border, 'rgb(226, 236, 231)',
-      'F7 touch card must retain its base border color');
-    assert.ok(touchCard.shadow.includes('5px 20px'),
-      'F7 touch card must retain its base shadow: ' + JSON.stringify(touchCard));
+      'const cta=el.querySelector(".listing-card__cta");' +
+      'const block=el.querySelector(".listing-card__wishes")||el.querySelector(".listing-card__assets");' +
+      'return {hover:el.matches(":hover"),linkHover:link.matches(":hover"),' +
+      'transform:getComputedStyle(el).transform,imageTransform:getComputedStyle(image).transform,' +
+      'arrowTransform:getComputedStyle(arrow).transform,ctaTop:cta?.getBoundingClientRect().top,' +
+      'contentBottom:block?.getBoundingClientRect().bottom};})()');
+    assert.equal(touchCard.hover, true);
+    assert.equal(touchCard.linkHover, true);
+    assert.equal(touchCard.transform, 'none',
+      'Touch card must not lift when hover is forced');
     assert.equal(touchCard.imageTransform, 'none',
-      'F7 touch must not leave the image scaled');
+      'Touch image must not zoom');
     assert.equal(touchCard.arrowTransform, 'none',
-      'F7 touch must not leave the detail CTA arrow displaced');
+      'Touch CTA arrow must not move');
+    assert.ok(
+      Number.isFinite(touchCard.ctaTop) &&
+      Number.isFinite(touchCard.contentBottom) &&
+      touchCard.ctaTop >= touchCard.contentBottom + 8,
+      'Listing CTA must not overlap metadata',
+    );
     await command('CSS.forcePseudoState', {
       nodeId: hoverLink.nodeId, forcedPseudoClasses: [],
     });
     await command('CSS.forcePseudoState', {
       nodeId: hoverNode.nodeId, forcedPseudoClasses: [],
     });
-    await journeyScreenshot('f7-catalog-mobile-' + width);
+
+    await journeyScreenshot('prototype-07-exchanges-mobile-' + width);
   }
   await command('Emulation.setTouchEmulationEnabled', { enabled: false });
-  console.log('[FRONT-V2/F1] Chrome: true Catalog ≥7; six per page; page 2 distinct; DON filter; live search; mobile: PASS');
+
+  console.log('[#149] Dedicated pages: home preview, boutique, exchanges, fanzines, festival, mobile: PASS');
 }
 
 
@@ -1836,7 +1881,7 @@ async function runFinalAccessibilityAutomation() {
   await journeyOpen('/', '.home-v2', 'F7 200-percent zoom layout proxy');
   const zoomHome = await evaluate('({scroll:document.documentElement.scrollWidth,' +
     'client:document.documentElement.clientWidth,' +
-    'menu:!!document.querySelector(".site-header__menu-toggle")})');
+    'mobilebar:getComputedStyle(document.querySelector(".pm-mobilebar")).display})');
   assert.ok(zoomHome.scroll <= zoomHome.client + 2,
     '200% zoom proxy must not overflow home horizontally: ' + JSON.stringify(zoomHome));
   await journeyScreenshot('f7-zoom-200-proxy-home');
@@ -1976,14 +2021,14 @@ async function runFinalAccessibilityAutomation() {
     });
     await command('Network.setBlockedURLs', { urls: ['*/api/listings*'] });
     await journeyOpen('/', '.home-v2', 'F7 Catalog API outage state');
-    await waitUntil('F7 Catalog API error is visible',
+    await waitUntil('F7 Catalog preview API error is visible',
       '!!document.querySelector(".home-v2__error[role=alert]")' +
-      '&&document.querySelector(".home-v2__error")?.innerText.includes("Impossible de charger le catalogue")' +
+      '&&document.querySelector(".home-v2__error")?.innerText.includes("Impossible de charger l’aperçu communautaire")' +
       '&&[...document.querySelectorAll(".home-v2__error button")].some(b=>b.textContent?.trim()==="Réessayer")', 120);
     const outage = await evaluate('({alert:document.querySelector(".home-v2__error")?.innerText??null,' +
       'cards:document.querySelectorAll(".home-v2__grid .listing-card").length})');
-    assert.ok(outage.alert?.includes('Impossible de charger le catalogue') && outage.cards === 0,
-      'Catalog outage must expose a real error state without stale success cards: ' +
+    assert.ok(outage.alert?.includes('Impossible de charger l’aperçu communautaire') && outage.cards === 0,
+      'Catalog preview outage must expose a real error state without stale success cards: ' +
       JSON.stringify(outage));
     await journeyScreenshot('f7-network-outage-error');
 
@@ -1993,14 +2038,14 @@ async function runFinalAccessibilityAutomation() {
       '.find(b=>b.textContent?.trim()==="Réessayer");if(!retry)return false;' +
       'retry.click();return true;})()'), true,
     'Home error state must expose a usable retry control');
-    await waitUntil('F7 network recovery reloads real Catalog cards',
-      'document.querySelectorAll(".home-v2__grid .listing-card").length >= 1' +
+    await waitUntil('F7 network recovery reloads the real community preview',
+      'document.querySelectorAll(".home-v2__grid .listing-card").length === 3' +
       '&&!document.querySelector(".home-v2__error")', 120);
     const recovery = await evaluate('({cards:document.querySelectorAll(".home-v2__grid .listing-card").length,' +
       'scroll:document.documentElement.scrollWidth,' +
       'client:document.documentElement.clientWidth})');
-    assert.ok(recovery.cards >= 1 && recovery.scroll <= recovery.client + 2,
-      'Catalog recovery must restore a usable real view: ' + JSON.stringify(recovery));
+    assert.ok(recovery.cards === 3 && recovery.scroll <= recovery.client + 2,
+      'Catalog recovery must restore the three-card real preview: ' + JSON.stringify(recovery));
     await journeyScreenshot('f7-network-recovery');
 
     slow = {
@@ -2059,8 +2104,8 @@ async function runAdminDashboardBrowser() {
     true, 'MODERATOR must see the actual ADMIN denial');
   assert.equal(await evaluate('!!document.querySelector(".admin-v2__stats")'),
     false, 'No ADMIN numbers rendered for MODERATOR');
-  assert.equal(await evaluate('!!document.querySelector(' + JSON.stringify('.primary-nav__link[href="/admin"]') + ')'),
-    false, 'No ADMIN link for a MODERATOR');
+  assert.equal(await evaluate('!!document.querySelector(' + JSON.stringify('.pm-account-menu__panel a[href="/admin"]') + ')'),
+    false, 'No ADMIN account action for a MODERATOR');
   await journeyScreenshot('f5-moderator-access-denied');
 
   await journeySwitchUser('demo-admin');
@@ -2071,8 +2116,8 @@ async function runAdminDashboardBrowser() {
     'F5 true Keycloak ADMIN dashboard');
   const adminQuickLinks = await evaluate('[...document.querySelectorAll(".admin-v2__quick-actions a")]' +
     '.map(a=>a.getAttribute("href"))');
-  assert.deepEqual(adminQuickLinks, ['/moderation', '/#annonces', '/espace#mes-echanges'],
-    'UX V4 ADMIN shortcuts must point to real authorized destinations only');
+  assert.deepEqual(adminQuickLinks, ['/moderation', '/echanges', '/messages'],
+    'Prototype ADMIN shortcuts must point to real authorized destinations only');
   await waitUntil('F5 ADMIN values from Catalog', '(() => {' +
     'const values=[...document.querySelectorAll(".admin-v2__metric strong")]' +
     '.map(el=>Number(el.textContent.replaceAll(/\\s/g,"")));' +
@@ -2086,14 +2131,14 @@ async function runAdminDashboardBrowser() {
     '})()', 120);
   assert.equal(await evaluate('document.querySelector(".admin-v2__role")?.textContent'),
     'Administrateur');
-  assert.equal(await evaluate('!!document.querySelector(' + JSON.stringify('.primary-nav__link[href="/admin"]') + ')'),
-    true, 'ADMIN navigation must exist for authorized sessions');
+  assert.equal(await evaluate('!!document.querySelector(' + JSON.stringify('.pm-account-menu__panel a[href="/admin"]') + ')'),
+    true, 'ADMIN account action must exist for authorized sessions');
   assert.equal(await evaluate('document.body.innerText.includes("Suspendre un utilisateur")'),
     false, 'Do not expose fake account suspension UI');
   assert.equal(await evaluate('document.querySelectorAll(".admin-v2__sidebar").length'), 0,
     'UX V3: admin uses the shared header navigation without duplicate sidebar');
-  assert.equal(await evaluate('document.querySelectorAll(".primary-nav a[aria-current=page]").length'), 1,
-    'UX V3: primary header has one active link on admin');
+  assert.equal(await evaluate('document.querySelectorAll(".pm-main-nav a").length'), 5,
+    'L1: shared desktop header keeps the five public prototype destinations');
   await journeyScreenshot('f5-admin-summary-catalog-desktop');
 
   // Tablet and zoom-sensitive viewports: ADMIN adds a fourth header link.
@@ -2105,21 +2150,25 @@ async function runAdminDashboardBrowser() {
       'F5 ADMIN tablet header at ' + width + 'px');
     await waitUntil('F5 tablet Catalog data at ' + width + 'px',
       'document.querySelectorAll(".admin-v2__metric strong").length===4', 120);
-    const closed = await evaluate('(() => {' +
-      'const nav=document.querySelector(".primary-nav");' +
-      'const menu=document.querySelector(".site-header__menu-toggle");' +
-      'return getComputedStyle(menu).display!=="none" &&' +
-      'getComputedStyle(nav).display==="none" &&' +
-      'document.documentElement.scrollWidth<=document.documentElement.clientWidth+2;' +
+    const navigation = await evaluate('(() => {' +
+      'const nav=document.querySelector(".pm-main-nav");' +
+      'const mobile=document.querySelector(".pm-mobilebar");' +
+      'return {nav:getComputedStyle(nav).display,mobile:getComputedStyle(mobile).display,' +
+      'fit:document.documentElement.scrollWidth<=document.documentElement.clientWidth+2};' +
       '})()');
-    assert.equal(closed, true, 'F5 ADMIN navigation must collapse and fit at ' + width + 'px');
-    await evaluate('document.querySelector(".site-header__menu-toggle").click()');
-    assert.equal(await evaluate('document.querySelector(".site-header__menu-toggle").getAttribute("aria-expanded")'),
-      'true', 'F5 ADMIN menu must open at ' + width + 'px');
-    assert.equal(await evaluate('getComputedStyle(document.querySelector(".primary-nav")).display'),
-      'flex', 'F5 ADMIN menu must expose links at ' + width + 'px');
-    const fit = await evaluate('document.documentElement.scrollWidth<=document.documentElement.clientWidth+2');
-    assert.equal(fit, true, 'F5 expanded ADMIN menu must not overflow at ' + width + 'px');
+    assert.equal(navigation.fit, true,
+      'L1 ADMIN header must not overflow at ' + width + 'px');
+    if (width > 860) {
+      assert.equal(navigation.nav, 'flex',
+        'L1 desktop/tablet navigation remains visible above 860px');
+      assert.equal(navigation.mobile, 'none',
+        'L1 mobile bottom navigation stays hidden above 860px');
+    } else {
+      assert.equal(navigation.nav, 'none',
+        'L1 desktop navigation hides on mobile');
+      assert.equal(navigation.mobile, 'grid',
+        'L1 mobile bottom navigation replaces the desktop menu');
+    }
     if (width === 1024 || width === 768) {
       await journeyScreenshot('f5-admin-tablet-' + width);
     }

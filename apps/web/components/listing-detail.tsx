@@ -154,9 +154,11 @@ export function ListingDetail({ id }: { id: string }) {
   return (
     <article className="listing-detail listing-detail-v2">
       <div className="listing-detail__breadcrumbs">
-        <Link href="/#annonces">Toutes les annonces</Link>
-        <span aria-hidden="true">/</span>
-        <span aria-current="page">Détail de l’article</span>
+        <Link href="/">Accueil</Link>
+        <span aria-hidden="true">›</span>
+        <Link href="/echanges">Échanges & dons</Link>
+        <span aria-hidden="true">›</span>
+        <span aria-current="page">{listing.title}</span>
       </div>
 
       <div className="listing-detail__layout">
@@ -167,7 +169,7 @@ export function ListingDetail({ id }: { id: string }) {
             >
               {operationLabel(listing.operationType)}
             </span>
-            <span>Admis le {formatListingDate(listing.createdAt)}</span>
+            <span>{listing.operationType === 'TRADE' ? 'TROC / ÉCHANGE' : 'DON GRATUIT'} · {formatListingDate(listing.createdAt)}</span>
           </div>
 
           <span className="listing-detail__index" aria-hidden="true">
@@ -226,11 +228,11 @@ export function ListingDetail({ id }: { id: string }) {
           </div>
 
           <div className="listing-detail__actions">
-            <Link className="button" href="/espace#publier">
+            <Link className="button" href="/publier">
               Déposer mon objet
             </Link>
-            <Link className="text-link" href="/#annonces">
-              ← Retour aux annonces
+            <Link className="text-link" href="/echanges">
+              ← Toutes les annonces
             </Link>
           </div>
         </section>
