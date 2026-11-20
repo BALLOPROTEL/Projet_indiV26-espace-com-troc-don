@@ -85,6 +85,10 @@ function metricRouteLabel(requestUrl: string): string {
     return '/api/proposals/*';
   }
 
+  if (path === '/api/notifications/me') {
+    return path;
+  }
+
   if (path === '/api/transactions') {
     return path;
   }
