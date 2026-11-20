@@ -42,6 +42,8 @@ export function resolveGatewayRoute(
   if (
     path === '/api/listings' ||
     path.startsWith('/api/listings/') ||
+    path === '/api/favorites' ||
+    path.startsWith('/api/favorites/') ||
     path === '/api/moderation/listings' ||
     path.startsWith('/api/moderation/listings/')
   ) {
