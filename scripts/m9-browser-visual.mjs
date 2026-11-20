@@ -1820,6 +1820,19 @@ async function runFrontV2HomeJourney() {
     assert.ok(checks.headerTargets.length >= 2 &&
       checks.headerTargets.every(target => target.w >= 44 && target.h >= 44),
       'L1 header touch targets must stay >=44px: ' + JSON.stringify(checks.headerTargets));
+    const accountMenuTargets = await evaluate('(() => {' +
+      'const root=document.querySelector(".pm-account-menu");' +
+      'const summary=root?.querySelector("summary");' +
+      'if(!root||!summary)return [];' +
+      'if(!root.open)summary.click();' +
+      'const targets=[...root.querySelectorAll(".pm-account-menu__panel > a,.pm-account-menu__panel > button")]' +
+      '.map(el=>({w:el.getBoundingClientRect().width,h:el.getBoundingClientRect().height}));' +
+      'if(root.open)summary.click();return targets;})()');
+    assert.ok(
+      accountMenuTargets.length >= 5 &&
+      accountMenuTargets.every(target => target.w >= 44 && target.h >= 44),
+      'L1 mobile account menu targets must stay >=44px: ' + JSON.stringify(accountMenuTargets),
+    );
     // Force :hover at the CSS engine level. Merely moving a mouse under touch
     // emulation can be ignored and would produce a false-positive regression.
     await command('DOM.enable');
