@@ -377,3 +377,28 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+.admin-products__archive-confirm {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.admin-products__archive-confirm > strong {
+  color: #8d3f4a;
+  font-size: .68rem;
+}
+
+.admin-products__archive-confirm > button:last-child {
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--pm-muted);
+  padding: 6px 9px;
+  font: inherit;
+  font-size: .68rem;
+  font-weight: 800;
+  cursor: pointer;
+}
