@@ -853,8 +853,11 @@ async function runRealBrowserJourneys() {
     'UX V4 member exchange section after login');
   const memberTargets = await evaluate('[...document.querySelectorAll(".workspace-v3__quick-nav a")]' +
     '.map(a=>a.getAttribute("href"))');
-  assert.deepEqual(memberTargets, ['#publier', '#mes-articles', '#mes-echanges'],
-    'UX V4 member quick links must target the three real activity sections');
+  assert.deepEqual(
+    memberTargets,
+    ['#publier', '#mes-articles', '#mes-echanges', '#mon-profil'],
+    'Member quick links must target the four real workspace sections',
+  );
   await waitUntil('UX V4 member deep link restored after Keycloak bootstrap',
     '(() => {const target=document.getElementById("mes-echanges");' +
     'return location.hash==="#mes-echanges" && window.scrollY>0 && !!target' +

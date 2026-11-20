@@ -1,6 +1,16 @@
 // Only trusted in-page sections are eligible for post-login hash navigation.
-export type WorkspaceSectionId = 'publier' | 'mes-articles' | 'mes-echanges';
-const sections = new Set<WorkspaceSectionId>(['publier', 'mes-articles', 'mes-echanges']);
+export type WorkspaceSectionId =
+  | 'publier'
+  | 'mes-articles'
+  | 'mes-echanges'
+  | 'mon-profil';
+
+const sections = new Set<WorkspaceSectionId>([
+  'publier',
+  'mes-articles',
+  'mes-echanges',
+  'mon-profil',
+]);
 
 export function workspaceSectionFromHash(hash: string): WorkspaceSectionId | null {
   if (!hash.startsWith('#')) return null;
