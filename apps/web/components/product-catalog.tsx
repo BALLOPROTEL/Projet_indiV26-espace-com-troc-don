@@ -6,9 +6,11 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   apiAssetUrl,
   ApiError,
+  cartApi,
   productsApi,
 } from '../lib/api';
 import type { Product } from '../lib/types';
+import { useAuth } from './auth-provider';
 import { RoadmapBadge } from './design-system';
 
 function money(cents: number, currency: string) {
@@ -298,6 +300,21 @@ export function ProductDetail({
 }: {
   slug: string;
 }) {
+  const {
+    authenticated,
+    getToken,
+    login,
+  } = useAuth();
+  const [selection, setSelection] = useState<{
+    productId: string;
+    variantId: string;
+  } | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [cartBusy, setCartBusy] = useState(false);
+  const [cartFeedback, setCartFeedback] = useState<{
+    kind: 'success' | 'error';
+    message: string;
+  } | null>(null);
   const [state, setState] = useState<{
     product: Product | null;
     error: string | null;
@@ -389,6 +406,59 @@ export function ProductDetail({
   }
 
   const product = state.product;
+  const selectedVariant =
+    product.variants.find(
+      (variant) =>
+        selection?.productId === product.id &&
+        selection.variantId === variant.id,
+    ) ??
+    product.variants.find((variant) => variant.stock > 0) ??
+    product.variants[0] ??
+    null;
+  const maxQuantity = selectedVariant
+    ? Math.min(selectedVariant.stock, 99)
+    : 0;
+  const safeQuantity = Math.min(
+    Math.max(quantity, 1),
+    Math.max(maxQuantity, 1),
+  );
+
+  async function addToCart() {
+    if (!selectedVariant || selectedVariant.stock < 1 || cartBusy) {
+      return;
+    }
+
+    if (!authenticated) {
+      await login();
+      return;
+    }
+
+    setCartBusy(true);
+    setCartFeedback(null);
+
+    try {
+      const token = await getToken();
+      await cartApi.add(token, {
+        productId: product.id,
+        variantId: selectedVariant.id,
+        quantity: safeQuantity,
+      });
+      setCartFeedback({
+        kind: 'success',
+        message: 'Produit ajouté à votre panier.',
+      });
+    } catch (reason) {
+      setCartFeedback({
+        kind: 'error',
+        message:
+          reason instanceof Error
+            ? reason.message
+            : 'Impossible d’ajouter ce produit au panier.',
+      });
+    } finally {
+      setCartBusy(false);
+    }
+  }
 
   return (
     <div className="pm-prototype-page">
@@ -416,47 +486,120 @@ export function ProductDetail({
           </div>
           <p>{product.description}</p>
 
-          <div className="pm-product-variants" aria-label="Variantes disponibles">
-            <h2>Variantes</h2>
-            {product.variants.map((variant) => (
-              <div className="pm-product-variant" key={variant.id}>
-                <div>
-                  <strong>{variant.label}</strong>
-                  <small>Réf. {variant.sku}</small>
-                </div>
-                <div>
-                  <strong>{money(variant.priceCents, product.currency)}</strong>
-                  <span>
-                    {variant.stock > 0
-                      ? `${variant.stock} en stock`
-                      : 'Indisponible'}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <fieldset
+            className="pm-product-variants"
+            aria-label="Variantes disponibles"
+          >
+            <legend>Choisissez une variante</legend>
+            {product.variants.map((variant) => {
+              const selected =
+                selectedVariant?.id === variant.id;
 
-          <div className="pm-product-placeholder__actions">
+              return (
+                <label
+                  className={
+                    selected
+                      ? 'pm-product-variant pm-product-variant--selected'
+                      : 'pm-product-variant'
+                  }
+                  key={variant.id}
+                >
+                  <input
+                    type="radio"
+                    name="product-variant"
+                    checked={selected}
+                    disabled={variant.stock < 1}
+                    onChange={() => {
+                      setSelection({
+                        productId: product.id,
+                        variantId: variant.id,
+                      });
+                      setQuantity(1);
+                      setCartFeedback(null);
+                    }}
+                  />
+                  <div>
+                    <strong>{variant.label}</strong>
+                    <small>Réf. {variant.sku}</small>
+                  </div>
+                  <div>
+                    <strong>
+                      {money(
+                        variant.priceCents,
+                        product.currency,
+                      )}
+                    </strong>
+                    <span>
+                      {variant.stock > 0
+                        ? `${variant.stock} en stock`
+                        : 'Indisponible'}
+                    </span>
+                  </div>
+                </label>
+              );
+            })}
+          </fieldset>
+
+          <div className="pm-product-cart-action">
+            <label>
+              <span>Quantité</span>
+              <select
+                value={safeQuantity}
+                disabled={maxQuantity < 1 || cartBusy}
+                onChange={(event) => {
+                  setQuantity(Number(event.target.value));
+                  setCartFeedback(null);
+                }}
+              >
+                {Array.from(
+                  { length: maxQuantity },
+                  (_, index) => index + 1,
+                ).map((value) => (
+                  <option value={value} key={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <button
               className="pm-button pm-button--orange"
               type="button"
-              disabled
+              disabled={maxQuantity < 1 || cartBusy}
+              onClick={() => void addToCart()}
             >
-              Panier disponible au lot L5
+              {!authenticated
+                ? 'Se connecter pour ajouter'
+                : cartBusy
+                  ? 'Ajout…'
+                  : 'Ajouter au panier'}
             </button>
-            <button
+
+            <Link
               className="pm-button pm-button--outline"
-              type="button"
-              disabled
+              href="/panier"
             >
-              Favoris produits à connecter
-            </button>
+              Voir mon panier
+            </Link>
           </div>
 
+          {cartFeedback ? (
+            <p
+              className={
+                cartFeedback.kind === 'success'
+                  ? 'notice notice--success'
+                  : 'notice notice--error'
+              }
+              role={cartFeedback.kind === 'error' ? 'alert' : 'status'}
+            >
+              {cartFeedback.message}
+            </p>
+          ) : null}
+
           <div className="pm-info-notice">
-            Aucun achat n’est encore possible. Le prix et le stock affichés
-            sont réels, mais le panier, la commande et le paiement restent
-            volontairement inactifs.
+            Le panier est réel et lié au compte. L’ajout ne réserve pas le
+            stock. La commande et le paiement restent désactivés jusqu’au lot
+            L5B.
           </div>
         </section>
       </div>
