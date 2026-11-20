@@ -91,50 +91,50 @@ export function OrdersPlaceholderPage() {
 }
 
 export function FavoritesPlaceholderPage() {
-  const { ready, authenticated, getToken } = useAuth();
+  const { ready, authenticated, getToken, subject } = useAuth();
   const [items, setItems] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const loading =
+    ready &&
+    authenticated &&
+    Boolean(subject) &&
+    loadedFor !== subject;
 
   useEffect(() => {
-    if (!ready || !authenticated) {
-      setItems([]);
-      setLoading(false);
-      setError(null);
+    if (!ready || !authenticated || !subject) {
       return;
     }
 
     let active = true;
-    setLoading(true);
-    setError(null);
+    const currentSubject = subject;
 
     void getToken()
       .then(favoritesApi.mine)
       .then((favorites) => {
         if (active) {
           setItems(favorites);
+          setError(null);
+          setLoadedFor(currentSubject);
         }
       })
       .catch((reason: unknown) => {
         if (active) {
+          setItems([]);
           setError(
             reason instanceof Error
               ? reason.message
               : 'Impossible de charger vos favoris.',
           );
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false);
+          setLoadedFor(currentSubject);
         }
       });
 
     return () => {
       active = false;
     };
-  }, [ready, authenticated, getToken]);
+  }, [ready, authenticated, getToken, subject]);
 
   async function removeFavorite(listingId: string) {
     if (busyId) return;
@@ -265,49 +265,49 @@ function notificationDate(value: string) {
 }
 
 export function NotificationsPlaceholderPage() {
-  const { ready, authenticated, getToken } = useAuth();
+  const { ready, authenticated, getToken, subject } = useAuth();
   const [items, setItems] = useState<UserNotification[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const loading =
+    ready &&
+    authenticated &&
+    Boolean(subject) &&
+    loadedFor !== subject;
 
   useEffect(() => {
-    if (!ready || !authenticated) {
-      setItems([]);
-      setLoading(false);
-      setError(null);
+    if (!ready || !authenticated || !subject) {
       return;
     }
 
     let active = true;
-    setLoading(true);
-    setError(null);
+    const currentSubject = subject;
 
     void getToken()
       .then(notificationsApi.mine)
       .then((notifications) => {
         if (active) {
           setItems(notifications);
+          setError(null);
+          setLoadedFor(currentSubject);
         }
       })
       .catch((reason: unknown) => {
         if (active) {
+          setItems([]);
           setError(
             reason instanceof Error
               ? reason.message
               : 'Impossible de charger vos notifications.',
           );
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false);
+          setLoadedFor(currentSubject);
         }
       });
 
     return () => {
       active = false;
     };
-  }, [ready, authenticated, getToken]);
+  }, [ready, authenticated, getToken, subject]);
 
   return (
     <PendingAccountShell view="notifications">
