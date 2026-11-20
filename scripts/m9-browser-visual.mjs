@@ -1659,6 +1659,24 @@ async function runFrontV2HomeJourney() {
   await waitUntil('L1 community fragment navigation',
     'location.hash==="#annonces" && !!document.querySelector("#annonces")', 40);
   await journeyScreenshot('l1-home-community-anchor-desktop');
+
+  const searchSource = publicListings[0];
+  await journeyOpen(
+    '/annonces/' + encodeURIComponent(searchSource.id),
+    '.listing-detail',
+    'L1 search shortcut from listing detail',
+  );
+  assert.equal(await evaluate('(() => {' +
+    'const link=document.querySelector(\'.pm-icon-button[href="/#community-search"]\');' +
+    'if(!link)return false;link.click();return true;})()'), true,
+  'L1 header search shortcut must be clickable outside the homepage');
+  await waitUntil('L1 search anchor restored below sticky header',
+    '(() => {const el=document.getElementById("community-search");' +
+    'if(location.pathname!=="/"||location.hash!=="#community-search"||!el)return false;' +
+    'const rect=el.getBoundingClientRect();return rect.top>=70&&rect.top<Math.min(innerHeight*.75,650);})()',
+    120);
+  await journeyScreenshot('l1-search-anchor-from-detail');
+
   await journeyOpen('/', '.home-v2__welcome h1', 'F1 homepage after L1 fragment navigation');
   await waitUntil('F1 exactly six cards on the first page',
     'document.querySelectorAll(".home-v2__grid .listing-card").length===6' +
