@@ -54,7 +54,7 @@ const mobileLinks = [
   { href: '/', label: 'Accueil', icon: '⌂' },
   { href: '/boutique', label: 'Boutique', icon: '▣' },
   { href: '/echanges', label: 'Échanges', icon: '⇄' },
-  { href: '/espace#publier', label: 'Publier', icon: '+' },
+  { href: '/publier', label: 'Publier', icon: '+' },
   { href: '/espace', label: 'Compte', icon: '◉' },
 ] as const;
 
@@ -123,7 +123,7 @@ export function SiteHeader() {
             </Link>
             <Link
               className="pm-icon-button"
-              href="/espace#mes-echanges"
+              href="/messages"
               aria-label="Mes échanges"
               title="Mes échanges"
             >
@@ -155,9 +155,9 @@ export function SiteHeader() {
                     )}
                   </div>
                   <Link href="/espace" onClick={closeAccountMenu}>Tableau de bord</Link>
-                  <Link href="/espace#publier" onClick={closeAccountMenu}>Déposer un objet</Link>
-                  <Link href="/espace#mes-articles" onClick={closeAccountMenu}>Mes annonces</Link>
-                  <Link href="/espace#mes-echanges" onClick={closeAccountMenu}>Mes échanges</Link>
+                  <Link href="/publier" onClick={closeAccountMenu}>Déposer un objet</Link>
+                  <Link href="/mes-annonces" onClick={closeAccountMenu}>Mes annonces</Link>
+                  <Link href="/messages" onClick={closeAccountMenu}>Mes échanges</Link>
                   {elevatedRole ? (
                     <Link href="/moderation" onClick={closeAccountMenu}>Modération</Link>
                   ) : null}
