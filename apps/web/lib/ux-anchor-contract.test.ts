@@ -100,7 +100,7 @@ describe('#149 dedicated-page navigation', () => {
 
   it('does not invent unsupported pages while preserving role-based menus', () => {
     expect(header).toContain('href="/messages"');
-    expect(header).not.toContain('href="/favoris"');
+    expect(header).toContain('href="/favoris"');
     expect(header).toContain("roles.includes('ADMIN')");
     expect(header).toContain("roles.includes('MODERATOR')");
   });
