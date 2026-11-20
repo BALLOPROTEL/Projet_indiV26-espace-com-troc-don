@@ -69,7 +69,7 @@ kubectl apply -f "${K8S_DIR}/minio-bootstrap-job.yaml" >/dev/null
 kubectl -n "${NAMESPACE}" wait --for=condition=complete job/minio-bootstrap --timeout=180s
 
 echo "[INFO] Running the three Prisma ownership migrations..."
-for job in legacy-migrate catalog-migrate marketplace-migrate notification-migrate; do
+for job in legacy-migrate catalog-migrate marketplace-migrate notification-migrate commerce-migrate; do
   kubectl -n "${NAMESPACE}" delete job "${job}" --ignore-not-found >/dev/null 2>&1 || true
 done
 kubectl apply -f "${K8S_DIR}/migration-jobs.yaml" >/dev/null
@@ -92,7 +92,7 @@ if [ "${M7_SKIP_OBSERVABILITY:-false}" = "true" ]; then
 fi
 
 if [ "${M7_FORCE_ROLLOUT:-false}" = "true" ]; then
-  for deployment in legacy-api catalog-service marketplace-service notification-service gateway web; do
+  for deployment in legacy-api catalog-service marketplace-service notification-service commerce-service gateway web; do
     kubectl -n "${NAMESPACE}" rollout restart "deployment/${deployment}" >/dev/null
   done
 
@@ -105,7 +105,7 @@ if [ "${M7_FORCE_ROLLOUT:-false}" = "true" ]; then
 fi
 
 deployments=(
-  legacy-api catalog-service marketplace-service notification-service
+  legacy-api catalog-service marketplace-service notification-service commerce-service
   gateway web
 )
 
