@@ -31,9 +31,9 @@ Règle de lecture :
 | 19 | Notifications | — | Non | Notifications backend présentes, écran dédié absent | Partiel | À créer |
 | 20 | Paramètres | — | Non | Non vérifié / écran absent | Non | L3 |
 | 21 | Modération | `/moderation` | Oui | Oui | Oui | Fait |
-| 22 | Aide / FAQ | — | Non | Contenu statique possible | Non | L6 |
-| 23 | Notre histoire | — | Non | Contenu statique possible | Non | L6 |
-| 24 | Contact | — | Non | Formulaire backend absent | Non | L6 |
+| 22 | Aide / FAQ | `/faq` | Oui | Contenu statique | Oui | Fait |
+| 23 | Notre histoire | `/notre-histoire` | Oui | Contenu statique | Oui | Fait |
+| 24 | Contact | `/contact` | Oui | Envoi désactivé, backend absent | Oui | Visuel fait, transmission non active |
 
 ## Décision d’architecture
 
