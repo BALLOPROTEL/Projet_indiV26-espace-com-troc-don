@@ -54,7 +54,8 @@ export function ProductPlaceholderPage() {
           <ul className="pm-product-placeholder__specs">
             <li><strong>Catalogue :</strong> backend Produit connecté</li>
             <li><strong>Images :</strong> médias réels Catalog / MinIO</li>
-            <li><strong>Panier / commande :</strong> prévus en L5</li>
+            <li><strong>Panier :</strong> connecté au Commerce Service</li>
+            <li><strong>Commande / paiement :</strong> prévus en L5B</li>
           </ul>
         </section>
       </div>
