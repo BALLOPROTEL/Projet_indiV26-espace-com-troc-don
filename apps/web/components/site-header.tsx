@@ -44,15 +44,15 @@ function HeaderIcon({ name }: { name: IconName }) {
 
 const desktopLinks = [
   { href: '/', label: 'Accueil' },
-  { href: '/#boutique', label: 'Boutique' },
+  { href: '/boutique', label: 'Boutique' },
   { href: '/echanges', label: 'Échanges & dons' },
-  { href: '/#fanzines', label: 'Fanzines' },
-  { href: '/#actualites', label: 'Festival' },
+  { href: '/fanzines', label: 'Fanzines' },
+  { href: '/festival', label: 'Festival' },
 ] as const;
 
 const mobileLinks = [
   { href: '/', label: 'Accueil', icon: '⌂' },
-  { href: '/#boutique', label: 'Boutique', icon: '▣' },
+  { href: '/boutique', label: 'Boutique', icon: '▣' },
   { href: '/echanges', label: 'Échanges', icon: '⇄' },
   { href: '/espace#publier', label: 'Publier', icon: '+' },
   { href: '/espace', label: 'Compte', icon: '◉' },
@@ -98,7 +98,7 @@ export function SiteHeader() {
             {desktopLinks.map((link) => {
               const active =
                 (link.href === '/' && pathname === '/') ||
-                (link.href === '/echanges' && pathname.startsWith('/echanges'));
+                (link.href !== '/' && pathname.startsWith(link.href));
               return (
                 <Link
                   key={link.href}
@@ -115,7 +115,7 @@ export function SiteHeader() {
           <div className="pm-header__actions">
             <Link
               className="pm-icon-button pm-icon-button--future"
-              href="/#boutique"
+              href="/boutique"
               aria-label="Favoris — en préparation"
               title="Favoris — en préparation"
             >
