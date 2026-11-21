@@ -276,11 +276,9 @@ export type OrderItem = {
 
 export type Order = {
   id: string;
-  userId: string;
   status: OrderStatus;
   currency: 'EUR';
   subtotalCents: number;
-  idempotencyKey: string;
   recipientFirstName: string;
   recipientLastName: string;
   email: string;
