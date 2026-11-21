@@ -58,6 +58,32 @@ export type MarketplaceProposal = {
   updatedAt: string;
 };
 
+export type ConversationMessage = {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export type MarketplaceConversation = {
+  id: string;
+  proposalId: string;
+  ownerId: string;
+  requesterId: string;
+  createdAt: string;
+  updatedAt: string;
+  proposal: {
+    id: string;
+    targetListingId: string;
+    offeredListingId: string | null;
+    type: ProposalType;
+    status: ProposalStatus;
+  };
+  messages: ConversationMessage[];
+};
+
 export type MarketplaceTransaction = {
   id: string;
   proposalId: string;
