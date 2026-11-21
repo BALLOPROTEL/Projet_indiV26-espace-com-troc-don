@@ -35,6 +35,9 @@ model CartItem {
 
 enum OrderStatus {
   DRAFT
+  AWAITING_PAYMENT
+  CANCELLED
+  EXPIRED
 }
 
 model Order {
@@ -51,6 +54,7 @@ model Order {
   postalCode         String
   city               String
   countryCode        String
+  reservationExpiresAt DateTime?
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
