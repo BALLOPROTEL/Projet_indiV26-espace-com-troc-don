@@ -160,6 +160,7 @@ export function MarketplaceDashboard() {
         <a href="#echanges-recus">Reçues <span>{loading ? '…' : received.length}</span></a>
         <a href="#echanges-envoyes">Envoyées <span>{loading ? '…' : sent.length}</span></a>
         <a href="#echanges-remises">Remises <span>{loading ? '…' : transactions.length}</span></a>
+        <Link href="/messages">Messages privés <span>↗</span></Link>
       </nav>
       {notice ? <p role="status" className="notice notice--success">{notice}</p> : null}
       {error ? <p role="alert" className="notice notice--error">{error}</p> : null}
