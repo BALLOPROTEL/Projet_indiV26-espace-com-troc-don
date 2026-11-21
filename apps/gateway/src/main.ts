@@ -57,6 +57,7 @@ async function bootstrap(): Promise<void> {
       'Content-Type',
       'Authorization',
       'X-Request-ID',
+      'Idempotency-Key',
     ],
     exposedHeaders: ['X-Request-ID'],
   });

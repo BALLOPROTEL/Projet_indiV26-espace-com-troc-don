@@ -401,3 +401,47 @@ Gateway
 ```
 
 Le détail de la décision est documenté dans `docs/27-l5a-commerce-cart.md`.
+
+
+---
+
+## Extension L5B — Brouillons de commande
+
+L5B étend le **Commerce Service** sans ajouter de paiement fictif.
+
+Le service devient propriétaire de :
+
+- `Cart` / `CartItem` pour l'état courant du panier ;
+- `Order` / `OrderItem` pour les brouillons de commande et leurs snapshots.
+
+Le flux est :
+
+```text
+Navigateur
+  -> Gateway /api/orders
+  -> Commerce
+       -> Cart réel
+       -> Catalog HTTP interne pour état/prix/stock courants
+       -> Order/OrderItem figés en PostgreSQL commerce
+```
+
+Invariants :
+
+- propriétaire dérivé du JWT `sub` ;
+- `Idempotency-Key` obligatoire à la création ;
+- nom, variante, prix, quantité et total de ligne figés dans `OrderItem` ;
+- changement ultérieur de prix Catalog sans effet rétroactif sur le brouillon ;
+- aucun `userId` interne ni clé d'idempotence exposés au navigateur ;
+- aucun paiement ;
+- aucune réservation ni décrémentation de stock ;
+- panier conservé après préparation du brouillon.
+
+La frontière Commerce devient donc :
+
+```text
+Commerce
+  ├── panier courant      -> données dynamiques, prix/stock relus depuis Catalog
+  └── brouillon commande  -> snapshot historique immuable
+```
+
+Le détail et les preuves attendues sont documentés dans `docs/28-l5b-order-drafts.md`.

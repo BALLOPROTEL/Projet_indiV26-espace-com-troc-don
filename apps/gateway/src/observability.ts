@@ -109,6 +109,14 @@ function metricRouteLabel(requestUrl: string): string {
     return '/api/cart/*';
   }
 
+  if (path === '/api/orders') {
+    return path;
+  }
+
+  if (path.startsWith('/api/orders/')) {
+    return '/api/orders/*';
+  }
+
   if (path === '/api/notifications/me') {
     return path;
   }

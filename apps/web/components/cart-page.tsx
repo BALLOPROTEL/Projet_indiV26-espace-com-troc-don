@@ -498,13 +498,22 @@ export function CartPage() {
                 commande.
               </p>
             ) : null}
-            <button
-              className="pm-button pm-button--orange"
-              type="button"
-              disabled
-            >
-              Commande disponible au lot L5B
-            </button>
+            {currentCart.hasUnavailableItems ? (
+              <button
+                className="pm-button pm-button--orange"
+                type="button"
+                disabled
+              >
+                Corriger le panier avant la commande
+              </button>
+            ) : (
+              <Link
+                className="pm-button pm-button--orange"
+                href="/commande"
+              >
+                Préparer ma commande
+              </Link>
+            )}
             <Link
               className="pm-button pm-button--outline"
               href="/boutique"
@@ -512,7 +521,7 @@ export function CartPage() {
               Continuer mes achats
             </Link>
             <small>
-              Aucun paiement n’est actif dans L5A.
+              L5B crée un brouillon réel sans paiement ni réservation de stock.
             </small>
           </aside>
         </div>

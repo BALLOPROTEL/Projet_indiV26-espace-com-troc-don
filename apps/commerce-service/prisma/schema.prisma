@@ -31,3 +31,49 @@ model CartItem {
   @@unique([cartId, variantId])
   @@index([cartId, createdAt])
 }
+
+
+enum OrderStatus {
+  DRAFT
+}
+
+model Order {
+  id                 String      @id @default(cuid())
+  userId             String
+  status             OrderStatus @default(DRAFT)
+  currency           String      @default("EUR")
+  subtotalCents      Int
+  idempotencyKey     String
+  recipientFirstName String
+  recipientLastName  String
+  email              String
+  addressLine1       String
+  postalCode         String
+  city               String
+  countryCode        String
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  items OrderItem[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt])
+}
+
+model OrderItem {
+  id             String   @id @default(cuid())
+  orderId        String
+  productId      String
+  variantId      String
+  productSlug    String
+  productName    String
+  variantLabel   String
+  unitPriceCents Int
+  quantity       Int
+  lineTotalCents Int
+  createdAt      DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+}

@@ -89,7 +89,9 @@ export function resolveGatewayRoute(
 
   if (
     path === '/api/cart' ||
-    path.startsWith('/api/cart/')
+    path.startsWith('/api/cart/') ||
+    path === '/api/orders' ||
+    path.startsWith('/api/orders/')
   ) {
     return {
       target: 'commerce',
