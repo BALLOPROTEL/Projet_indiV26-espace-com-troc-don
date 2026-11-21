@@ -1,5 +1,6 @@
 import {
   BadGatewayException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -155,7 +156,7 @@ export class CatalogClientService {
     }
 
     if (response.status === 409) {
-      throw new BadGatewayException(
+      throw new ConflictException(
         'Catalog stock reservation conflict',
       );
     }
