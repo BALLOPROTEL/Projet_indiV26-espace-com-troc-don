@@ -4,12 +4,14 @@ import type {
   AdminProductCreateInput,
   AdminProductImage,
   Cart,
+  CreateOrderInput,
   Listing,
   ListingImage,
   ListingInput,
   ListingStatus,
   MarketplaceProposal,
   MarketplaceTransaction,
+  Order,
   ProposalType,
   Product,
   UserNotification,
@@ -155,6 +157,35 @@ export const cartApi = {
     request<Cart>(
       '/cart',
       { method: 'DELETE' },
+      token,
+    ),
+};
+
+export const ordersApi = {
+  prepare: (
+    token: string,
+    idempotencyKey: string,
+    input: CreateOrderInput,
+  ) =>
+    request<Order>(
+      '/orders',
+      {
+        method: 'POST',
+        headers: {
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+
+  mine: (token: string) =>
+    request<Order[]>('/orders', {}, token),
+
+  byId: (token: string, id: string) =>
+    request<Order>(
+      `/orders/${encodeURIComponent(id)}`,
+      {},
       token,
     ),
 };
