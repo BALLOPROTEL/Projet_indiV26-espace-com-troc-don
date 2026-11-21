@@ -348,6 +348,121 @@ async function run() {
   assert.equal(repricedCart.items[0].stock, 5);
   assert.equal(repricedCart.subtotalCents, 8997);
 
+  await request(gateway, '/api/orders', {}, 401);
+  await request(gateway, '/api/orders', {
+    method: 'POST',
+    headers: {
+      ...auth(owner),
+      'content-type': 'application/json',
+      'idempotency-key': 'm8-owner-empty-' + productSuffix,
+    },
+    body: JSON.stringify({
+      recipientFirstName: 'Owner',
+      recipientLastName: 'Empty',
+      email: 'owner@example.test',
+      addressLine1: '1 rue du Test',
+      postalCode: '75001',
+      city: 'Paris',
+      countryCode: 'FR',
+    }),
+  }, 400);
+
+  const orderIdempotencyKey = 'm8-order-' + productSuffix;
+  const orderInput = {
+    recipientFirstName: 'Demo',
+    recipientLastName: 'User',
+    email: 'demo-user@example.test',
+    addressLine1: '1 rue du Commerce',
+    postalCode: '75001',
+    city: 'Paris',
+    countryCode: 'FR',
+  };
+
+  const draftOrder = await request(gateway, '/api/orders', {
+    method: 'POST',
+    headers: {
+      ...auth(requester),
+      'content-type': 'application/json',
+      'idempotency-key': orderIdempotencyKey,
+    },
+    body: JSON.stringify(orderInput),
+  }, 201);
+  assert.equal(draftOrder.status, 'DRAFT');
+  assert.equal(draftOrder.userId, requester.subject);
+  assert.equal(draftOrder.subtotalCents, 8997);
+  assert.equal(draftOrder.items.length, 1);
+  assert.equal(draftOrder.items[0].unitPriceCents, 2999);
+  assert.equal(draftOrder.items[0].quantity, 3);
+  assert.equal(draftOrder.items[0].lineTotalCents, 8997);
+
+  const replayedOrder = await request(gateway, '/api/orders', {
+    method: 'POST',
+    headers: {
+      ...auth(requester),
+      'content-type': 'application/json',
+      'idempotency-key': orderIdempotencyKey,
+    },
+    body: JSON.stringify(orderInput),
+  }, 201);
+  assert.equal(replayedOrder.id, draftOrder.id);
+
+  await request(gateway, '/api/orders/' + draftOrder.id, {
+    headers: auth(owner),
+  }, 404);
+
+  const requesterOrders = await request(gateway, '/api/orders', {
+    headers: auth(requester),
+  }, 200);
+  assert.ok(requesterOrders.some(order => order.id === draftOrder.id));
+
+  await request(
+    gateway,
+    '/api/admin/products/' + draftProduct.id +
+      '/variants/' + publicProduct.variants[0].id,
+    {
+      method: 'PATCH',
+      headers: {
+        ...auth(admin),
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        priceCents: 3499,
+        stock: 5,
+      }),
+    },
+    200,
+  );
+
+  const frozenOrder = await request(
+    gateway,
+    '/api/orders/' + draftOrder.id,
+    { headers: auth(requester) },
+    200,
+  );
+  assert.equal(frozenOrder.items[0].unitPriceCents, 2999);
+  assert.equal(frozenOrder.subtotalCents, 8997);
+
+  const cartAfterOrder = await request(gateway, '/api/cart', {
+    headers: auth(requester),
+  }, 200);
+  assert.equal(cartAfterOrder.items[0].unitPriceCents, 3499);
+  assert.equal(cartAfterOrder.items[0].stock, 5);
+  assert.equal(cartAfterOrder.items[0].quantity, 3);
+  assert.equal(cartAfterOrder.subtotalCents, 10497);
+
+  const productAfterOrder = await request(
+    gateway,
+    '/api/products/' + productSlug,
+    {},
+    200,
+  );
+  assert.equal(
+    productAfterOrder.variants[0].stock,
+    5,
+    'L5B order draft must not reserve or decrement product stock',
+  );
+  info('Commerce Order drafts: JWT isolation + idempotency + frozen price snapshot + no reservation: PASS');
+
   await request(
     gateway,
     '/api/admin/products/' + draftProduct.id + '/archive',
