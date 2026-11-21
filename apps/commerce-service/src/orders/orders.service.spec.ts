@@ -259,4 +259,48 @@ describe('OrdersService', () => {
       }),
     );
   });
+
+
+  it('releases an expired Catalog reservation before exposing EXPIRED', async () => {
+    const order = {
+      id: 'order-expired',
+      userId: 'user-1',
+      idempotencyKey: 'idem-expired',
+      status: 'AWAITING_PAYMENT',
+      reservationExpiresAt: new Date('2020-01-01T00:00:00.000Z'),
+      items: [],
+    };
+    (prisma.order.findFirst as jest.Mock).mockResolvedValue(order);
+    (catalog.releaseStock as jest.Mock).mockResolvedValue({
+      id: 'reservation-expired',
+      orderId: 'order-expired',
+      status: 'RELEASED',
+      expiresAt: '2020-01-01T00:00:00.000Z',
+      items: [],
+    });
+    (prisma.order.update as jest.Mock).mockResolvedValue({
+      ...order,
+      status: 'EXPIRED',
+    });
+
+    const result = await service.get(
+      'user-1',
+      'order-expired',
+    );
+
+    expect(catalog.releaseStock).toHaveBeenCalledWith(
+      'order-expired',
+    );
+    expect(prisma.order.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'order-expired' },
+        data: { status: 'EXPIRED' },
+      }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'EXPIRED',
+      }),
+    );
+  });
 });
