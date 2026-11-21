@@ -5,7 +5,9 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+  });
   const port = Number(process.env.PORT ?? 3104);
   const swaggerEnabled =
     process.env.SWAGGER_ENABLED ??
@@ -24,7 +26,7 @@ async function bootstrap(): Promise<void> {
     const config = new DocumentBuilder()
       .setTitle('Projet individuel 26 - Commerce Service')
       .setDescription(
-        'Microservice propriétaire du panier utilisateur. Aucun paiement ni commande dans L5A.',
+        'Microservice propriétaire du panier, des commandes et du paiement Stripe Checkout.',
       )
       .setVersion('0.1.0')
       .addBearerAuth({
