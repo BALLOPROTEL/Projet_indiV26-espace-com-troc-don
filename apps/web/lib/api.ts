@@ -9,6 +9,8 @@ import type {
   ListingImage,
   ListingInput,
   ListingStatus,
+  ConversationMessage,
+  MarketplaceConversation,
   MarketplaceProposal,
   MarketplaceTransaction,
   Order,
@@ -468,6 +470,58 @@ export const favoritesApi = {
 export const notificationsApi = {
   mine: (token: string) =>
     request<UserNotification[]>('/notifications/me', {}, token),
+};
+
+export const conversationsApi = {
+  mine: (token: string) =>
+    request<MarketplaceConversation[]>(
+      '/conversations',
+      {},
+      token,
+    ),
+
+  messages: (
+    token: string,
+    conversationId: string,
+    before?: string,
+  ) => {
+    const params = new URLSearchParams({
+      limit: '50',
+    });
+    if (before) {
+      params.set('before', before);
+    }
+
+    return request<ConversationMessage[]>(
+      `/conversations/${encodeURIComponent(conversationId)}/messages?${params.toString()}`,
+      {},
+      token,
+    );
+  },
+
+  send: (
+    token: string,
+    conversationId: string,
+    body: string,
+  ) =>
+    request<ConversationMessage>(
+      `/conversations/${encodeURIComponent(conversationId)}/messages`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ body }),
+      },
+      token,
+    ),
+
+  markRead: (
+    token: string,
+    conversationId: string,
+  ) =>
+    request<{ updated: number }>(
+      `/conversations/${encodeURIComponent(conversationId)}/read`,
+      { method: 'POST' },
+      token,
+    ),
 };
 
 export const marketplaceApi = {
