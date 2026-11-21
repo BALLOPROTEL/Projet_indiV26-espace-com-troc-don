@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ordersApi } from '../lib/api';
-import type { Order } from '../lib/types';
+import type { Order, OrderStatus } from '../lib/types';
 import { useAuth } from './auth-provider';
 import { RoadmapBadge } from './design-system';
 
@@ -12,6 +12,26 @@ function money(cents: number, currency = 'EUR') {
     style: 'currency',
     currency,
   }).format(cents / 100);
+}
+
+function dateTime(value: string) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
+function statusLabel(status: OrderStatus) {
+  switch (status) {
+    case 'DRAFT':
+      return 'Brouillon';
+    case 'AWAITING_PAYMENT':
+      return 'Stock réservé · en attente de paiement';
+    case 'CANCELLED':
+      return 'Annulée';
+    case 'EXPIRED':
+      return 'Réservation expirée';
+  }
 }
 
 export function OrderConfirmationPage({
@@ -36,6 +56,8 @@ export function OrderConfirmationPage({
     orderId: string;
     message: string;
   } | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<'reserve' | 'cancel' | null>(null);
 
   const order =
     subject &&
@@ -102,12 +124,45 @@ export function OrderConfirmationPage({
     getToken,
   ]);
 
+  async function runAction(
+    action: 'reserve' | 'cancel',
+  ) {
+    if (!order || !orderId || !subject) {
+      return;
+    }
+
+    setActionError(null);
+    setBusy(action);
+
+    try {
+      const token = await getToken();
+      const updated =
+        action === 'reserve'
+          ? await ordersApi.reserve(token, orderId)
+          : await ordersApi.cancel(token, orderId);
+
+      setOrderState({
+        subject,
+        orderId,
+        order: updated,
+      });
+    } catch (caught) {
+      setActionError(
+        caught instanceof Error
+          ? caught.message
+          : 'Action impossible sur cette commande.',
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (!orderId) {
     return (
       <div className="pm-prototype-page">
         <section className="pm-confirmation-placeholder">
           <h1>Aucune commande sélectionnée</h1>
-          <p>Ouvrez un brouillon depuis votre historique.</p>
+          <p>Ouvrez une commande depuis votre historique.</p>
           <Link className="pm-button pm-button--orange" href="/mes-commandes">
             Voir mes commandes
           </Link>
@@ -160,18 +215,23 @@ export function OrderConfirmationPage({
     <div className="pm-prototype-page">
       <section className="pm-confirmation-placeholder pm-order-confirmation">
         <div aria-hidden="true">✓</div>
-        <span className="pm-overline">BROUILLON CRÉÉ</span>
-        <h1>Commande préparée</h1>
+        <span className="pm-overline">COMMANDE RÉELLE</span>
+        <h1>{statusLabel(order.status)}</h1>
         <p>
-          Le brouillon <strong>#{order.id.slice(-8).toUpperCase()}</strong> a été
-          enregistré avec les prix du moment.
+          Commande <strong>#{order.id.slice(-8).toUpperCase()}</strong> ·
+          sous-total figé au moment de sa préparation.
         </p>
-        <RoadmapBadge>PAIEMENT NON EFFECTUÉ</RoadmapBadge>
+
+        <RoadmapBadge>
+          {order.status === 'AWAITING_PAYMENT'
+            ? 'STOCK RÉSERVÉ · PAIEMENT À VENIR'
+            : 'PAIEMENT NON EFFECTUÉ'}
+        </RoadmapBadge>
 
         <div className="pm-order-confirmation__details">
           <div>
             <span>Statut</span>
-            <strong>Brouillon</strong>
+            <strong>{statusLabel(order.status)}</strong>
           </div>
           <div>
             <span>Sous-total articles</span>
@@ -189,19 +249,88 @@ export function OrderConfirmationPage({
               {order.addressLine1}, {order.postalCode} {order.city} · {order.countryCode}
             </strong>
           </div>
+          {order.status === 'AWAITING_PAYMENT' &&
+          order.reservationExpiresAt ? (
+            <div>
+              <span>Stock réservé jusqu’au</span>
+              <strong>{dateTime(order.reservationExpiresAt)}</strong>
+            </div>
+          ) : null}
         </div>
 
-        <div className="pm-info-notice">
-          Aucun paiement n’a été lancé et aucun stock n’a été réservé. Le panier
-          est conservé pour la prochaine étape du projet.
-        </div>
+        {order.status === 'DRAFT' ? (
+          <div className="pm-info-notice">
+            Le prix est déjà figé dans ce brouillon, mais le stock ne l’est pas encore.
+            Réservez-le pour passer à l’étape pré-paiement.
+          </div>
+        ) : null}
+
+        {order.status === 'AWAITING_PAYMENT' ? (
+          <div className="pm-info-notice">
+            Le stock est réellement réservé dans Catalog. Aucun paiement n’a été
+            lancé : l’intégration du prestataire arrivera en L5C2.
+          </div>
+        ) : null}
+
+        {order.status === 'EXPIRED' ? (
+          <div className="pm-info-notice">
+            La réservation a expiré et le stock a été restitué au catalogue.
+          </div>
+        ) : null}
+
+        {order.status === 'CANCELLED' ? (
+          <div className="pm-info-notice">
+            Cette commande a été annulée. Tout stock réservé a été restitué.
+          </div>
+        ) : null}
+
+        {actionError ? (
+          <p className="pm-cart-real__warning" role="alert" aria-live="polite">
+            {actionError}
+          </p>
+        ) : null}
 
         <div className="pm-confirmation-placeholder__actions">
-          <Link className="pm-button pm-button--orange" href="/mes-commandes">
+          {order.status === 'DRAFT' ? (
+            <button
+              className="pm-button pm-button--orange"
+              type="button"
+              disabled={busy !== null}
+              onClick={() => void runAction('reserve')}
+            >
+              {busy === 'reserve'
+                ? 'Réservation…'
+                : 'Réserver mon stock'}
+            </button>
+          ) : null}
+
+          {order.status === 'AWAITING_PAYMENT' ? (
+            <button
+              className="pm-button pm-button--orange"
+              type="button"
+              disabled
+            >
+              Paiement disponible en L5C2
+            </button>
+          ) : null}
+
+          {(order.status === 'DRAFT' ||
+            order.status === 'AWAITING_PAYMENT') ? (
+            <button
+              className="pm-button pm-button--outline"
+              type="button"
+              disabled={busy !== null}
+              onClick={() => void runAction('cancel')}
+            >
+              {busy === 'cancel' ? 'Annulation…' : 'Annuler la commande'}
+            </button>
+          ) : null}
+
+          <Link className="pm-button pm-button--outline" href="/mes-commandes">
             Voir mes commandes
           </Link>
-          <Link className="pm-button pm-button--outline" href="/panier">
-            Retour au panier
+          <Link className="pm-button pm-button--outline" href="/boutique">
+            Retour à la boutique
           </Link>
         </div>
       </section>
