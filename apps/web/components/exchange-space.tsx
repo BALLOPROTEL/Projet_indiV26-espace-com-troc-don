@@ -6,7 +6,7 @@ import { listingsApi } from '../lib/api';
 import { filterPublicListings } from '../lib/home-pagination';
 import type { Listing, ListingOperationType } from '../lib/types';
 import { EmptyState } from './empty-state';
-import { ListingCard } from './listing-card';
+import { ExchangeListingCard } from './exchange-listing-card';
 
 type Filter = ListingOperationType | 'ALL';
 
@@ -114,11 +114,9 @@ export function ExchangeSpace() {
         {!loading && !error && filtered.length > 0 ? (
           <div className="pm-listing-grid pm-exchange-grid">
             {filtered.map((listing) => (
-              <ListingCard
+              <ExchangeListingCard
                 key={listing.id}
                 listing={listing}
-                href={'/annonces/' + listing.id}
-                showAvailability
               />
             ))}
           </div>
