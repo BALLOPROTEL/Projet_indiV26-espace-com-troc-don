@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { CartService } from '../cart/cart.service';
+import type { CatalogClientService } from '../catalog/catalog-client.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from './orders.service';
 
@@ -14,6 +15,7 @@ describe('OrdersService', () => {
       create: jest.fn(),
       findMany: jest.fn(),
       findFirst: jest.fn(),
+      update: jest.fn(),
     },
   } as unknown as PrismaService;
 
@@ -21,7 +23,12 @@ describe('OrdersService', () => {
     get: jest.fn(),
   } as unknown as CartService;
 
-  const service = new OrdersService(prisma, cart);
+  const catalog = {
+    reserveStock: jest.fn(),
+    releaseStock: jest.fn(),
+  } as unknown as CatalogClientService;
+
+  const service = new OrdersService(prisma, cart, catalog);
 
   const input = {
     recipientFirstName: 'Ada',
@@ -170,6 +177,85 @@ describe('OrdersService', () => {
           id: 'order-1',
           userId: 'user-2',
         },
+      }),
+    );
+  });
+
+
+  it('moves a draft to AWAITING_PAYMENT only after Catalog reserves stock', async () => {
+    const order = {
+      id: 'order-1',
+      userId: 'user-1',
+      idempotencyKey: 'idem-1',
+      status: 'DRAFT',
+      reservationExpiresAt: null,
+      items: [{
+        id: 'item-1',
+        productId: 'product-1',
+        variantId: 'variant-1',
+        quantity: 2,
+      }],
+    };
+    (prisma.order.findFirst as jest.Mock).mockResolvedValue(order);
+    (catalog.reserveStock as jest.Mock).mockResolvedValue({
+      id: 'reservation-1',
+      orderId: 'order-1',
+      status: 'ACTIVE',
+      expiresAt: '2026-11-21T02:00:00.000Z',
+      items: [],
+    });
+    (prisma.order.update as jest.Mock).mockResolvedValue({
+      ...order,
+      status: 'AWAITING_PAYMENT',
+      reservationExpiresAt: new Date('2026-11-21T02:00:00.000Z'),
+    });
+
+    const result = await service.reserve('user-1', 'order-1');
+
+    expect(catalog.reserveStock).toHaveBeenCalledWith(
+      'order-1',
+      [{
+        productId: 'product-1',
+        variantId: 'variant-1',
+        quantity: 2,
+      }],
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'order-1',
+        status: 'AWAITING_PAYMENT',
+      }),
+    );
+  });
+
+  it('releases Catalog stock before marking an awaiting order cancelled', async () => {
+    const order = {
+      id: 'order-1',
+      userId: 'user-1',
+      idempotencyKey: 'idem-1',
+      status: 'AWAITING_PAYMENT',
+      reservationExpiresAt: new Date('2099-01-01T00:00:00.000Z'),
+      items: [],
+    };
+    (prisma.order.findFirst as jest.Mock).mockResolvedValue(order);
+    (catalog.releaseStock as jest.Mock).mockResolvedValue({
+      id: 'reservation-1',
+      orderId: 'order-1',
+      status: 'RELEASED',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      items: [],
+    });
+    (prisma.order.update as jest.Mock).mockResolvedValue({
+      ...order,
+      status: 'CANCELLED',
+    });
+
+    const result = await service.cancel('user-1', 'order-1');
+
+    expect(catalog.releaseStock).toHaveBeenCalledWith('order-1');
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'CANCELLED',
       }),
     );
   });
