@@ -16,3 +16,25 @@ export type CatalogProductVariantSnapshot = {
   active: boolean;
   primaryImageId: string | null;
 };
+
+
+export type CatalogStockReservationStatus =
+  | 'ACTIVE'
+  | 'RELEASED'
+  | 'EXPIRED'
+  | 'COMMITTED';
+
+export type CatalogStockReservation = {
+  id: string;
+  orderId: string;
+  status: CatalogStockReservationStatus;
+  expiresAt: string;
+  items: Array<{
+    id: string;
+    reservationId: string;
+    productId: string;
+    variantId: string;
+    quantity: number;
+    createdAt: string;
+  }>;
+};
