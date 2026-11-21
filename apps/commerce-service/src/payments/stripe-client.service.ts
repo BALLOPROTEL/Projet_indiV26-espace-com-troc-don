@@ -119,7 +119,7 @@ export class StripeClientService {
 
   async expireCheckoutSession(
     sessionId: string,
-  ): Promise<void> {
+  ): Promise<StripeCheckoutSession> {
     const session = await this.retrieveCheckoutSession(
       sessionId,
     );
@@ -128,10 +128,10 @@ export class StripeClientService {
       session.status === 'expired' ||
       session.status === 'complete'
     ) {
-      return;
+      return session;
     }
 
-    await this.requestSession(
+    return this.requestSession(
       `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}/expire`,
       { method: 'POST' },
     );
