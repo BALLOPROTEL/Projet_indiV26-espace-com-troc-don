@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { CatalogModule } from './catalog/catalog.module';
+import { ConversationsModule } from './conversations/conversations.module';
 import { EventsModule } from './events/events.module';
 import { HealthModule } from './health/health.module';
 import { MarketplaceModule } from './marketplace/marketplace.module';
@@ -19,6 +20,7 @@ import { TransactionsModule } from './transactions/transactions.module';
     EventsModule,
     AuthModule,
     CatalogModule,
+    ConversationsModule,
     MarketplaceModule,
     ProposalsModule,
     TransactionsModule,
