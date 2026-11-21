@@ -125,7 +125,7 @@ export class ProductStockReservationsService {
       }
 
       const expiresAt = new Date(
-        now.getTime() + this.ttlMs(),
+        now.getTime() + this.reservationTtlMs(),
       );
 
       if (existing) {
@@ -209,7 +209,7 @@ export class ProductStockReservationsService {
         where: { id: reservation.id },
         data: {
           expiresAt: new Date(
-            Date.now() + this.ttlMs(),
+            Date.now() + this.paymentReservationTtlMs(),
           ),
         },
         include: reservationInclude,
@@ -368,18 +368,33 @@ export class ProductStockReservationsService {
     }
   }
 
-  private ttlMs(): number {
+  private reservationTtlMs(): number {
+    return this.readTtlSeconds(
+      'PRODUCT_RESERVATION_TTL_SECONDS',
+      900,
+    ) * 1000;
+  }
+
+  private paymentReservationTtlMs(): number {
+    return this.readTtlSeconds(
+      'PAYMENT_RESERVATION_TTL_SECONDS',
+      2100,
+    ) * 1000;
+  }
+
+  private readTtlSeconds(
+    key: string,
+    fallback: number,
+  ): number {
     const seconds = Number(
-      process.env.PRODUCT_RESERVATION_TTL_SECONDS ?? '2100',
+      process.env[key] ?? String(fallback),
     );
-    const safeSeconds =
-      Number.isFinite(seconds) &&
+
+    return Number.isFinite(seconds) &&
       seconds >= 60 &&
       seconds <= 3600
-        ? seconds
-        : 2100;
-
-    return safeSeconds * 1000;
+      ? seconds
+      : fallback;
   }
 
   private async withSerializableRetry<T>(
