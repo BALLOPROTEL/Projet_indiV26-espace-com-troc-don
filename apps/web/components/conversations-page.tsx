@@ -157,7 +157,6 @@ export function ConversationsPage() {
     }
 
     let active = true;
-    setLoadingList(true);
 
     void loadConversations()
       .catch((reason: unknown) => {
@@ -182,7 +181,6 @@ export function ConversationsPage() {
 
   useEffect(() => {
     if (!ready || !authenticated || !selectedId) {
-      setMessages([]);
       return;
     }
 
