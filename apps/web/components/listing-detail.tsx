@@ -17,9 +17,17 @@ import { ListingProposalForm } from './listing-proposal-form';
 import { ListingImageGallery } from './listing-image-gallery';
 import { useAuth } from './auth-provider';
 
-export function ListingDetail({ id }: { id: string }) {
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [loading, setLoading] = useState(true);
+export function ListingDetail({
+  id,
+  initialListing,
+}: {
+  id: string;
+  initialListing?: Listing;
+}) {
+  const [listing, setListing] = useState<Listing | null>(
+    initialListing ?? null,
+  );
+  const [loading, setLoading] = useState(!initialListing);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const {
@@ -50,6 +58,10 @@ export function ListingDetail({ id }: { id: string }) {
     : null;
 
   useEffect(() => {
+    if (initialListing) {
+      return;
+    }
+
     let active = true;
 
     void listingsApi
@@ -87,7 +99,7 @@ export function ListingDetail({ id }: { id: string }) {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, initialListing]);
 
   useEffect(() => {
     if (!favoriteContext || !listing) {
