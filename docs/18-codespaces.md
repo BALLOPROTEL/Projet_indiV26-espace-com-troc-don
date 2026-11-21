@@ -6,6 +6,11 @@ conteneur, avec PostgreSQL, RabbitMQ, Keycloak et MinIO.
 
 ## Démarrage
 
+> **Important :** dans GitHub Codespaces, n'utilisez pas `docker compose up` directement.
+> Le Compose générique utilise les URLs localhost prévues pour une machine locale. Utilisez
+> toujours `pnpm codespaces:up` afin de générer les URLs publiques `app.github.dev`,
+> le realm Keycloak correspondant et les bons issuers JWT.
+
 Créez un Codespace sur la branche souhaitée, puis dans le terminal :
 
 ```bash
