@@ -36,6 +36,7 @@ model CartItem {
 enum OrderStatus {
   DRAFT
   AWAITING_PAYMENT
+  PAID
   CANCELLED
   EXPIRED
 }
@@ -55,6 +56,9 @@ model Order {
   city               String
   countryCode        String
   reservationExpiresAt DateTime?
+  paymentSessionId      String?    @unique
+  paymentIntentId       String?
+  paidAt                DateTime?
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
@@ -80,4 +84,16 @@ model OrderItem {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId, createdAt])
+}
+
+
+model PaymentWebhookEvent {
+  id              String   @id @default(cuid())
+  providerEventId String   @unique @db.VarChar(255)
+  type            String   @db.VarChar(120)
+  orderId         String?  @db.VarChar(128)
+  receivedAt      DateTime @default(now())
+  processedAt     DateTime @default(now())
+
+  @@index([orderId, processedAt])
 }
