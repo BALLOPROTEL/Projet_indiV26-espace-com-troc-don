@@ -509,3 +509,20 @@ Principes :
 - la réservation L5C1 normale reste à 15 minutes ; seule la phase paiement l'étend à 35 minutes.
 
 Détail : `docs/30-l5c2-stripe-checkout.md`.
+
+
+---
+
+## Consolidation V2 — SEO, profil et conversations
+
+La branche V2 consolidée réintègre les trois chantiers historiques qui avaient divergé de la refonte #149 :
+
+- **SEO annonces** : metadata/canonical/Open Graph dynamiques, sitemap des annonces et vraie réponse 404 côté serveur ;
+- **Profil Keycloak** : prénom, nom, e-mail/vérification depuis les claims et accès à l'Account Console depuis `/parametres` ;
+- **Conversations Marketplace** : `Conversation` et `ConversationMessage` persistés, ownership requester/owner, pagination, lecture et anti-spam.
+
+Une conversation est créée atomiquement avec chaque proposition. Le message initial éventuel devient le premier message du fil.
+
+Le Gateway expose uniquement les routes authentifiées `/api/conversations...`. Un utilisateur tiers reçoit volontairement 404 afin de ne pas révéler l'existence d'une conversation privée.
+
+La page `/messages` est connectée à ces contrats. Aucun nom d'interlocuteur fictif n'est fabriqué tant qu'un contrat de profil public n'existe pas.
