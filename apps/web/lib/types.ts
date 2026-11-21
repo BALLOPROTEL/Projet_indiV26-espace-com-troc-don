@@ -256,3 +256,49 @@ export type Cart = {
   subtotalCents: number;
   hasUnavailableItems: boolean;
 };
+
+
+export type OrderStatus = 'DRAFT';
+
+export type OrderItem = {
+  id: string;
+  orderId: string;
+  productId: string;
+  variantId: string;
+  productSlug: string;
+  productName: string;
+  variantLabel: string;
+  unitPriceCents: number;
+  quantity: number;
+  lineTotalCents: number;
+  createdAt: string;
+};
+
+export type Order = {
+  id: string;
+  userId: string;
+  status: OrderStatus;
+  currency: 'EUR';
+  subtotalCents: number;
+  idempotencyKey: string;
+  recipientFirstName: string;
+  recipientLastName: string;
+  email: string;
+  addressLine1: string;
+  postalCode: string;
+  city: string;
+  countryCode: string;
+  createdAt: string;
+  updatedAt: string;
+  items: OrderItem[];
+};
+
+export type CreateOrderInput = {
+  recipientFirstName: string;
+  recipientLastName: string;
+  email: string;
+  addressLine1: string;
+  postalCode: string;
+  city: string;
+  countryCode: string;
+};
