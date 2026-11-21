@@ -198,11 +198,27 @@ export class OrdersService {
       return this.toView(order);
     }
 
+    if (order.status === 'PAID') {
+      throw new ConflictException(
+        'A paid order cannot be cancelled',
+      );
+    }
+
     if (order.status === 'AWAITING_PAYMENT') {
       if (order.paymentSessionId) {
-        await this.stripe.expireCheckoutSession(
-          order.paymentSessionId,
-        );
+        const session =
+          await this.stripe.expireCheckoutSession(
+            order.paymentSessionId,
+          );
+
+        if (
+          session.status === 'complete' &&
+          session.payment_status === 'paid'
+        ) {
+          throw new ConflictException(
+            'Payment is already completed and awaiting webhook confirmation',
+          );
+        }
       }
 
       await this.catalog.releaseStock(order.id);
@@ -302,9 +318,17 @@ export class OrdersService {
     }
 
     if (order.paymentSessionId) {
-      await this.stripe.expireCheckoutSession(
-        order.paymentSessionId,
-      );
+      const session =
+        await this.stripe.expireCheckoutSession(
+          order.paymentSessionId,
+        );
+
+      if (
+        session.status === 'complete' &&
+        session.payment_status === 'paid'
+      ) {
+        return order;
+      }
     }
 
     await this.catalog.releaseStock(order.id);
