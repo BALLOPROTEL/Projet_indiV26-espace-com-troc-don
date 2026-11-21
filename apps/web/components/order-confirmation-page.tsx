@@ -27,6 +27,8 @@ function statusLabel(status: OrderStatus) {
       return 'Brouillon';
     case 'AWAITING_PAYMENT':
       return 'Stock réservé · en attente de paiement';
+    case 'PAID':
+      return 'Paiement confirmé';
     case 'CANCELLED':
       return 'Annulée';
     case 'EXPIRED':
@@ -36,8 +38,10 @@ function statusLabel(status: OrderStatus) {
 
 export function OrderConfirmationPage({
   orderId,
+  paymentResult,
 }: {
   orderId: string | null;
+  paymentResult: 'success' | 'cancel' | null;
 }) {
   const {
     ready,
@@ -57,7 +61,9 @@ export function OrderConfirmationPage({
     message: string;
   } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [busy, setBusy] = useState<'reserve' | 'cancel' | null>(null);
+  const [busy, setBusy] = useState<
+    'reserve' | 'cancel' | 'payment' | null
+  >(null);
 
   const order =
     subject &&
@@ -123,6 +129,31 @@ export function OrderConfirmationPage({
     orderId,
     getToken,
   ]);
+
+  async function startPayment() {
+    if (!order || !orderId) {
+      return;
+    }
+
+    setActionError(null);
+    setBusy('payment');
+
+    try {
+      const token = await getToken();
+      const session = await ordersApi.paymentSession(
+        token,
+        orderId,
+      );
+      window.location.assign(session.url);
+    } catch (caught) {
+      setActionError(
+        caught instanceof Error
+          ? caught.message
+          : 'Impossible de démarrer le paiement Stripe.',
+      );
+      setBusy(null);
+    }
+  }
 
   async function runAction(
     action: 'reserve' | 'cancel',
@@ -223,9 +254,11 @@ export function OrderConfirmationPage({
         </p>
 
         <RoadmapBadge>
-          {order.status === 'AWAITING_PAYMENT'
-            ? 'STOCK RÉSERVÉ · PAIEMENT À VENIR'
-            : 'PAIEMENT NON EFFECTUÉ'}
+          {order.status === 'PAID'
+            ? 'PAIEMENT STRIPE CONFIRMÉ'
+            : order.status === 'AWAITING_PAYMENT'
+              ? 'STOCK RÉSERVÉ · STRIPE TEST'
+              : 'PAIEMENT NON EFFECTUÉ'}
         </RoadmapBadge>
 
         <div className="pm-order-confirmation__details">
@@ -267,8 +300,35 @@ export function OrderConfirmationPage({
 
         {order.status === 'AWAITING_PAYMENT' ? (
           <div className="pm-info-notice">
-            Le stock est réellement réservé dans Catalog. Aucun paiement n’a été
-            lancé : l’intégration du prestataire arrivera en L5C2.
+            Le stock est réellement réservé dans Catalog. Le paiement passe par
+            Stripe Checkout en mode test ; aucune donnée carte ne transite dans
+            l’application.
+          </div>
+        ) : null}
+
+        {order.status === 'PAID' ? (
+          <div className="pm-info-notice">
+            Le paiement Stripe a été confirmé côté serveur et la réservation de
+            stock a été commitée.
+            {order.paidAt
+              ? ` Paiement confirmé le ${dateTime(order.paidAt)}.`
+              : ''}
+          </div>
+        ) : null}
+
+        {paymentResult === 'success' &&
+        order.status !== 'PAID' ? (
+          <div className="pm-info-notice">
+            Retour Stripe reçu. La confirmation serveur est en cours ; rechargez
+            la page si le statut reste temporairement en attente.
+          </div>
+        ) : null}
+
+        {paymentResult === 'cancel' &&
+        order.status === 'AWAITING_PAYMENT' ? (
+          <div className="pm-info-notice">
+            Paiement Stripe interrompu. La commande reste en attente tant que la
+            réservation de stock est active.
           </div>
         ) : null}
 
@@ -308,9 +368,12 @@ export function OrderConfirmationPage({
             <button
               className="pm-button pm-button--orange"
               type="button"
-              disabled
+              disabled={busy !== null}
+              onClick={() => void startPayment()}
             >
-              Paiement disponible en L5C2
+              {busy === 'payment'
+                ? 'Ouverture de Stripe…'
+                : 'Payer avec Stripe (test)'}
             </button>
           ) : null}
 
