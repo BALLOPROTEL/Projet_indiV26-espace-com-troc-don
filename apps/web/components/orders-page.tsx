@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ordersApi } from '../lib/api';
-import type { Order } from '../lib/types';
+import type { Order, OrderStatus } from '../lib/types';
 import { useAuth } from './auth-provider';
 import { RoadmapBadge } from './design-system';
 
@@ -19,6 +19,19 @@ function date(value: string) {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value));
+}
+
+function statusLabel(status: OrderStatus) {
+  switch (status) {
+    case 'DRAFT':
+      return 'Brouillon';
+    case 'AWAITING_PAYMENT':
+      return 'Stock réservé';
+    case 'CANCELLED':
+      return 'Annulée';
+    case 'EXPIRED':
+      return 'Expirée';
+  }
 }
 
 export function OrdersPage() {
@@ -139,9 +152,9 @@ export function OrdersPage() {
         <div>
           <span className="pm-overline">ESPACE PERSONNEL</span>
           <h1>Mes commandes</h1>
-          <p>Historique réel des brouillons créés depuis votre panier.</p>
+          <p>Historique réel des commandes et réservations de stock.</p>
         </div>
-        <RoadmapBadge>PAIEMENT À VENIR</RoadmapBadge>
+        <RoadmapBadge>PAIEMENT L5C2 À VENIR</RoadmapBadge>
       </header>
 
       {orders.length === 0 ? (
@@ -163,7 +176,9 @@ export function OrdersPage() {
                   </span>
                   <h2>{date(order.createdAt)}</h2>
                 </div>
-                <span className="pm-order-status">Brouillon</span>
+                <span className="pm-order-status">
+                  {statusLabel(order.status)}
+                </span>
               </div>
 
               <div className="pm-order-lines">
@@ -184,6 +199,12 @@ export function OrdersPage() {
                 <div>
                   <span>Sous-total figé</span>
                   <strong>{money(order.subtotalCents, order.currency)}</strong>
+                  {order.status === 'AWAITING_PAYMENT' &&
+                  order.reservationExpiresAt ? (
+                    <small>
+                      Stock réservé jusqu’au {date(order.reservationExpiresAt)}
+                    </small>
+                  ) : null}
                 </div>
                 <Link
                   className="pm-button pm-button--outline"
