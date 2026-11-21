@@ -168,6 +168,55 @@ export class ProductStockReservationsService {
     });
   }
 
+  async extend(orderId: string) {
+    return this.withSerializableRetry(async (tx) => {
+      const reservation =
+        await tx.productStockReservation.findUnique({
+          where: { orderId },
+          include: reservationInclude,
+        });
+
+      if (!reservation) {
+        throw new NotFoundException(
+          'Stock reservation not found',
+        );
+      }
+
+      if (
+        reservation.status !==
+        ProductStockReservationStatus.ACTIVE
+      ) {
+        throw new ConflictException(
+          'Only an active reservation can be extended',
+        );
+      }
+
+      if (reservation.expiresAt <= new Date()) {
+        await this.restoreItems(tx, reservation.items);
+        await tx.productStockReservation.update({
+          where: { id: reservation.id },
+          data: {
+            status: ProductStockReservationStatus.EXPIRED,
+          },
+        });
+
+        throw new ConflictException(
+          'Stock reservation has expired',
+        );
+      }
+
+      return tx.productStockReservation.update({
+        where: { id: reservation.id },
+        data: {
+          expiresAt: new Date(
+            Date.now() + this.ttlMs(),
+          ),
+        },
+        include: reservationInclude,
+      });
+    });
+  }
+
   async release(orderId: string) {
     return this.withSerializableRetry(async (tx) => {
       const reservation =
@@ -321,14 +370,14 @@ export class ProductStockReservationsService {
 
   private ttlMs(): number {
     const seconds = Number(
-      process.env.PRODUCT_RESERVATION_TTL_SECONDS ?? '900',
+      process.env.PRODUCT_RESERVATION_TTL_SECONDS ?? '2100',
     );
     const safeSeconds =
       Number.isFinite(seconds) &&
       seconds >= 60 &&
       seconds <= 3600
         ? seconds
-        : 900;
+        : 2100;
 
     return safeSeconds * 1000;
   }
