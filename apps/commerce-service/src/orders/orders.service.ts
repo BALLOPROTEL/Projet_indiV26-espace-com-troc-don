@@ -4,7 +4,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma';
 import { CartService } from '../cart/cart.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -100,7 +99,9 @@ export class OrdersService {
       return this.toView(created);
     } catch (error) {
       if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
         error.code === 'P2002'
       ) {
         const replay = await this.findByIdempotency(
