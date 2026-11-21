@@ -341,6 +341,9 @@ services:
       KEYCLOAK_AUDIENCE: api
       CATALOG_INTERNAL_URL: http://catalog-service:3101
       INTERNAL_SERVICE_TOKEN: local_internal_change_me_2026_very_long_token
+      WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-http://localhost:3001}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       SWAGGER_ENABLED: "true"
     ports:
       - "127.0.0.1:${COMMERCE_HOST_PORT:-3104}:3104"
