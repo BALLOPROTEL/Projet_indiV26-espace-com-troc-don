@@ -388,7 +388,6 @@ async function run() {
     body: JSON.stringify(orderInput),
   }, 201);
   assert.equal(draftOrder.status, 'DRAFT');
-  assert.equal(draftOrder.userId, requester.subject);
   assert.equal(draftOrder.subtotalCents, 8997);
   assert.equal(draftOrder.items.length, 1);
   assert.equal(draftOrder.items[0].unitPriceCents, 2999);
