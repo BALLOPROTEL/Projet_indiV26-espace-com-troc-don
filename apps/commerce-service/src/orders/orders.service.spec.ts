@@ -1,0 +1,172 @@
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
+import type { CartService } from '../cart/cart.service';
+import type { PrismaService } from '../prisma/prisma.service';
+import { OrdersService } from './orders.service';
+
+describe('OrdersService', () => {
+  const prisma = {
+    order: {
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+    },
+  } as unknown as PrismaService;
+
+  const cart = {
+    get: jest.fn(),
+  } as unknown as CartService;
+
+  const service = new OrdersService(prisma, cart);
+
+  const input = {
+    recipientFirstName: 'Ada',
+    recipientLastName: 'Lovelace',
+    email: 'ADA@example.test',
+    addressLine1: '1 rue du Test',
+    postalCode: '75001',
+    city: 'Paris',
+    countryCode: 'FR',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (prisma.order.findUnique as jest.Mock).mockResolvedValue(null);
+  });
+
+  it('refuses an empty cart before writing an order', async () => {
+    (cart.get as jest.Mock).mockResolvedValue({
+      items: [],
+      currency: 'EUR',
+      subtotalCents: 0,
+      hasUnavailableItems: false,
+    });
+
+    await expect(
+      service.createDraft('user-1', 'idem-key-1', input),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.order.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses a cart containing an unavailable product', async () => {
+    (cart.get as jest.Mock).mockResolvedValue({
+      items: [{
+        productId: 'product-1',
+        variantId: 'variant-1',
+        quantity: 2,
+        productName: 'Produit',
+        productSlug: 'produit',
+        variantLabel: 'Standard',
+        currency: 'EUR',
+        unitPriceCents: 2500,
+        stock: 1,
+        available: false,
+        unavailableReason: 'INSUFFICIENT_STOCK',
+        lineTotalCents: null,
+        imageUrl: null,
+      }],
+      currency: 'EUR',
+      subtotalCents: 0,
+      hasUnavailableItems: true,
+    });
+
+    await expect(
+      service.createDraft('user-1', 'idem-key-2', input),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(prisma.order.create).not.toHaveBeenCalled();
+  });
+
+  it('freezes product and price snapshots without clearing the cart', async () => {
+    (cart.get as jest.Mock).mockResolvedValue({
+      items: [{
+        productId: 'product-1',
+        variantId: 'variant-1',
+        quantity: 2,
+        productName: 'Produit réel',
+        productSlug: 'produit-reel',
+        variantLabel: 'Standard',
+        currency: 'EUR',
+        unitPriceCents: 2599,
+        stock: 5,
+        available: true,
+        unavailableReason: null,
+        lineTotalCents: 5198,
+        imageUrl: '/api/products/product-1/images/image-1/content',
+      }],
+      currency: 'EUR',
+      subtotalCents: 5198,
+      hasUnavailableItems: false,
+    });
+    (prisma.order.create as jest.Mock).mockResolvedValue({
+      id: 'order-1',
+      userId: 'user-1',
+      status: 'DRAFT',
+      subtotalCents: 5198,
+      items: [],
+    });
+
+    await service.createDraft('user-1', 'idem-key-3', input);
+
+    expect(prisma.order.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'user-1',
+          subtotalCents: 5198,
+          email: 'ada@example.test',
+          items: {
+            create: [{
+              productId: 'product-1',
+              variantId: 'variant-1',
+              productSlug: 'produit-reel',
+              productName: 'Produit réel',
+              variantLabel: 'Standard',
+              unitPriceCents: 2599,
+              quantity: 2,
+              lineTotalCents: 5198,
+            }],
+          },
+        }),
+      }),
+    );
+  });
+
+  it('replays the same order for the same idempotency key without rereading cart state', async () => {
+    const existing = {
+      id: 'order-existing',
+      userId: 'user-1',
+      status: 'DRAFT',
+      items: [],
+    };
+    (prisma.order.findUnique as jest.Mock).mockResolvedValue(existing);
+
+    await expect(
+      service.createDraft('user-1', 'idem-key-4', input),
+    ).resolves.toBe(existing);
+
+    expect(cart.get).not.toHaveBeenCalled();
+    expect(prisma.order.create).not.toHaveBeenCalled();
+  });
+
+  it('does not expose an order owned by another user', async () => {
+    (prisma.order.findFirst as jest.Mock).mockResolvedValue(null);
+
+    await expect(
+      service.get('user-2', 'order-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.order.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'order-1',
+          userId: 'user-2',
+        },
+      }),
+    );
+  });
+});
