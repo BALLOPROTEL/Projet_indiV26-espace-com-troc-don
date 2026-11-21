@@ -87,6 +87,13 @@ export function resolveGatewayRoute(
     };
   }
 
+  if (path === '/api/payments/stripe/webhook') {
+    return {
+      target: 'commerce',
+      upstreamPath: '/payments/stripe/webhook',
+    };
+  }
+
   if (
     path === '/api/cart' ||
     path.startsWith('/api/cart/') ||
