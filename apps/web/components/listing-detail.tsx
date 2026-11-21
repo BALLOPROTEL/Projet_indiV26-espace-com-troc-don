@@ -280,11 +280,85 @@ export function ListingDetail({ id }: { id: string }) {
           </span>
 
           <h1>{listing.title}</h1>
-          {listing.availabilityStatus === 'AVAILABLE' ? (
-            <a className="listing-detail__quick-action" href="#faire-une-demande">
-              {listing.operationType === 'DONATION' ? 'Demander cet objet' : 'Proposer un troc'}
-              <span aria-hidden="true"> ↓</span>
-            </a>
+
+          <div className="listing-detail__top-actions">
+            {listing.availabilityStatus === 'AVAILABLE' ? (
+              <a className="listing-detail__quick-action" href="#faire-une-demande">
+                {listing.operationType === 'DONATION' ? 'Demander cet objet' : 'Proposer un troc'}
+                <span aria-hidden="true"> ↓</span>
+              </a>
+            ) : null}
+
+            {authReady ? (
+              <button
+                className="listing-detail__favorite"
+                type="button"
+                disabled={authenticated && (!favoriteChecked || favoriteBusy)}
+                onClick={() => void toggleFavorite()}
+              >
+                <span aria-hidden="true">{favorited ? '♥' : '♡'}</span>
+                {!authenticated
+                  ? 'Enregistrer'
+                  : favoriteBusy
+                    ? 'Mise à jour…'
+                    : favorited
+                      ? 'Retirer des favoris'
+                      : 'Ajouter aux favoris'}
+              </button>
+            ) : null}
+          </div>
+
+          <div className="listing-detail__summary">
+            <p>{listing.description}</p>
+          </div>
+
+          <dl className="listing-detail__facts">
+            <div>
+              <dt>Statut</dt>
+              <dd>
+                {listing.availabilityStatus === 'AVAILABLE'
+                  ? 'Disponible'
+                  : listing.availabilityStatus === 'RESERVED'
+                    ? 'Réservé'
+                    : 'Terminé'}
+              </dd>
+            </div>
+            <div>
+              <dt>Nature</dt>
+              <dd>{operationLabel(listing.operationType)}</dd>
+            </div>
+            {listing.operationType === 'TRADE' &&
+            listing.tradeWishes.length > 0 ? (
+              <div>
+                <dt>Souhait</dt>
+                <dd>{listing.tradeWishes[0].label}</dd>
+              </div>
+            ) : (
+              <div>
+                <dt>Modalité</dt>
+                <dd>Sans contrepartie</dd>
+              </div>
+            )}
+            <div>
+              <dt>Annonce déposée</dt>
+              <dd>{formatListingDate(listing.createdAt)}</dd>
+            </div>
+          </dl>
+
+          <div className="listing-detail__member-card">
+            <div className="listing-detail__member-avatar" aria-hidden="true">
+              PM
+            </div>
+            <div>
+              <strong>Membre de la communauté</strong>
+              <span>Annonce approuvée par la modération</span>
+            </div>
+          </div>
+
+          {favoriteError ? (
+            <p role="alert" className="notice notice--error listing-detail__favorite-error">
+              {favoriteError}
+            </p>
           ) : null}
 
           <ListingImageGallery
@@ -292,11 +366,6 @@ export function ListingDetail({ id }: { id: string }) {
             listingTitle={listing.title}
             images={listing.images}
           />
-
-          <div className="listing-detail__description">
-            <span className="eyebrow">À propos de l’objet</span>
-            <p>{listing.description}</p>
-          </div>
 
           {listing.operationType === 'TRADE' ? (
             <section className="listing-wishes">
@@ -340,57 +409,7 @@ export function ListingDetail({ id }: { id: string }) {
           </div>
         </section>
 
-        <aside className="listing-detail__note">
-          <span className="listing-detail__seal" aria-hidden="true">
-            PM
-          </span>
-          <span className="eyebrow">Annonce publiée</span>
-          <h2>Informations sur l&apos;annonce</h2>
-          <p>Cette annonce est publiée après modération. Les informations ci-dessous proviennent de sa fiche réelle.</p>
-          <div className="listing-detail__rule">
-            <span>Statut</span>
-            <strong>{listing.availabilityStatus === 'AVAILABLE' ? 'Disponible' : listing.availabilityStatus === 'RESERVED' ? 'Réservé' : 'Terminé'}</strong>
-          </div>
-          <div className="listing-detail__rule">
-            <span>Nature</span>
-            <strong>{operationLabel(listing.operationType)}</strong>
-          </div>
-          <div className="listing-detail__rule">
-            <span>Référence</span>
-            <strong>{listing.id.slice(0, 8)}</strong>
-          </div>
-          <div className="listing-detail__rule">
-            <span>Galerie</span>
-            <strong>{listing.images.length} images</strong>
-          </div>
-          {listing.operationType === 'TRADE' ? (
-            <div className="listing-detail__rule">
-              <span>Souhaits</span>
-              <strong>{listing.tradeWishes.length}</strong>
-            </div>
-          ) : null}
-          {authReady ? (
-            <button
-              className="button"
-              type="button"
-              disabled={authenticated && (!favoriteChecked || favoriteBusy)}
-              onClick={() => void toggleFavorite()}
-            >
-              {!authenticated
-                ? 'Se connecter pour enregistrer'
-                : favoriteBusy
-                  ? 'Mise à jour…'
-                  : favorited
-                    ? 'Retirer des favoris'
-                    : 'Ajouter aux favoris'}
-            </button>
-          ) : null}
-          {favoriteError ? (
-            <p role="alert" className="notice notice--error">
-              {favoriteError}
-            </p>
-          ) : null}
-        </aside>
+
       </div>
     </article>
   );
