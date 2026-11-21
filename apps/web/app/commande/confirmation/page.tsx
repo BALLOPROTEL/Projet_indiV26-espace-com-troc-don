@@ -9,9 +9,21 @@ export const metadata: Metadata = {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<{
+    id?: string;
+    payment?: string;
+  }>;
 }) {
-  const { id } = await searchParams;
+  const { id, payment } = await searchParams;
 
-  return <OrderConfirmationPage orderId={id ?? null} />;
+  return (
+    <OrderConfirmationPage
+      orderId={id ?? null}
+      paymentResult={
+        payment === 'success' || payment === 'cancel'
+          ? payment
+          : null
+      }
+    />
+  );
 }
