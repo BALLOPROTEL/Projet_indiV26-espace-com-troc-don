@@ -65,7 +65,7 @@ echo "PostgreSQL: PASS"
 "${compose[@]}" exec -T rabbitmq rabbitmq-diagnostics -q ping >/dev/null
 echo "RabbitMQ: PASS"
 
-for schema_table in 'public."Listing"' 'catalog."Listing"' 'catalog."ListingFavorite"' 'catalog."Product"' 'catalog."ProductVariant"' 'catalog."ProductImage"' 'catalog."ProductStockReservation"' 'catalog."ProductStockReservationItem"' 'marketplace."Proposal"' 'notification."notification_events"' 'commerce."Cart"' 'commerce."CartItem"' 'commerce."Order"' 'commerce."OrderItem"' 'commerce."PaymentWebhookEvent"'; do
+for schema_table in 'public."Listing"' 'catalog."Listing"' 'catalog."ListingFavorite"' 'catalog."Product"' 'catalog."ProductVariant"' 'catalog."ProductImage"' 'catalog."ProductStockReservation"' 'catalog."ProductStockReservationItem"' 'marketplace."Proposal"' 'marketplace."MarketplaceTransaction"' 'marketplace."Conversation"' 'marketplace."ConversationMessage"' 'notification."notification_events"' 'commerce."Cart"' 'commerce."CartItem"' 'commerce."Order"' 'commerce."OrderItem"' 'commerce."PaymentWebhookEvent"'; do
   exists="$("${compose[@]}" exec -T postgres psql -U app -d projet_indiv26 -Atqc "SELECT to_regclass('${schema_table}') IS NOT NULL;")"
   if [[ "${exists}" != "t" ]]; then
     echo "[FAIL] Missing migrated table: ${schema_table}"
