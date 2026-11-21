@@ -1,95 +1,249 @@
-# Projet_individuel26 — Espace communautaire de troc & don
+# La Petite Maison de l’Épouvante — plateforme 2-en-1
 
-Projet individuel pour le bloc **« Superviser et assurer le développement des applications logicielles »**. Le POC de *La Petite Maison de l'Épouvante* démontre une véritable verticale métier DON/TROC avec modération, transactions et exigences d'industrialisation.
+Projet individuel CESI — bloc **« Superviser et assurer le développement des applications logicielles »**.
 
-> **État au 18 novembre 2026 :** migration microservices M0–M10, frontend V2/V3/V4 et LOT 9B sont terminés. La recette jury finale a été exécutée avec succès sur 4 acteurs, 4 annonces et 20 médias réels ; #56 et #35 sont fermés. La dette CI ECR #80 est également fermée. La seule gate avant LOT 10 est désormais la **recette physique/accessibilité #71** (iPhone/Safari, Android/Chrome, zoom 200 %, clavier/contrastes/reduced-motion et réseau dégradé). Le POC n'est pas un service de production et n'a pas de déploiement public permanent certifié.
+La V2 fait évoluer le POC DON/TROC initial vers une plateforme **Boutique + Communauté** en architecture microservices, avec identité Keycloak, stockage MinIO, événements RabbitMQ, commerce réel et paiement Stripe Checkout en mode test.
 
-## Fonctionnalités livrées
+> **État au 21 novembre 2026 :** la V2 consolidée est en PR #166 vers `main`. La pile fonctionnelle DON/TROC, catalogue, favoris, notifications, panier, commandes et réservation de stock est implémentée. Stripe Checkout est intégré en mode test et doit encore faire l’objet d’une recette manuelle avec secrets de test avant toute activation réelle. Le projet reste un laboratoire CESI et n’est pas déclaré production-ready.
 
-- Authentification Keycloak / OIDC (Authorization Code + PKCE) et rôles `USER`, `MODERATOR`, `ADMIN`.
-- Création d'annonces DON/TROC ; galerie MinIO (5 à 8 images) ; au moins 5 souhaits pour le TROC ; validation des fichiers.
-- Modération `PENDING / APPROVED / REJECTED` distincte de la disponibilité `AVAILABLE / RESERVED / COMPLETED`.
-- Visiteur : consultation des annonces approuvées. Membre : demandes envoyées/reçues, choix de sa contrepartie TROC, comparaison et suivi.
-- Propriétaire : acceptation/refus, réservation ; double confirmation des participants et clôture transactionnelle.
-- Notification Service : événements RabbitMQ, stockage PostgreSQL et déduplication ; outbox transactionnelle sur les refus métier.
-- Tests unitaires, intégration, contrats, E2E HTTP/JWT, navigateur Chrome + comptes Keycloak, audit de dépendances et Trivy.
+## Fonctionnalités principales
 
-## Architecture microservices en place
+### Communauté DON / TROC
+
+- authentification Keycloak / OIDC Authorization Code + PKCE ;
+- rôles `USER / MODERATOR / ADMIN` ;
+- publication d’annonces DON/TROC ;
+- galerie MinIO 5 à 8 images ;
+- modération `PENDING / APPROVED / REJECTED` ;
+- disponibilité `AVAILABLE / RESERVED / COMPLETED` ;
+- propositions de don/troc ;
+- acceptation / refus ;
+- transactions avec double confirmation ;
+- favoris persistés ;
+- inbox de notifications personnelle ;
+- conversations privées requester/owner avec messages persistés, lecture et anti-spam.
+
+### Boutique / Commerce
+
+- catalogue Produit distinct des annonces DON/TROC ;
+- produits, variantes, prix, stock et images réels ;
+- administration boutique ;
+- panier utilisateur persistant ;
+- recalcul serveur des prix depuis Catalog ;
+- commandes avec snapshot prix/variante ;
+- réservation atomique de stock ;
+- annulation / expiration avec restitution ;
+- Stripe Checkout hébergé en mode test ;
+- webhook Stripe signé et idempotent ;
+- statut `PAID` uniquement après confirmation serveur.
+
+### UX / SEO
+
+- refonte visuelle issue des 24 maquettes approuvées ;
+- pages dédiées Accueil, Boutique, Échanges & dons, Fanzines et Festival ;
+- Keycloak et espaces compte alignés avec le design system ;
+- metadata annonce dynamique ;
+- canonical / Open Graph / Twitter ;
+- vraie 404 annonce ;
+- sitemap incluant les annonces publiques.
+
+## Architecture actuelle
 
 ```text
-Navigateur → Web (Next.js :3001) → API Gateway (:3000) → Catalog (:3101) → MinIO
-                                                 ├→ Marketplace (:3102) → Catalog API interne
-                                                 │                └→ RabbitMQ → Notification (:3103)
-                                                 └→ Legacy API (:3099), fallback temporaire
-Keycloak → OIDC/JWT                  PostgreSQL : ownerships public, catalog, marketplace, notification
+Navigateur
+   │
+   ▼
+Next.js Web (:3001)
+   │ /api
+   ▼
+API Gateway (:3000)
+   ├────────► Catalog (:3101)
+   │            ├─ annonces / favoris
+   │            ├─ produits / variantes / stock
+   │            └─ MinIO
+   │
+   ├────────► Marketplace (:3102)
+   │            ├─ propositions
+   │            ├─ transactions
+   │            └─ conversations privées
+   │                 │
+   │                 └─ RabbitMQ ──► Notification (:3103)
+   │
+   ├────────► Commerce (:3104)
+   │            ├─ panier
+   │            ├─ commandes
+   │            ├─ réservation stock via Catalog
+   │            └─ Stripe Checkout / webhook
+   │
+   └────────► Legacy API (:3099), fallback Strangler résiduel
+
+Keycloak : identité / JWT / RBAC
+PostgreSQL : schémas public, catalog, marketplace, notification, commerce
+Prometheus / Grafana : observabilité laboratoire
 ```
 
-- **Catalog Service** possède annonces, images, souhaits et modération ; Marketplace ne consulte ses objets que par API.
-- **Marketplace Service** possède demandes/propositions, transactions et confirmations.
-- **Notification Service** consomme RabbitMQ ; une inbox PostgreSQL et une clé `eventId` permettent de dédupliquer les réceptions.
-- **Gateway** préserve les URLs publiques `/api/...` et les jetons JWT ; le fallback Legacy reste une dette Strangler documentée.
-- **Docker Compose / Codespaces** et **Kubernetes kind/Minikube** ont des recettes et des tests CI ; observabilité Prometheus/Grafana et expérimentation JMeter/HPA.
+### Ownership métier
 
-Voir [**M10 : architecture finale et six diagrammes Mermaid**](docs/24-m10-architecture-finale.md), [exploitation et limites M10](docs/25-m10-operations-limits.md), [architecture historique](docs/01-architecture.md), [migration](docs/18-microservices-migration.md), [Kubernetes](docs/20-m7-kubernetes-microservices.md) et [workflows M9](docs/22-m9-donation-trade-workflows.md).
+- **Catalog** : annonces, images, favoris, produits, variantes, stock et réservations.
+- **Marketplace** : propositions, transactions, conversations privées.
+- **Notification** : inbox événementielle utilisateur.
+- **Commerce** : panier, commandes, cycle de paiement.
+- **Keycloak** : identité, rôles, sessions et secrets d’authentification.
 
-## Démarrer le POC dans GitHub Codespaces
+Aucun service métier ne doit importer le Prisma Client d’un autre domaine.
 
-Depuis la racine du dépôt, en vérifiant l'espace disque **avant** tout build :
+## Pages principales
+
+| Route | État |
+| --- | --- |
+| `/` | réel |
+| `/boutique` | catalogue réel |
+| `/boutique/produit/[slug]` | produit réel |
+| `/echanges` | DON/TROC réel |
+| `/annonces/[id]` | annonce réelle + SEO dynamique |
+| `/publier` | publication réelle |
+| `/messages` | conversations privées réelles |
+| `/favoris` | favoris réels |
+| `/notifications` | inbox réelle |
+| `/panier` | panier Commerce réel |
+| `/commande` | commande réelle |
+| `/commande/confirmation` | réservation / Stripe test |
+| `/mes-commandes` | historique réel |
+| `/parametres` | identité Keycloak réelle, préférences encore non persistées |
+| `/moderation` | modération réelle |
+| `/admin/boutique` | administration catalogue réelle |
+| `/fanzines` / lecteur | visuel, backend éditorial absent |
+| `/festival` | visuel, flux éditorial absent |
+| `/contact` | visuel, transmission backend absente |
+
+## Démarrage GitHub Codespaces
+
+Dans Codespaces, **ne pas utiliser `docker compose up` directement** : le Compose générique utilise des URLs localhost incompatibles avec les ports publics GitHub.
 
 ```bash
-git status
+git status --short
 df -h .
-docker system df
+
+pnpm install
 pnpm codespaces:up
 pnpm codespaces:check
 ```
 
-Ouvrir le port `3001` via l'onglet **PORTS** ; Keycloak utilise le port `8081`. Pour les journaux : `pnpm codespaces:dev` ; pour arrêter sans supprimer les volumes : `pnpm codespaces:down`.
+Ouvrir le port Web `3001` depuis l’onglet **PORTS**.
 
-La CI utilise des environnements Docker/Kind jetables pour éviter de saturer le Codespace. **Ne pas effacer les PVC ni lancer de nettoyage destructeur automatiquement.** Voir [guide Codespaces](docs/18-codespaces.md).
+Keycloak utilise le port `8081` public du Codespace. Le script `codespaces:up` génère les URLs `app.github.dev` et recrée Keycloak avec le realm adapté.
 
-## État des lots (18 novembre 2026)
+Arrêt non destructif :
 
-| Lot / jalon | Résultat |
-| --- | --- |
-| LOT 0–5 | **Terminé** — gouvernance, API, Keycloak, catalogue, modération, qualité, supply-chain |
-| LOT 6–6B | **Terminé** — Kubernetes, TLS, HPA et frontend Next.js |
-| LOT 7–9 | **Terminé** — observabilité, JMeter, sécurité et corrections |
-| LOT 9B-A/B/C | **Terminé** — règles métier, images MinIO, publication enrichie |
-| M0–M4 | **Fusionné** — extraction Catalog/Marketplace et API Gateway |
-| M5–M7 | **Fusionné** — RabbitMQ/Notification, Compose/Codespaces, Kubernetes multi-services |
-| M8 | **Fusionné** — contrats, E2E microservices, pannes et notifications durables |
-| M9 / LOT 9B-D/E | **Fusionné** — workflow DON/TROC et recette Chrome réelle, PR #54 |
-| LOT 9B-F | **TERMINÉ** — kit jury + recette finale Chrome réelle + preuves versionnées (#129/#130). #56/#35 fermés |
-| M10 | **Terminé et fusionné** (#57) — 6 schémas Mermaid, routes, sécurité, limites et runbook |
-| Frontend V2 — F0–F5 | **Terminé et fusionné** — accueil 6 annonces/page, galerie MinIO, dashboard modérateur, API ADMIN et dashboard ADMIN (PR #72–#77) |
-| Frontend V2/V3/V4 | **Code fusionné + validation desktop propriétaire acquise** — accueil, galerie, espace membre, modération, ADMIN, Keycloak et parcours UX V4. Recette physique/accessibilité encore requise (#71) |
-| F6 (facultatif) | **Backlog non bloquant** — nouvelles fonctions sans contrats backend livrés (#70) |
-| LOT 10-A/B | **Backlog bloqué par #71** — lancer #58 puis #59 après la recette physique/accessibilité |
+```bash
+pnpm codespaces:down
+```
 
-Piloter les travaux via les [issues #35](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/35), [#44](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/44), [#18](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/18), et les tâches [#55](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55), [#56](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/56), [#57](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/57), [#58](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58) et [#59](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59).
+## Stripe en mode test
 
-## Preuves récentes vérifiées
+Le Web ne contient aucune clé Stripe.
 
-- M9 fusionné dans `main` : [PR #54](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/54) ; commit de merge [`d29d499`](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/commit/d29d4997c70f10594fc137f66361fbc46698b269).
-- Sur le dernier HEAD M9 `7a5e353` : [Bootstrap CI](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618276), [Contrats](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618272), [E2E Chrome](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618298) et [Web](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38090618285) : **4/4 SUCCESS**.
-- Sur `main` après fusion : [Bootstrap CI #38091686672](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38091686672) **SUCCESS**, y compris tests, Compose, Kubernetes kind, Trivy et publication GHCR.
-- [PR #61](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/pull/61) : [Bootstrap #38313602241](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38313602241) et [E2E Chrome #38313602213](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/actions/runs/38313602213) SUCCESS sur le dernier HEAD revu par Codex. Les 35 captures M9/9B-F sont archivées indépendamment dans la bibliothèque privée ChatGPT. Les anciennes preuves M9 (16 PNG) le sont aussi.
-- Kit jury final : PR #125 (provenance), #126 (20 médias autorisés + `READY_FOR_REVIEW`) et #127 (compte rendu/runbook) fusionnées les 18/11 ; Jury offline #52, Bootstrap #545/#546/#547 et Codex des HEAD correspondants réussis.
+Variables serveur :
 
-## Qualité, performance et limites
+```bash
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
 
-Le seuil de couverture métier, les validations lint/typecheck et les gates de sécurité sont exécutés en CI. La mesure de laboratoire M7 a observé un **p95 de 399 ms**, environ **0,067 % d'erreurs** et un HPA Gateway **1→4 réplicas** ; ce ne sont pas des garanties de production.
+Ne jamais versionner ces valeurs.
 
-Risques résiduels documentés : absence de NetworkPolicy Kubernetes et de rate limiting distribué, images tierces pas toutes épinglées par digest, fallback legacy encore présent, effets externes SMS/e-mail non garantis exactly-once. Pas de paiement réel, de chat complet ni de certification RGAA exhaustive.
+Flux :
 
-## Suite du projet — 18 novembre 2026
+```text
+DRAFT
+  -> réservation Catalog
+AWAITING_PAYMENT
+  -> Stripe Checkout
+  -> webhook signé
+  -> commit de réservation
+PAID
+```
 
-1. **[#71 — recette physique/accessibilité](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/71)** : terminer les contrôles physiques/manuels (iPhone/Safari, Android/Chrome, zoom navigateur 200 %, clavier + contrastes + `prefers-reduced-motion`, réseau dégradé). La PR #134 ajoute des preuves Chrome supplémentaires pour reduced-motion, Slow 3G et un proxy de mise en page équivalent zoom.
-2. **[#55 — GitHub Projects V2](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/55)** : seul le déplacement visuel des cartes reste manuel ; branches et PR sont nettoyées.
-3. **[#58 — LOT 10-A](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/58)** : dossier de preuves après fermeture de #71.
-4. **[#59 — LOT 10-B](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/59)** : support 20 min, répétition chronométrée et vidéo de secours après #58.
-5. **Post-MVP :** #70 et l'Epic #110 avec #111–#115 restent en Backlog et ne bloquent pas le jury.
+Le retour navigateur Stripe n’est **jamais** utilisé comme preuve de paiement ; seul le webhook signé peut passer une commande à `PAID`.
 
-LOT 9B (#35/#56), le bug Keycloak #98 et la dette CI #80 sont fermés. Le tag `baseline-2026-10-19` reste le snapshot historique. Aucune Release finale n'est publiée tant que #71 n'est pas close.
-**Règle de travail :** issue → branche → CI → revue Codex → **accord explicite du propriétaire** → fusion manuelle. Ne jamais activer l'auto-merge. Après lancement de CI, transmettre immédiatement les liens et laisser la conversation disponible ; reprendre le suivi à la demande. Ne jamais nettoyer les volumes Codespaces sans autorisation explicite.
+## CI / certification
+
+Workflows principaux :
+
+- Bootstrap CI ;
+- M8 Microservices Contracts ;
+- M8 Real Microservice E2E Integration ;
+- M9 Web Donation Trade Quality ;
+- Jury final browser recette ;
+- Jury demo offline validation ;
+- Jury assets acquisition.
+
+Les gates couvrent notamment :
+
+- lint / typecheck / tests unitaires ;
+- Prisma migrations ;
+- intégration PostgreSQL ;
+- Gateway / Catalog / Marketplace / Notification / Commerce ;
+- RabbitMQ ;
+- Docker Compose ;
+- Kubernetes kind/Minikube de laboratoire ;
+- navigateur Chrome réel ;
+- audit de dépendances ;
+- Trivy HIGH/CRITICAL ;
+- tests DON/TROC, RBAC et conversations privées.
+
+## État GitHub V2
+
+La V2 est consolidée dans la PR **#166**.
+
+Les anciennes PR #146 (SEO), #147 (profil) et #148 (conversations) ont divergé de la refonte ; leurs capacités utiles ont été portées manuellement dans la branche de consolidation au lieu d’être fusionnées aveuglément.
+
+La pile #150 → #164 reste historique tant que #166 n’est pas validée et intégrée.
+
+**Aucune fusion et aucun auto-merge sans accord explicite du propriétaire.**
+
+## Limites assumées
+
+Le projet est démontrable mais n’est pas une cible production complète.
+
+Restent notamment :
+
+- PostgreSQL partagé et principaux SQL insuffisamment isolés ;
+- Legacy API encore présente ;
+- outbox non généralisée à tous les événements ;
+- absence de NetworkPolicy et mTLS ;
+- rate limiting distribué incomplet ;
+- HA / sauvegardes production non démontrées ;
+- observabilité principalement centrée sur Gateway ;
+- Fanzines / Festival sans backend éditorial ;
+- Contact sans backend ;
+- préférences utilisateur non persistées ;
+- conformité légale / RGPD #112 à finaliser avant publication publique ;
+- Stripe uniquement en mode test à ce stade.
+
+## Documentation de référence
+
+- [Architecture finale M10](docs/24-m10-architecture-finale.md)
+- [Runbook et limites](docs/25-m10-operations-limits.md)
+- [Codespaces](docs/18-codespaces.md)
+- [Commerce panier](docs/27-l5a-commerce-cart.md)
+- [Commandes](docs/28-l5b-order-drafts.md)
+- [Réservation stock](docs/29-l5c1-stock-reservations.md)
+- [Stripe Checkout](docs/30-l5c2-stripe-checkout.md)
+- [Couverture des 24 écrans](docs/design/plateforme-2-en-1/L0-SCREEN-COVERAGE.md)
+- [Dossier preuves jury](docs/33-dossier-preuves-jury-2026-11-18.md)
+- [Soutenance 20 minutes](docs/34-soutenance-jury-20min.md)
+
+## Règle de travail
+
+```text
+issue
+  -> branche
+  -> implémentation
+  -> CI
+  -> recette
+  -> accord explicite propriétaire
+  -> fusion manuelle
+```
+
+Ne jamais relancer une CI en échec sans investigation de la cause racine et ne jamais bloquer le travail indépendant en attendant une CI longue.
