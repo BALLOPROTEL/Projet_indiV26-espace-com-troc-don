@@ -37,6 +37,6 @@ export class CreateOrderDto {
   city!: string;
 
   @IsString()
-  @Matches(/^[A-Z]{2}$/)
+  @Matches(/^[A-Za-z]{2}$/)
   countryCode!: string;
 }
