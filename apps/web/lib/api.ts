@@ -196,6 +196,17 @@ export const ordersApi = {
       token,
     ),
 
+  paymentSession: (token: string, id: string) =>
+    request<{
+      sessionId: string;
+      url: string;
+      expiresAt: string;
+    }>(
+      `/orders/${encodeURIComponent(id)}/payment-session`,
+      { method: 'POST' },
+      token,
+    ),
+
   byId: (token: string, id: string) =>
     request<Order>(
       `/orders/${encodeURIComponent(id)}`,
