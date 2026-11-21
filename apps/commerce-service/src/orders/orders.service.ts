@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CartService } from '../cart/cart.service';
+import { CatalogClientService } from '../catalog/catalog-client.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 
@@ -13,6 +14,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cart: CartService,
+    private readonly catalog: CatalogClientService,
   ) {}
 
   async createDraft(
@@ -117,6 +119,105 @@ export class OrdersService {
     }
   }
 
+  async reserve(
+    userId: string,
+    id: string,
+  ) {
+    const order = await this.requireOwned(userId, id);
+
+    if (order.status === 'AWAITING_PAYMENT') {
+      if (
+        order.reservationExpiresAt &&
+        order.reservationExpiresAt > new Date()
+      ) {
+        return this.toView(order);
+      }
+
+      return this.toView(
+        await this.reconcileExpiration(order),
+      );
+    }
+
+    if (order.status !== 'DRAFT') {
+      throw new ConflictException(
+        'Only a draft order can reserve stock',
+      );
+    }
+
+    const reservation = await this.catalog.reserveStock(
+      order.id,
+      order.items.map((item) => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+      })),
+    );
+
+    try {
+      const updated = await this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'AWAITING_PAYMENT',
+          reservationExpiresAt: new Date(
+            reservation.expiresAt,
+          ),
+        },
+        include: {
+          items: {
+            orderBy: [
+              { createdAt: 'asc' },
+              { id: 'asc' },
+            ],
+          },
+        },
+      });
+
+      return this.toView(updated);
+    } catch (error) {
+      try {
+        await this.catalog.releaseStock(order.id);
+      } catch {
+        // Best-effort compensation. A retry can reconcile later.
+      }
+      throw error;
+    }
+  }
+
+  async cancel(
+    userId: string,
+    id: string,
+  ) {
+    const order = await this.requireOwned(userId, id);
+
+    if (
+      order.status === 'CANCELLED' ||
+      order.status === 'EXPIRED'
+    ) {
+      return this.toView(order);
+    }
+
+    if (order.status === 'AWAITING_PAYMENT') {
+      await this.catalog.releaseStock(order.id);
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: 'CANCELLED',
+      },
+      include: {
+        items: {
+          orderBy: [
+            { createdAt: 'asc' },
+            { id: 'asc' },
+          ],
+        },
+      },
+    });
+
+    return this.toView(updated);
+  }
+
   async list(userId: string) {
     const orders = await this.prisma.order.findMany({
       where: { userId },
@@ -134,10 +235,26 @@ export class OrdersService {
       ],
     });
 
-    return orders.map((order) => this.toView(order));
+    const reconciled = await Promise.all(
+      orders.map((order) =>
+        this.reconcileExpiration(order),
+      ),
+    );
+
+    return reconciled.map((order) => this.toView(order));
   }
 
   async get(userId: string, id: string) {
+    const order = await this.requireOwned(userId, id);
+    const reconciled = await this.reconcileExpiration(order);
+
+    return this.toView(reconciled);
+  }
+
+  private async requireOwned(
+    userId: string,
+    id: string,
+  ) {
     const order = await this.prisma.order.findFirst({
       where: {
         id,
@@ -157,7 +274,40 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    return this.toView(order);
+    return order;
+  }
+
+  private async reconcileExpiration<
+    T extends {
+      id: string;
+      status: string;
+      reservationExpiresAt: Date | null;
+    },
+  >(order: T): Promise<T> {
+    if (
+      order.status !== 'AWAITING_PAYMENT' ||
+      !order.reservationExpiresAt ||
+      order.reservationExpiresAt > new Date()
+    ) {
+      return order;
+    }
+
+    await this.catalog.releaseStock(order.id);
+
+    return this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: 'EXPIRED',
+      },
+      include: {
+        items: {
+          orderBy: [
+            { createdAt: 'asc' },
+            { id: 'asc' },
+          ],
+        },
+      },
+    }) as Promise<T>;
   }
 
   private toView<
