@@ -147,7 +147,11 @@ describe('OrdersService', () => {
 
     await expect(
       service.createDraft('user-1', 'idem-key-4', input),
-    ).resolves.toBe(existing);
+    ).resolves.toEqual({
+      id: 'order-existing',
+      status: 'DRAFT',
+      items: [],
+    });
 
     expect(cart.get).not.toHaveBeenCalled();
     expect(prisma.order.create).not.toHaveBeenCalled();
