@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import type { CartService } from '../cart/cart.service';
 import type { CatalogClientService } from '../catalog/catalog-client.service';
+import type { StripeClientService } from '../payments/stripe-client.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import { OrdersService } from './orders.service';
 
@@ -28,7 +29,16 @@ describe('OrdersService', () => {
     releaseStock: jest.fn(),
   } as unknown as CatalogClientService;
 
-  const service = new OrdersService(prisma, cart, catalog);
+  const stripe = {
+    expireCheckoutSession: jest.fn(),
+  } as unknown as StripeClientService;
+
+  const service = new OrdersService(
+    prisma,
+    cart,
+    catalog,
+    stripe,
+  );
 
   const input = {
     recipientFirstName: 'Ada',
