@@ -2,6 +2,47 @@
 
 Cette page relie le cadrage technique au backlog GitHub.
 
+## État courant — 21 novembre 2026
+
+La trajectoire historique LOT 0–10 reste conservée ci-dessous, mais le développement actif a évolué vers la **V2 plateforme 2-en-1**.
+
+### Candidate actuelle
+
+- **PR #166 — consolidation V2 vers `main`** ;
+- branche : `chore/165-v2-consolidation` ;
+- base fonctionnelle : refonte 24 écrans + DON/TROC + Boutique + Commerce + Stripe test ;
+- réconciliation manuelle de #146 SEO, #147 profil Keycloak et #148 conversations privées ;
+- aucune fusion sans accord explicite propriétaire.
+
+### Fonctionnalités V2 livrées dans la candidate
+
+- [x] refonte visuelle 24 écrans / design system ;
+- [x] DON/TROC, modération, transactions, double confirmation ;
+- [x] favoris persistés ;
+- [x] notifications personnelles ;
+- [x] profil Keycloak enrichi et Account Console ;
+- [x] conversations privées Marketplace + UI `/messages` ;
+- [x] catalogue Produit / variantes / images / admin ;
+- [x] panier Commerce ;
+- [x] commandes et historique ;
+- [x] réservation atomique de stock ;
+- [x] Stripe Checkout test + webhook signé ;
+- [x] SEO dynamique des annonces.
+
+### Restes prioritaires
+
+1. certifier #166 avec les workflows complets vers `main` ;
+2. recette manuelle Stripe test de bout en bout ;
+3. consolidation / fermeture des anciennes PR empilées après validation ;
+4. mise à jour finale issues/Kanban/branches ;
+5. conformité légale #112 avant publication publique ;
+6. backend Contact si retenu ;
+7. backend éditorial Fanzines/Festival si retenu ;
+8. préférences applicatives utilisateur si retenues ;
+9. tag/release V2 après validation finale.
+
+Les éléments de production avancée (NetworkPolicy, rôles SQL distincts, HA, sauvegardes, outbox généralisée, observabilité multi-services) restent des axes d’industrialisation et non des preuves acquises.
+
 ## LOT 0 — Initialisation
 
 Epic : [#19](https://github.com/BALLOPROTEL/Projet_indiV26-espace-com-troc-don/issues/19)
