@@ -142,3 +142,38 @@ model ProductImage {
   @@unique([productId, position])
   @@index([productId])
 }
+
+
+enum ProductStockReservationStatus {
+  ACTIVE
+  RELEASED
+  EXPIRED
+  COMMITTED
+}
+
+model ProductStockReservation {
+  id        String                        @id @default(cuid())
+  orderId   String                        @unique @db.VarChar(128)
+  status    ProductStockReservationStatus @default(ACTIVE)
+  expiresAt DateTime
+  createdAt DateTime                      @default(now())
+  updatedAt DateTime                      @updatedAt
+
+  items ProductStockReservationItem[]
+
+  @@index([status, expiresAt])
+}
+
+model ProductStockReservationItem {
+  id            String   @id @default(cuid())
+  reservationId String
+  productId     String
+  variantId     String
+  quantity      Int
+  createdAt     DateTime @default(now())
+
+  reservation ProductStockReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@unique([reservationId, variantId])
+  @@index([reservationId, createdAt])
+}
