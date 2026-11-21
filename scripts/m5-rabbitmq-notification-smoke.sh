@@ -150,6 +150,11 @@ const { TransactionsService } =
           proposalId: { in: old.map((item) => item.id) },
         },
       });
+      await prisma.conversation.deleteMany({
+        where: {
+          proposalId: { in: old.map((item) => item.id) },
+        },
+      });
       await prisma.proposal.deleteMany({
         where: {
           id: { in: old.map((item) => item.id) },
@@ -283,6 +288,11 @@ const { PrismaClient } = require('./generated/prisma');
 
     if (proposals.length > 0) {
       await prisma.marketplaceTransaction.deleteMany({
+        where: {
+          proposalId: { in: proposals.map((item) => item.id) },
+        },
+      });
+      await prisma.conversation.deleteMany({
         where: {
           proposalId: { in: proposals.map((item) => item.id) },
         },
