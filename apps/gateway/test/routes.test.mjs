@@ -59,6 +59,13 @@ test('routes Marketplace public contracts', () => {
       upstreamPath: '/transactions/tx-1/confirm',
     },
   );
+  assert.deepEqual(
+    resolveGatewayRoute('/api/conversations/conversation-1/messages?limit=20'),
+    {
+      target: 'marketplace',
+      upstreamPath: '/conversations/conversation-1/messages?limit=20',
+    },
+  );
 });
 
 test('routes explicit cart and order contracts to Commerce', () => {
