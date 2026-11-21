@@ -102,7 +102,8 @@
     "commerce:prisma:validate": "pnpm --filter commerce-service prisma:validate",
     "commerce:migrate:deploy": "pnpm --filter commerce-service prisma:migrate:deploy",
     "commerce:test": "pnpm --filter commerce-service test",
-    "commerce:quality": "pnpm commerce:prisma:validate && pnpm --filter commerce-service typecheck && pnpm commerce:test && pnpm --filter commerce-service build"
+    "commerce:quality": "pnpm commerce:prisma:validate && pnpm --filter commerce-service typecheck && pnpm commerce:test && pnpm --filter commerce-service build",
+    "web:seo:runtime": "node apps/web/scripts/seo-runtime-smoke.mjs"
   },
   "pnpm": {
     "overrides": {
