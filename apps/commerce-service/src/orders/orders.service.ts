@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { CartService } from '../cart/cart.service';
 import { CatalogClientService } from '../catalog/catalog-client.service';
+import { StripeClientService } from '../payments/stripe-client.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 
@@ -15,6 +16,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly cart: CartService,
     private readonly catalog: CatalogClientService,
+    private readonly stripe: StripeClientService,
   ) {}
 
   async createDraft(
@@ -197,6 +199,12 @@ export class OrdersService {
     }
 
     if (order.status === 'AWAITING_PAYMENT') {
+      if (order.paymentSessionId) {
+        await this.stripe.expireCheckoutSession(
+          order.paymentSessionId,
+        );
+      }
+
       await this.catalog.releaseStock(order.id);
     }
 
@@ -282,6 +290,7 @@ export class OrdersService {
       id: string;
       status: string;
       reservationExpiresAt: Date | null;
+      paymentSessionId?: string | null;
     },
   >(order: T): Promise<T> {
     if (
@@ -290,6 +299,12 @@ export class OrdersService {
       order.reservationExpiresAt > new Date()
     ) {
       return order;
+    }
+
+    if (order.paymentSessionId) {
+      await this.stripe.expireCheckoutSession(
+        order.paymentSessionId,
+      );
     }
 
     await this.catalog.releaseStock(order.id);
@@ -316,15 +331,30 @@ export class OrdersService {
     T extends {
       userId: string;
       idempotencyKey: string;
+      paymentSessionId?: string | null;
+      paymentIntentId?: string | null;
     },
-  >(order: T): Omit<T, 'userId' | 'idempotencyKey'> {
+  >(
+    order: T,
+  ): Omit<
+    T,
+    | 'userId'
+    | 'idempotencyKey'
+    | 'paymentSessionId'
+    | 'paymentIntentId'
+  > {
     const view = { ...order } as Record<string, unknown>;
     delete view.userId;
     delete view.idempotencyKey;
+    delete view.paymentSessionId;
+    delete view.paymentIntentId;
 
     return view as unknown as Omit<
       T,
-      'userId' | 'idempotencyKey'
+      | 'userId'
+      | 'idempotencyKey'
+      | 'paymentSessionId'
+      | 'paymentIntentId'
     >;
   }
 
