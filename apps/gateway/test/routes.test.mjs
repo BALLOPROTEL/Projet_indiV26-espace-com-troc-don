@@ -61,7 +61,7 @@ test('routes Marketplace public contracts', () => {
   );
 });
 
-test('routes only the cart contract to Commerce', () => {
+test('routes explicit cart and order contracts to Commerce', () => {
   assert.deepEqual(resolveGatewayRoute('/api/cart'), {
     target: 'commerce',
     upstreamPath: '/cart',
@@ -70,7 +70,14 @@ test('routes only the cart contract to Commerce', () => {
     target: 'commerce',
     upstreamPath: '/cart/items/variant-1',
   });
-  assert.equal(resolveGatewayRoute('/api/orders'), null);
+  assert.deepEqual(resolveGatewayRoute('/api/orders'), {
+    target: 'commerce',
+    upstreamPath: '/orders',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/orders/order-1'), {
+    target: 'commerce',
+    upstreamPath: '/orders/order-1',
+  });
   assert.equal(resolveGatewayRoute('/api/checkout'), null);
 });
 
