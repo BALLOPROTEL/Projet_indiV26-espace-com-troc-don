@@ -373,7 +373,15 @@ export function NotificationsPlaceholderPage() {
 }
 
 export function SettingsPlaceholderPage() {
-  const { username, email, roles } = useAuth();
+  const {
+    username,
+    firstName,
+    lastName,
+    email,
+    emailVerified,
+    roles,
+    manageAccount,
+  } = useAuth();
 
   return (
     <PendingAccountShell view="settings">
@@ -389,14 +397,34 @@ export function SettingsPlaceholderPage() {
 
         <div className="pm-settings-form" aria-label="Profil Keycloak et préférences">
           <label>
-            <span>Compte connecté</span>
-            <input value={username ?? 'Compte Keycloak'} readOnly />
+            <span>Identité</span>
+            <input
+              value={
+                [firstName, lastName].filter(Boolean).join(' ') ||
+                username ||
+                'Compte Keycloak'
+              }
+              readOnly
+            />
           </label>
           <label>
             <span>Adresse e-mail</span>
             <input
               value={email ?? ''}
               placeholder="Non exposée par le jeton Keycloak"
+              readOnly
+            />
+          </label>
+          <label>
+            <span>Vérification e-mail</span>
+            <input
+              value={
+                emailVerified === true
+                  ? 'Adresse vérifiée'
+                  : emailVerified === false
+                    ? 'Adresse non vérifiée'
+                    : 'Information indisponible'
+              }
               readOnly
             />
           </label>
@@ -415,6 +443,14 @@ export function SettingsPlaceholderPage() {
               readOnly
             />
           </label>
+
+          <button
+            className="pm-button pm-button--navy"
+            type="button"
+            onClick={() => void manageAccount()}
+          >
+            Gérer mon compte sécurisé
+          </button>
 
           <h3>Préférences de notifications</h3>
           <p className="pm-settings-hint">
