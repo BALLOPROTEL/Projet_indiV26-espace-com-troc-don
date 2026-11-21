@@ -409,6 +409,79 @@ async function run() {
     headers: auth(owner),
   }, 404);
 
+  const reservedOrder = await request(
+    gateway,
+    '/api/orders/' + draftOrder.id + '/reserve',
+    {
+      method: 'POST',
+      headers: auth(requester),
+    },
+    201,
+  );
+  assert.equal(reservedOrder.status, 'AWAITING_PAYMENT');
+  assert.equal(typeof reservedOrder.reservationExpiresAt, 'string');
+
+  const productDuringReservation = await request(
+    gateway,
+    '/api/products/' + productSlug,
+    {},
+    200,
+  );
+  assert.equal(
+    productDuringReservation.variants[0].stock,
+    2,
+    'Reserving quantity 3 from stock 5 must leave stock 2',
+  );
+
+  const replayedReservation = await request(
+    gateway,
+    '/api/orders/' + draftOrder.id + '/reserve',
+    {
+      method: 'POST',
+      headers: auth(requester),
+    },
+    201,
+  );
+  assert.equal(
+    replayedReservation.reservationExpiresAt,
+    reservedOrder.reservationExpiresAt,
+  );
+
+  const productAfterReservationReplay = await request(
+    gateway,
+    '/api/products/' + productSlug,
+    {},
+    200,
+  );
+  assert.equal(
+    productAfterReservationReplay.variants[0].stock,
+    2,
+    'Reservation replay must not decrement stock twice',
+  );
+
+  const cancelledOrder = await request(
+    gateway,
+    '/api/orders/' + draftOrder.id + '/cancel',
+    {
+      method: 'POST',
+      headers: auth(requester),
+    },
+    201,
+  );
+  assert.equal(cancelledOrder.status, 'CANCELLED');
+
+  const productAfterReservationCancel = await request(
+    gateway,
+    '/api/products/' + productSlug,
+    {},
+    200,
+  );
+  assert.equal(
+    productAfterReservationCancel.variants[0].stock,
+    5,
+    'Cancelling an awaiting order must restore reserved stock',
+  );
+
   const requesterOrders = await request(gateway, '/api/orders', {
     headers: auth(requester),
   }, 200);
