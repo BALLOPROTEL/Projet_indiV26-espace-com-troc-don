@@ -165,13 +165,14 @@ export class OrdersService {
       idempotencyKey: string;
     },
   >(order: T): Omit<T, 'userId' | 'idempotencyKey'> {
-    const {
-      userId: _userId,
-      idempotencyKey: _idempotencyKey,
-      ...view
-    } = order;
+    const view = { ...order } as Record<string, unknown>;
+    delete view.userId;
+    delete view.idempotencyKey;
 
-    return view;
+    return view as unknown as Omit<
+      T,
+      'userId' | 'idempotencyKey'
+    >;
   }
 
   private findByIdempotency(
