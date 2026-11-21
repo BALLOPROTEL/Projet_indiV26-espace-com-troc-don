@@ -1,4 +1,3 @@
-import { ConfigService } from '@nestjs/config';
 import type { CatalogClientService } from '../catalog/catalog-client.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from './payments.service';
