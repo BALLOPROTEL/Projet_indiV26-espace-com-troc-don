@@ -30,6 +30,9 @@ describe('ProposalsService', () => {
   const transactionApi = {
     create: jest.fn(),
   };
+  const conversationApi = {
+    create: jest.fn(),
+  };
   const outboxApi = {
     create: jest.fn(),
     createMany: jest.fn(),
@@ -37,6 +40,7 @@ describe('ProposalsService', () => {
   const tx = {
     proposal: proposalApi,
     marketplaceTransaction: transactionApi,
+    conversation: conversationApi,
     marketplaceOutboxEvent: outboxApi,
   };
   const prisma = {
@@ -101,6 +105,9 @@ describe('ProposalsService', () => {
       id: 'tx-1',
       ...data,
     }));
+    conversationApi.create.mockResolvedValue({
+      id: 'conversation-1',
+    });
     (catalog.reserveListing as jest.Mock).mockResolvedValue({});
     (catalog.releaseListing as jest.Mock).mockResolvedValue({});
     (events.publish as jest.Mock).mockResolvedValue(true);
@@ -126,6 +133,19 @@ describe('ProposalsService', () => {
       },
     });
     expect(result.id).toBe('proposal-1');
+    expect(conversationApi.create).toHaveBeenCalledWith({
+      data: {
+        proposalId: 'proposal-1',
+        ownerId: 'owner-1',
+        requesterId: 'requester-1',
+        messages: {
+          create: {
+            senderId: 'requester-1',
+            body: 'Je suis intéressé.',
+          },
+        },
+      },
+    });
     expect(events.publish).toHaveBeenCalledWith(
       'proposal.created',
       expect.objectContaining({
