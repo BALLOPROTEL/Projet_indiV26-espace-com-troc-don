@@ -158,7 +158,8 @@ export function ConversationsPage() {
 
     let active = true;
 
-    void loadConversations()
+    void Promise.resolve()
+      .then(() => loadConversations())
       .catch((reason: unknown) => {
         if (active) {
           setError(
@@ -184,7 +185,9 @@ export function ConversationsPage() {
       return;
     }
 
-    void loadThread(selectedId);
+    void Promise.resolve().then(() =>
+      loadThread(selectedId),
+    );
   }, [
     ready,
     authenticated,
