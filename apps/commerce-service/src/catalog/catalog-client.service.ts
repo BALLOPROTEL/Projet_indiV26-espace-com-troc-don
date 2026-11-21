@@ -102,6 +102,15 @@ export class CatalogClientService {
     );
   }
 
+  async extendStock(
+    orderId: string,
+  ): Promise<CatalogStockReservation> {
+    return this.requestReservation(
+      `/internal/product-stock-reservations/${encodeURIComponent(orderId)}/extend`,
+      { method: 'POST' },
+    );
+  }
+
   async releaseStock(
     orderId: string,
   ): Promise<CatalogStockReservation> {
