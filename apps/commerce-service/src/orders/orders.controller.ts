@@ -45,6 +45,34 @@ export class OrdersController {
     );
   }
 
+  @Post(':id/reserve')
+  @ApiOperation({
+    summary: 'Réserver réellement le stock avant paiement',
+  })
+  reserve(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.orders.reserve(
+      this.subject(request),
+      id,
+    );
+  }
+
+  @Post(':id/cancel')
+  @ApiOperation({
+    summary: 'Annuler la commande et libérer le stock réservé',
+  })
+  cancel(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.orders.cancel(
+      this.subject(request),
+      id,
+    );
+  }
+
   @Get()
   @ApiOperation({
     summary: 'Lister les commandes du compte connecté',
