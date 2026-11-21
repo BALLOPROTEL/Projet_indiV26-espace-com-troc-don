@@ -3129,3 +3129,205 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Screen 07 — prototype-faithful community announcement cards. */
+.pm-exchange-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dce4ea;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 5px 18px rgba(23, 50, 77, .045);
+}
+
+.pm-exchange-card__link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.pm-exchange-card__visual {
+  position: relative;
+  min-height: 210px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 78% 68%, transparent 0 54px, rgba(255,255,255,.13) 55px 56px, transparent 57px),
+    linear-gradient(135deg, #44336f, #9360bd);
+}
+
+.pm-exchange-card__visual--donation {
+  background:
+    radial-gradient(circle at 78% 68%, transparent 0 54px, rgba(255,255,255,.13) 55px 56px, transparent 57px),
+    linear-gradient(135deg, #127d78, #2eb7a9);
+}
+
+.pm-exchange-card__visual img {
+  width: 100%;
+  height: 210px;
+  display: block;
+  object-fit: cover;
+  transition: transform .22s ease;
+}
+
+.pm-exchange-card__badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  min-height: 27px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.96);
+  color: var(--pm-navy);
+  padding: 5px 9px;
+  box-shadow: 0 2px 8px rgba(23,50,77,.1);
+  font-size: .56rem;
+  font-weight: 900;
+  letter-spacing: .025em;
+}
+
+.pm-exchange-card__fallback {
+  height: 210px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  color: rgba(255,255,255,.96);
+}
+
+.pm-exchange-card__fallback > span {
+  font-size: 3rem;
+  line-height: 1;
+  filter: drop-shadow(0 4px 10px rgba(23,50,77,.16));
+}
+
+.pm-exchange-card__fallback > strong {
+  transform: rotate(-8deg);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.8rem, 4vw, 2.7rem);
+  letter-spacing: .04em;
+  text-shadow: 0 3px 8px rgba(23,50,77,.22);
+}
+
+.pm-exchange-card__body {
+  padding: 15px 16px 0;
+}
+
+.pm-exchange-card__eyebrow {
+  display: block;
+  margin-bottom: 7px;
+  color: #11877d;
+  font-size: .58rem;
+  font-weight: 900;
+  letter-spacing: .075em;
+  text-transform: uppercase;
+}
+
+.pm-exchange-card h3 {
+  margin: 0;
+  color: var(--pm-navy);
+  font-size: 1rem;
+  font-weight: 850;
+  letter-spacing: -.02em;
+  line-height: 1.32;
+}
+
+.pm-exchange-card__helper {
+  min-height: 1.2em;
+  margin: 7px 0 4px;
+  color: #6d7887;
+  font-size: .72rem;
+  line-height: 1.45;
+}
+
+.pm-exchange-card__date {
+  margin: 0 0 13px;
+  color: #8a95a2;
+  font-size: .66rem;
+}
+
+.pm-exchange-card__footer {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid #edf1f4;
+}
+
+.pm-exchange-card__member {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #7c8794;
+  font-size: .65rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pm-exchange-card__member > span {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e5f6f2;
+  color: #16877c;
+  font-size: .55rem;
+}
+
+.pm-exchange-card__cta {
+  flex: none;
+  color: #0f8a7f;
+  font-size: .68rem;
+  font-weight: 850;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pm-exchange-card:hover {
+    border-color: #cbd8df;
+    box-shadow: 0 10px 26px rgba(23, 50, 77, .08);
+  }
+
+  .pm-exchange-card:hover .pm-exchange-card__visual img {
+    transform: scale(1.025);
+  }
+
+  .pm-exchange-card:hover .pm-exchange-card__cta {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .pm-exchange-card__member {
+    max-width: 145px;
+  }
+}
+
+@media (max-width: 860px) {
+  .pm-exchange-card__visual,
+  .pm-exchange-card__fallback,
+  .pm-exchange-card__visual img {
+    height: 195px;
+    min-height: 195px;
+  }
+}
+
+@media (max-width: 560px) {
+  .pm-exchange-card__visual,
+  .pm-exchange-card__fallback,
+  .pm-exchange-card__visual img {
+    height: 220px;
+    min-height: 220px;
+  }
+
+  .pm-exchange-card__member {
+    max-width: none;
+  }
+}
