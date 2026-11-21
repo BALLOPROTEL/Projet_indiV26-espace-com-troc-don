@@ -22,6 +22,11 @@ export class ProductStockReservationsController {
     return this.reservations.reserve(input);
   }
 
+  @Post(':orderId/extend')
+  extend(@Param('orderId') orderId: string) {
+    return this.reservations.extend(orderId);
+  }
+
   @Post(':orderId/release')
   release(@Param('orderId') orderId: string) {
     return this.reservations.release(orderId);
