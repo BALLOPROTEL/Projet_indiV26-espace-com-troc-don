@@ -26,7 +26,7 @@ export class OrdersService {
       idempotencyKey,
     );
     if (existing) {
-      return existing;
+      return this.toView(existing);
     }
 
     const cart = await this.cart.get(userId);
@@ -69,7 +69,7 @@ export class OrdersService {
     });
 
     try {
-      return await this.prisma.order.create({
+      const created = await this.prisma.order.create({
         data: {
           userId,
           status: 'DRAFT',
@@ -96,6 +96,8 @@ export class OrdersService {
           },
         },
       });
+
+      return this.toView(created);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -106,7 +108,7 @@ export class OrdersService {
           idempotencyKey,
         );
         if (replay) {
-          return replay;
+          return this.toView(replay);
         }
       }
 
@@ -115,7 +117,7 @@ export class OrdersService {
   }
 
   async list(userId: string) {
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where: { userId },
       include: {
         items: {
@@ -130,6 +132,8 @@ export class OrdersService {
         { id: 'desc' },
       ],
     });
+
+    return orders.map((order) => this.toView(order));
   }
 
   async get(userId: string, id: string) {
@@ -152,7 +156,22 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
 
-    return order;
+    return this.toView(order);
+  }
+
+  private toView<
+    T extends {
+      userId: string;
+      idempotencyKey: string;
+    },
+  >(order: T): Omit<T, 'userId' | 'idempotencyKey'> {
+    const {
+      userId: _userId,
+      idempotencyKey: _idempotencyKey,
+      ...view
+    } = order;
+
+    return view;
   }
 
   private findByIdempotency(
