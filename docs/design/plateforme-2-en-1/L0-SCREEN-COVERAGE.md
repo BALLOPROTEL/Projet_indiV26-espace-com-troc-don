@@ -11,25 +11,25 @@ Règle de lecture :
 | # | Écran prototype | Route / écran actuel | Route dédiée | Métier réel | Visuel migré | Statut |
 |---|---|---|---|---|---|---|
 | 01 | Accueil | `/` | Oui | Oui, aperçu Catalog | Oui | Fait |
-| 02 | Boutique | `/boutique` | Oui | Non, backend e-commerce absent | Oui | Visuel fait |
-| 03 | Fiche produit | `/boutique/produit` | Oui | Non, backend produits absent | Oui | Visuel fait, actions désactivées |
+| 02 | Boutique | `/boutique` | Oui | Oui, Catalog Produit réel | Oui | Fait |
+| 03 | Fiche produit | `/boutique/produit/[slug]` | Oui | Oui, variantes/prix/stock/images réels | Oui | Fait |
 | 04 | Fanzines | `/fanzines` | Oui | Non, contenu réel absent | Oui | Visuel fait |
 | 05 | Lecteur fanzine | `/fanzines/lecteur` | Oui | Non, contenu éditorial absent | Oui | Visuel fait |
 | 06 | Festival & actualités | `/festival` | Oui | Non, flux éditorial absent | Oui | Visuel fait |
 | 07 | Dons & trocs | `/echanges` | Oui | Oui | Oui | Fait |
 | 08 | Détail annonce | `/annonces/[id]` | Oui | Oui | Oui | Fait |
 | 09 | Publier une annonce | `/publier` | Oui | Oui | Oui | Fait |
-| 10 | Messagerie | `/messages` | Oui | Partiel via échanges/transactions | Oui | Route dédiée, chat temps réel à compléter si requis |
-| 11 | Panier | `/panier` | Oui | Non, backend panier absent | Oui | Visuel fait |
-| 12 | Passer commande | `/commande` | Oui | Non, checkout absent | Oui | Visuel fait, formulaire désactivé |
-| 13 | Confirmation | `/commande/confirmation` | Oui | Non, commande réelle absente | Oui | Visuel fait |
+| 10 | Messagerie | `/messages` | Oui | Oui, conversations privées persistées | Oui | Fait (messagerie asynchrone, pas WebSocket) |
+| 11 | Panier | `/panier` | Oui | Oui, Commerce Service | Oui | Fait |
+| 12 | Passer commande | `/commande` | Oui | Oui, brouillon réel + coordonnées | Oui | Fait |
+| 13 | Confirmation | `/commande/confirmation` | Oui | Oui, réservation stock + Stripe test | Oui | Fait |
 | 14 | Connexion / inscription | Keycloak OIDC | Oui, externe | Oui | Oui | Fait |
 | 15 | Tableau de bord | `/espace` | Oui | Oui | Oui | Fait |
-| 16 | Mes commandes | `/mes-commandes` | Oui | Non, backend commandes absent | Oui | Visuel fait, aucun faux historique |
+| 16 | Mes commandes | `/mes-commandes` | Oui | Oui, historique Commerce réel | Oui | Fait |
 | 17 | Mes annonces | `/mes-annonces` | Oui | Oui | Oui | Fait |
-| 18 | Favoris | `/favoris` | Oui | Non, persistance absente | Oui | Visuel fait, aucun faux favori |
-| 19 | Notifications | `/notifications` | Oui | Service technique global présent, inbox utilisateur absente | Oui | Visuel fait, données techniques non exposées |
-| 20 | Paramètres | `/parametres` | Oui | Persistance profil/préférences absente | Oui | Visuel fait, enregistrement désactivé |
+| 18 | Favoris | `/favoris` | Oui | Oui, persistance Catalog par JWT `sub` | Oui | Fait |
+| 19 | Notifications | `/notifications` | Oui | Oui, inbox utilisateur personnelle | Oui | Fait |
+| 20 | Paramètres | `/parametres` | Oui | Identité Keycloak réelle ; préférences applicatives non persistées | Oui | Partiel |
 | 21 | Modération | `/moderation` | Oui | Oui | Oui | Fait |
 | 22 | Aide / FAQ | `/faq` | Oui | Contenu statique | Oui | Fait |
 | 23 | Notre histoire | `/notre-histoire` | Oui | Contenu statique | Oui | Fait |
@@ -53,10 +53,12 @@ Pour la suite, la même règle s’applique : un écran du prototype qui représ
 
 Les 24 écrans du prototype possèdent maintenant une destination dédiée ou, pour l’authentification, l’écran Keycloak externe.
 
-Pour les écrans dont le backend métier n’existe pas encore, la route est ouverte uniquement comme **surface visuelle non transactionnelle** :
-- aucun faux prix, faux stock, faux favori, faux historique de commande ou fausse notification ;
-- les actions sensibles restent désactivées ;
-- aucun paiement, aucune commande et aucune préférence ne sont persistés ;
-- l’activation fonctionnelle reste réservée aux lots backend correspondants.
+Les contrats Boutique/Commerce sont désormais branchés : produits, images, favoris, panier, commandes, réservation de stock et paiement Stripe **en mode test** utilisent des données réelles.
 
-La prochaine phase n’est donc plus la création de pages, mais le branchement progressif des contrats métier manquants.
+Les surfaces qui restent volontairement non transactionnelles ou partielles sont :
+- Fanzines et lecteur numérique : contenu éditorial réel absent ;
+- Festival : flux éditorial/programme réel absent ;
+- Contact : transmission backend absente ;
+- Paramètres : identité Keycloak réelle, préférences applicatives non persistées.
+
+La priorité n’est plus la création des écrans mais la consolidation GitHub, la certification globale et les derniers contrats éditoriaux/légaux.
