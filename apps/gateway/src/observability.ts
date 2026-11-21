@@ -109,6 +109,10 @@ function metricRouteLabel(requestUrl: string): string {
     return '/api/cart/*';
   }
 
+  if (path === '/api/payments/stripe/webhook') {
+    return path;
+  }
+
   if (path === '/api/orders') {
     return path;
   }
