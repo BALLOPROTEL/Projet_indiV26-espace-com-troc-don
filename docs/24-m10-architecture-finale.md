@@ -480,3 +480,32 @@ AWAITING_PAYMENT
 Le contrat Catalog `commit` existe pour le futur L5C2, mais L5C1 n'expose aucun faux statut payé.
 
 Détail : `docs/29-l5c1-stock-reservations.md`.
+
+
+---
+
+## Extension L5C2 — Paiement Stripe Checkout
+
+L5C2 connecte le cycle Commerce à un prestataire de paiement réel en **mode test**.
+
+```text
+Order AWAITING_PAYMENT
+  -> Catalog extend réservation (35 min, sans nouveau décrément)
+  -> Stripe Checkout Session (30 min)
+  -> webhook signé
+  -> Catalog commit réservation
+  -> Commerce PAID
+```
+
+Principes :
+
+- aucune donnée carte dans Web, Gateway ou Commerce ;
+- `STRIPE_SECRET_KEY` et `STRIPE_WEBHOOK_SECRET` restent côté serveur ;
+- le retour navigateur Stripe n'est jamais suffisant pour déclarer le paiement ;
+- seul un webhook `checkout.session.completed` signé et `payment_status=paid` produit `PAID` ;
+- les événements webhook sont dédupliqués par identifiant fournisseur ;
+- une annulation expire d'abord Checkout avant de restituer le stock ;
+- une session déjà `complete + paid` interdit toute restitution du stock en attendant le webhook ;
+- la réservation L5C1 normale reste à 15 minutes ; seule la phase paiement l'étend à 35 minutes.
+
+Détail : `docs/30-l5c2-stripe-checkout.md`.
