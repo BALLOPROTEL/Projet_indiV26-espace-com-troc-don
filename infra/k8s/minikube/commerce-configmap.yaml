@@ -11,3 +11,4 @@ data:
   KEYCLOAK_JWKS_URL: "http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs"
   KEYCLOAK_AUDIENCE: "api"
   CATALOG_INTERNAL_URL: "http://catalog-service:3101"
+  WEB_PUBLIC_URL: "https://app.projet-indiv26.test"
