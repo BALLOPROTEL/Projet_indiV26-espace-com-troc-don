@@ -3,7 +3,7 @@ import Link from 'next/link';
 const faqItems = [
   [
     'Comment acheter un article ?',
-    'La boutique et son parcours d’achat seront activés lorsque les contrats produits, panier, commande et paiement réels seront disponibles.',
+    'La boutique, le panier et les commandes utilisent des données réelles. Le paiement est intégré avec Stripe Checkout en mode test tant que la mise en production commerciale n’est pas décidée.',
   ],
   [
     'Comment donner ou échanger un objet ?',
@@ -15,7 +15,7 @@ const faqItems = [
   ],
   [
     'Comment recevoir des notifications ?',
-    'L’interface dédiée sera activée lorsque l’inbox utilisateur sera exposée par l’API.',
+    'L’espace Notifications affiche l’inbox personnelle liée à votre compte pour les événements de don et de troc.',
   ],
   [
     'Puis-je lire le fanzine en ligne ?',
@@ -23,7 +23,7 @@ const faqItems = [
   ],
   [
     'La plateforme est-elle déjà en service ?',
-    'Les fonctions DON/TROC, publication, modération, comptes et échanges existantes sont réelles. Les fonctions commerciales et éditoriales encore sans backend restent désactivées.',
+    'DON/TROC, publication, modération, conversations privées, favoris, notifications, catalogue, panier et commandes sont connectés. Les espaces Fanzines, Festival et Contact restent partiellement éditoriaux ou non transactionnels.',
   ],
 ] as const;
 
