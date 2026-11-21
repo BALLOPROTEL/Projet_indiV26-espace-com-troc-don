@@ -182,6 +182,20 @@ export const ordersApi = {
   mine: (token: string) =>
     request<Order[]>('/orders', {}, token),
 
+  reserve: (token: string, id: string) =>
+    request<Order>(
+      `/orders/${encodeURIComponent(id)}/reserve`,
+      { method: 'POST' },
+      token,
+    ),
+
+  cancel: (token: string, id: string) =>
+    request<Order>(
+      `/orders/${encodeURIComponent(id)}/cancel`,
+      { method: 'POST' },
+      token,
+    ),
+
   byId: (token: string, id: string) =>
     request<Order>(
       `/orders/${encodeURIComponent(id)}`,
