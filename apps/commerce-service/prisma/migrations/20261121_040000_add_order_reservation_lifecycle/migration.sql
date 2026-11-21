@@ -1,0 +1,11 @@
+SET search_path TO "commerce";
+
+ALTER TYPE "OrderStatus"
+  ADD VALUE IF NOT EXISTS 'AWAITING_PAYMENT';
+ALTER TYPE "OrderStatus"
+  ADD VALUE IF NOT EXISTS 'CANCELLED';
+ALTER TYPE "OrderStatus"
+  ADD VALUE IF NOT EXISTS 'EXPIRED';
+
+ALTER TABLE "Order"
+  ADD COLUMN "reservationExpiresAt" TIMESTAMP(3);
