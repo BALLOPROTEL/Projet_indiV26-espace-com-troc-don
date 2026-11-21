@@ -55,7 +55,8 @@ export function ProductPlaceholderPage() {
             <li><strong>Catalogue :</strong> backend Produit connecté</li>
             <li><strong>Images :</strong> médias réels Catalog / MinIO</li>
             <li><strong>Panier :</strong> connecté au Commerce Service</li>
-            <li><strong>Commande / paiement :</strong> prévus en L5B</li>
+            <li><strong>Commande :</strong> brouillon réel connecté en L5B</li>
+            <li><strong>Paiement :</strong> volontairement reporté au lot suivant</li>
           </ul>
         </section>
       </div>
