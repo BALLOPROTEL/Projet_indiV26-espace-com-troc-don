@@ -294,7 +294,7 @@ export class OrdersService {
 
     await this.catalog.releaseStock(order.id);
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: order.id },
       data: {
         status: 'EXPIRED',
@@ -307,7 +307,9 @@ export class OrdersService {
           ],
         },
       },
-    }) as Promise<T>;
+    });
+
+    return updated as unknown as T;
   }
 
   private toView<
