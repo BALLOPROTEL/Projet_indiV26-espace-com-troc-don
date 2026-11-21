@@ -258,7 +258,11 @@ export type Cart = {
 };
 
 
-export type OrderStatus = 'DRAFT';
+export type OrderStatus =
+  | 'DRAFT'
+  | 'AWAITING_PAYMENT'
+  | 'CANCELLED'
+  | 'EXPIRED';
 
 export type OrderItem = {
   id: string;
@@ -286,6 +290,7 @@ export type Order = {
   postalCode: string;
   city: string;
   countryCode: string;
+  reservationExpiresAt: string | null;
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];

@@ -445,3 +445,38 @@ Commerce
 ```
 
 Le détail et les preuves attendues sont documentés dans `docs/28-l5b-order-drafts.md`.
+
+
+---
+
+## Extension L5C1 — Réservation de stock avant paiement
+
+L5C1 ajoute une vraie étape pré-paiement sans simuler l'encaissement.
+
+```text
+Commerce Order DRAFT
+  -> POST /api/orders/:id/reserve
+  -> Catalog réservation atomique
+       -> stock décrémenté en transaction Serializable
+       -> TTL 15 minutes
+  -> Commerce AWAITING_PAYMENT
+```
+
+Catalog possède `ProductStockReservation` et `ProductStockReservationItem`.
+Commerce conserve seulement l'état de commande et `reservationExpiresAt`.
+
+Transitions démontrées :
+
+```text
+DRAFT
+  ├── réserve stock avec succès -> AWAITING_PAYMENT
+  └── annulation               -> CANCELLED
+
+AWAITING_PAYMENT
+  ├── annulation               -> release Catalog -> CANCELLED
+  └── expiration               -> release Catalog -> EXPIRED
+```
+
+Le contrat Catalog `commit` existe pour le futur L5C2, mais L5C1 n'expose aucun faux statut payé.
+
+Détail : `docs/29-l5c1-stock-reservations.md`.

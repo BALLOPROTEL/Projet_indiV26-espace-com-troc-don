@@ -1,10 +1,14 @@
 import {
   BadGatewayException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { CatalogProductVariantSnapshot } from './catalog-contract';
+import type {
+  CatalogProductVariantSnapshot,
+  CatalogStockReservation,
+} from './catalog-contract';
 
 @Injectable()
 export class CatalogClientService {
@@ -79,6 +83,110 @@ export class CatalogClientService {
     }
 
     return value;
+  }
+
+  async reserveStock(
+    orderId: string,
+    items: Array<{
+      productId: string;
+      variantId: string;
+      quantity: number;
+    }>,
+  ): Promise<CatalogStockReservation> {
+    return this.requestReservation(
+      '/internal/product-stock-reservations',
+      {
+        method: 'POST',
+        body: JSON.stringify({ orderId, items }),
+      },
+    );
+  }
+
+  async releaseStock(
+    orderId: string,
+  ): Promise<CatalogStockReservation> {
+    return this.requestReservation(
+      `/internal/product-stock-reservations/${encodeURIComponent(orderId)}/release`,
+      { method: 'POST' },
+    );
+  }
+
+  async commitStock(
+    orderId: string,
+  ): Promise<CatalogStockReservation> {
+    return this.requestReservation(
+      `/internal/product-stock-reservations/${encodeURIComponent(orderId)}/commit`,
+      { method: 'POST' },
+    );
+  }
+
+  private async requestReservation(
+    path: string,
+    options: RequestInit,
+  ): Promise<CatalogStockReservation> {
+    let response: Response;
+
+    try {
+      response = await fetch(`${this.baseUrl}${path}`, {
+        ...options,
+        headers: {
+          'content-type': 'application/json',
+          'x-internal-service-token': this.token,
+          ...(options.headers ?? {}),
+        },
+        signal: AbortSignal.timeout(5000),
+      });
+    } catch {
+      throw new BadGatewayException(
+        'Catalog Service is unavailable',
+      );
+    }
+
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      body = null;
+    }
+
+    if (response.status === 404) {
+      throw new NotFoundException(
+        'Catalog stock reservation not found',
+      );
+    }
+
+    if (response.status === 409) {
+      throw new ConflictException(
+        'Catalog stock reservation conflict',
+      );
+    }
+
+    if (!response.ok || !this.isReservation(body)) {
+      throw new BadGatewayException(
+        `Catalog stock reservation returned HTTP ${response.status}`,
+      );
+    }
+
+    return body;
+  }
+
+  private isReservation(
+    value: unknown,
+  ): value is CatalogStockReservation {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    const item = value as Record<string, unknown>;
+    return (
+      typeof item.id === 'string' &&
+      typeof item.orderId === 'string' &&
+      ['ACTIVE', 'RELEASED', 'EXPIRED', 'COMMITTED'].includes(
+        String(item.status),
+      ) &&
+      typeof item.expiresAt === 'string' &&
+      Array.isArray(item.items)
+    );
   }
 
   private isSnapshot(
