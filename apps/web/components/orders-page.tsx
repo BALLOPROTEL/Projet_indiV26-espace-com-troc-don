@@ -27,6 +27,8 @@ function statusLabel(status: OrderStatus) {
       return 'Brouillon';
     case 'AWAITING_PAYMENT':
       return 'Stock réservé';
+    case 'PAID':
+      return 'Payée';
     case 'CANCELLED':
       return 'Annulée';
     case 'EXPIRED':
@@ -154,7 +156,7 @@ export function OrdersPage() {
           <h1>Mes commandes</h1>
           <p>Historique réel des commandes et réservations de stock.</p>
         </div>
-        <RoadmapBadge>PAIEMENT L5C2 À VENIR</RoadmapBadge>
+        <RoadmapBadge>STRIPE CHECKOUT · MODE TEST</RoadmapBadge>
       </header>
 
       {orders.length === 0 ? (
