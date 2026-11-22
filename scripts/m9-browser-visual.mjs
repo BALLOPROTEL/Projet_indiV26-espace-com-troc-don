@@ -817,7 +817,7 @@ async function runRealBrowserJourneys() {
   const memberDestinations = [
     ['/publier', '.workspace-v3--publish .form-panel'],
     ['/mes-annonces', '.workspace-v3--listings .shelf-panel'],
-    ['/messages', '.workspace-v3--exchanges .marketplace-dashboard'],
+    ['/messages', '.pm-conversations'],
   ];
   for (const [href, selector] of memberDestinations) {
     const menu = await evaluate('(() => {' +
@@ -851,9 +851,9 @@ async function runRealBrowserJourneys() {
   await waitUntil('UX V4 prior member document unloaded',
     'location.href==="about:blank"', 40);
 
-  // UX V4: member navigation anchors must survive the delayed Keycloak
-  // bootstrap and preserve the real sent/received/hand-over dashboard.
-  await journeyOpen('/messages', '.workspace-v3--exchanges .marketplace-dashboard',
+  // UX V4: member navigation must survive the delayed Keycloak bootstrap
+  // and restore the dedicated private-conversation workspace.
+  await journeyOpen('/messages', '.pm-conversations',
     'Prototype Messages page after login');
   const memberTargets = await evaluate('[...document.querySelectorAll(".pm-account-nav a")]' +
     '.map(a=>a.getAttribute("href")).filter(Boolean)');
