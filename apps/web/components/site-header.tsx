@@ -134,7 +134,7 @@ export function SiteHeader() {
               <HeaderIcon name="orders" />
             </Link>
             <Link
-              className="pm-icon-button pm-icon-button--future"
+              className="pm-icon-button"
               href="/favoris"
               aria-label="Mes favoris"
               title="Mes favoris"
@@ -150,7 +150,7 @@ export function SiteHeader() {
               <HeaderIcon name="message" />
             </Link>
             <Link
-              className="pm-icon-button pm-icon-button--future"
+              className="pm-icon-button"
               href="/notifications"
               aria-label="Mes notifications"
               title="Mes notifications"
