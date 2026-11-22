@@ -381,6 +381,7 @@ export function SettingsPlaceholderPage() {
     emailVerified,
     roles,
     manageAccount,
+    changePassword,
   } = useAuth();
 
   return (
@@ -444,13 +445,26 @@ export function SettingsPlaceholderPage() {
             />
           </label>
 
-          <button
-            className="pm-button pm-button--navy"
-            type="button"
-            onClick={() => void manageAccount()}
-          >
-            Gérer mon compte sécurisé
-          </button>
+          <div className="pm-settings-actions">
+            <button
+              className="pm-button pm-button--navy"
+              type="button"
+              onClick={() => void manageAccount()}
+            >
+              Modifier mon profil
+            </button>
+            <button
+              className="pm-button pm-button--outline"
+              type="button"
+              onClick={() => void changePassword()}
+            >
+              Changer mon mot de passe
+            </button>
+          </div>
+          <p className="pm-settings-hint">
+            Les modifications d’identité sont effectuées directement et
+            de façon sécurisée par Keycloak, puis vous revenez sur cette page.
+          </p>
 
           <h3>Préférences de notifications</h3>
           <p className="pm-settings-hint">
