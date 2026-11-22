@@ -2,6 +2,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { CatalogClientService } from '../catalog/catalog-client.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConversationsService } from './conversations.service';
 
@@ -10,6 +11,10 @@ describe('ConversationsService', () => {
     findMany: jest.fn(),
     findFirst: jest.fn(),
     update: jest.fn(),
+    upsert: jest.fn(),
+  };
+  const proposalApi = {
+    findMany: jest.fn(),
   };
   const messageApi = {
     findMany: jest.fn(),
@@ -22,6 +27,7 @@ describe('ConversationsService', () => {
     conversationMessage: messageApi,
   };
   const prisma = {
+    proposal: proposalApi,
     conversation: conversationApi,
     conversationMessage: messageApi,
     $transaction: jest.fn(
@@ -30,10 +36,27 @@ describe('ConversationsService', () => {
     ),
   } as unknown as PrismaService;
 
-  const service = new ConversationsService(prisma);
+  const catalog = {
+    getOwnerListingIds: jest.fn(),
+    getListing: jest.fn(),
+  } as unknown as CatalogClientService;
+
+  const service = new ConversationsService(
+    prisma,
+    catalog,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
+    proposalApi.findMany.mockResolvedValue([]);
+    (catalog.getOwnerListingIds as jest.Mock).mockResolvedValue([]);
+    (catalog.getListing as jest.Mock).mockResolvedValue({
+      id: 'target-1',
+      ownerId: 'owner-1',
+      operationType: 'DONATION',
+      status: 'APPROVED',
+      availabilityStatus: 'AVAILABLE',
+    });
     conversationApi.findFirst.mockResolvedValue({
       id: 'conversation-1',
       ownerId: 'owner-1',
@@ -78,6 +101,49 @@ describe('ConversationsService', () => {
         },
       },
       orderBy: { updatedAt: 'desc' },
+    });
+  });
+
+  it('reconciles an existing proposal into a conversation before listing', async () => {
+    (catalog.getOwnerListingIds as jest.Mock).mockResolvedValue([
+      'target-1',
+    ]);
+    proposalApi.findMany.mockResolvedValue([
+      {
+        id: 'proposal-legacy',
+        targetListingId: 'target-1',
+        requesterId: 'requester-1',
+        message: 'Message historique',
+        createdAt: new Date('2026-11-20T10:00:00.000Z'),
+        updatedAt: new Date('2026-11-20T10:05:00.000Z'),
+      },
+    ]);
+    conversationApi.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    conversationApi.upsert.mockResolvedValue({
+      id: 'conversation-legacy',
+    });
+
+    await service.listMine('owner-1');
+
+    expect(conversationApi.upsert).toHaveBeenCalledWith({
+      where: { proposalId: 'proposal-legacy' },
+      update: {},
+      create: {
+        proposalId: 'proposal-legacy',
+        ownerId: 'owner-1',
+        requesterId: 'requester-1',
+        createdAt: new Date('2026-11-20T10:00:00.000Z'),
+        updatedAt: new Date('2026-11-20T10:05:00.000Z'),
+        messages: {
+          create: {
+            senderId: 'requester-1',
+            body: 'Message historique',
+            createdAt: new Date('2026-11-20T10:00:00.000Z'),
+          },
+        },
+      },
     });
   });
 
