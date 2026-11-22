@@ -68,10 +68,6 @@ function ProductGallery({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const thumbsRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [product.id]);
-
   const hasMultipleImages = product.images.length > 1;
 
   function selectPrevious() {
@@ -303,8 +299,8 @@ export function ProductCatalog() {
 
           <hr />
           <p className="pm-future-note">
-            Les prix et stocks sont issus du service Catalog. Le panier et le
-            paiement restent désactivés jusqu’au lot L5.
+            Les prix et stocks sont issus du service Catalog. Le panier et les
+            commandes sont réels ; le paiement Stripe reste en mode test.
           </p>
         </aside>
 
@@ -713,8 +709,8 @@ export function ProductDetail({
 
           <div className="pm-info-notice">
             Le panier est réel et lié au compte. L’ajout ne réserve pas le
-            stock. La commande et le paiement restent désactivés jusqu’au lot
-            L5B.
+            stock ; la réservation intervient à la commande et le paiement
+            utilise Stripe Checkout en mode test.
           </div>
         </section>
       </div>
