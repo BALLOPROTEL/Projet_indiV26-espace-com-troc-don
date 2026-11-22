@@ -1670,18 +1670,28 @@ async function runFrontV2HomeJourney() {
   );
   await journeyScreenshot('prototype-01-home-desktop');
 
-  // Screen 02 — Boutique has its own route and must not invent commercial data.
+  // Screen 02 — Boutique is now backed by the real Catalog domain.
   await journeyOpen('/boutique', '.pm-shop-layout', 'Prototype 02 Boutique');
   const boutique = await evaluate('(() => ({' +
     'filters:document.querySelectorAll(".pm-shop-filters label").length,' +
-    'universes:document.querySelectorAll(".pm-category-showcase article").length,' +
-    'fake:document.querySelectorAll("[data-product],[data-add],[data-cartqty]").length,' +
+    'cards:document.querySelectorAll(".pm-real-product-card").length,' +
+    'empty:!!document.querySelector(".pm-prototype-empty"),' +
+    'fake:document.querySelectorAll("[data-fake-product],[data-fake-price]").length,' +
     'text:document.body.innerText}))()');
-  assert.ok(boutique.filters >= 8 && boutique.universes === 6,
-    'Boutique must reproduce the prototype filter/category structure');
-  assert.equal(boutique.fake, 0, 'Boutique must not invent transactional product data');
-  assert.ok(boutique.text.includes('Le design de la boutique est prêt.'),
-    'Boutique must explain that its backend data is not active yet');
+  assert.ok(boutique.filters >= 1,
+    'Boutique must expose the real Catalog category filter');
+  assert.equal(boutique.fake, 0,
+    'Boutique must never inject fake commercial product data');
+  assert.ok(
+    boutique.cards >= 0 && (boutique.cards > 0 || boutique.empty),
+    'Boutique must render real product cards or an explicit real-catalog empty state',
+  );
+  assert.ok(
+    boutique.text.includes('Catégories réelles') &&
+      boutique.text.includes('Les prix et stocks sont issus du service Catalog') &&
+      boutique.text.includes('Stripe reste en mode test'),
+    'Boutique must describe the real Catalog/Commerce/Stripe-test state',
+  );
   await journeyScreenshot('prototype-02-boutique-desktop');
 
   // Screen 04 — Fanzines is a dedicated editorial page.
