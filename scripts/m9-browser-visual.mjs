@@ -2131,8 +2131,11 @@ async function runAdminDashboardBrowser() {
     'F5 true Keycloak ADMIN dashboard');
   const adminQuickLinks = await evaluate('[...document.querySelectorAll(".admin-v2__quick-actions a")]' +
     '.map(a=>a.getAttribute("href"))');
-  assert.deepEqual(adminQuickLinks, ['/moderation', '/echanges', '/messages'],
-    'Prototype ADMIN shortcuts must point to real authorized destinations only');
+  assert.deepEqual(
+    adminQuickLinks,
+    ['/admin/boutique', '/moderation', '/echanges', '/messages'],
+    'Prototype ADMIN shortcuts must point to real authorized destinations only',
+  );
   await waitUntil('F5 ADMIN values from Catalog', '(() => {' +
     'const values=[...document.querySelectorAll(".admin-v2__metric strong")]' +
     '.map(el=>Number(el.textContent.replaceAll(/\\s/g,"")));' +
