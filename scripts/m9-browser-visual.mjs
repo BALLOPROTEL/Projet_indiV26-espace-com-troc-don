@@ -2008,7 +2008,7 @@ async function runFinalAccessibilityAutomation() {
       '&&!exchangeLoading&&!exchangeError;})()', 120);
     const slowSpace = await evaluate('(() => {' +
       'const dashboard=document.querySelector(".marketplace-dashboard");' +
-      'const counts=[...document.querySelectorAll(".marketplace-dashboard__shortcuts span")]' +
+      'const counts=[...document.querySelectorAll(".marketplace-dashboard__shortcuts a[href^=\"#\"] span")]' +
       '.map(el=>el.textContent?.trim());' +
       'const exchangeLoading=[...document.querySelectorAll(".marketplace-dashboard [role=status]")]' +
       '.some(el=>el.textContent?.includes("Actualisation de vos demandes"));' +
