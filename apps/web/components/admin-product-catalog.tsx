@@ -111,6 +111,9 @@ export function AdminProductCatalog() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [variants, setVariants] = useState<VariantDraft[]>([emptyVariant()]);
+  const [pendingImages, setPendingImages] = useState<
+    Record<string, File[]>
+  >({});
 
   useEffect(() => {
     if (!ready || !authorized) {
@@ -359,6 +362,26 @@ export function AdminProductCatalog() {
     }
   }
 
+  async function replaceProductImages(
+    productId: string,
+    files: File[],
+  ) {
+    const token = await getToken();
+    const images = await adminApi.replaceProductImages(
+      token,
+      productId,
+      files,
+    );
+    updateImages(productId, images);
+    setPendingImages((current) => {
+      const next = { ...current };
+      delete next[productId];
+      return next;
+    });
+
+    return images;
+  }
+
   async function uploadImages(
     event: FormEvent<HTMLFormElement>,
     productId: string,
@@ -382,13 +405,7 @@ export function AdminProductCatalog() {
     setActionError(null);
 
     try {
-      const token = await getToken();
-      const images = await adminApi.replaceProductImages(
-        token,
-        productId,
-        files,
-      );
-      updateImages(productId, images);
+      await replaceProductImages(productId, files);
       formElement.reset();
     } catch (reason) {
       setActionError(
@@ -409,6 +426,32 @@ export function AdminProductCatalog() {
     setActionError(null);
 
     try {
+      if (action === 'publish') {
+        const selected = pendingImages[product.id] ?? [];
+
+        if (
+          product.images.length === 0 &&
+          selected.length === 0
+        ) {
+          throw new Error(
+            'Sélectionnez au moins une image avant de publier.',
+          );
+        }
+
+        if (selected.length > 0) {
+          if (selected.length > 8) {
+            throw new Error(
+              'Vous pouvez publier au maximum 8 images.',
+            );
+          }
+
+          await replaceProductImages(
+            product.id,
+            selected,
+          );
+        }
+      }
+
       const token = await getToken();
       const updated =
         action === 'publish'
@@ -919,6 +962,15 @@ export function AdminProductCatalog() {
                       accept="image/jpeg,image/png,image/webp"
                       multiple
                       required
+                      onChange={(event) => {
+                        const files = Array.from(
+                          event.currentTarget.files ?? [],
+                        );
+                        setPendingImages((current) => ({
+                          ...current,
+                          [product.id]: files,
+                        }));
+                      }}
                     />
                     <button
                       type="submit"
@@ -937,7 +989,8 @@ export function AdminProductCatalog() {
                       className="pm-button pm-button--teal"
                       type="button"
                       disabled={
-                        product.images.length === 0 ||
+                        (product.images.length === 0 &&
+                          (pendingImages[product.id]?.length ?? 0) === 0) ||
                         !product.variants.some((variant) => variant.active) ||
                         busy === `publish:${product.id}`
                       }
@@ -945,7 +998,11 @@ export function AdminProductCatalog() {
                         void transition(product, 'publish')
                       }
                     >
-                      Publier
+                      {busy === `publish:${product.id}`
+                        ? 'Publication…'
+                        : (pendingImages[product.id]?.length ?? 0) > 0
+                          ? 'Uploader & publier'
+                          : 'Publier'}
                     </button>
                   ) : null}
                   {product.status !== 'ARCHIVED' ? (
@@ -983,7 +1040,9 @@ export function AdminProductCatalog() {
                   {product.status === 'DRAFT' &&
                   product.images.length === 0 ? (
                     <small>
-                      Ajoutez au moins une image avant publication.
+                      {(pendingImages[product.id]?.length ?? 0) > 0
+                        ? `${pendingImages[product.id].length} image(s) sélectionnée(s) : Publier les enverra automatiquement.`
+                        : 'Sélectionnez au moins une image avant publication.'}
                     </small>
                   ) : null}
                 </footer>
