@@ -2,7 +2,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   apiAssetUrl,
   ApiError,
@@ -22,14 +27,21 @@ function money(cents: number, currency: string) {
 
 function ProductVisual({
   product,
+  imageIndex = 0,
+  className = '',
 }: {
   product: Product;
+  imageIndex?: number;
+  className?: string;
 }) {
-  const image = product.images[0];
+  const image = product.images[imageIndex];
 
   if (!image) {
     return (
-      <div className="pm-real-product-visual" aria-label="Visuel produit indisponible">
+      <div
+        className={`pm-real-product-visual ${className}`.trim()}
+        aria-label="Visuel produit indisponible"
+      >
         <span aria-hidden="true">✦</span>
         <strong>VISUEL INDISPONIBLE</strong>
       </div>
@@ -37,10 +49,12 @@ function ProductVisual({
   }
 
   return (
-    <div className="pm-real-product-visual">
+    <div
+      className={`pm-real-product-visual ${className}`.trim()}
+    >
       <img
         src={apiAssetUrl(image.contentUrl)}
-        alt={`Visuel de ${product.name}`}
+        alt={`${product.name} — visuel ${imageIndex + 1}`}
       />
     </div>
   );
@@ -51,21 +65,122 @@ function ProductGallery({
 }: {
   product: Product;
 }) {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const thumbsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [product.id]);
+
+  const hasMultipleImages = product.images.length > 1;
+
+  function selectPrevious() {
+    setSelectedIndex((current) =>
+      current <= 0
+        ? product.images.length - 1
+        : current - 1,
+    );
+  }
+
+  function selectNext() {
+    setSelectedIndex((current) =>
+      current >= product.images.length - 1
+        ? 0
+        : current + 1,
+    );
+  }
+
+  function scrollThumbs(direction: -1 | 1) {
+    thumbsRef.current?.scrollBy({
+      left: direction * 320,
+      behavior: 'smooth',
+    });
+  }
+
   return (
     <div className="pm-real-product-gallery">
-      <ProductVisual product={product} />
-      {product.images.length > 1 ? (
-        <div
-          className="pm-real-product-gallery__thumbs"
-          aria-label="Autres visuels du produit"
-        >
-          {product.images.map((image, index) => (
-            <img
-              key={image.id}
-              src={apiAssetUrl(image.contentUrl)}
-              alt={`${product.name} — visuel ${index + 1}`}
-            />
-          ))}
+      <div className="pm-real-product-gallery__stage">
+        <ProductVisual
+          product={product}
+          imageIndex={selectedIndex}
+          className="pm-real-product-visual--detail"
+        />
+
+        {hasMultipleImages ? (
+          <>
+            <button
+              className="pm-real-product-gallery__arrow pm-real-product-gallery__arrow--prev"
+              type="button"
+              aria-label="Image précédente"
+              onClick={selectPrevious}
+            >
+              ←
+            </button>
+            <button
+              className="pm-real-product-gallery__arrow pm-real-product-gallery__arrow--next"
+              type="button"
+              aria-label="Image suivante"
+              onClick={selectNext}
+            >
+              →
+            </button>
+            <span
+              className="pm-real-product-gallery__counter"
+              aria-live="polite"
+            >
+              {selectedIndex + 1} / {product.images.length}
+            </span>
+          </>
+        ) : null}
+      </div>
+
+      {hasMultipleImages ? (
+        <div className="pm-real-product-gallery__thumb-strip">
+          <button
+            className="pm-real-product-gallery__thumb-arrow"
+            type="button"
+            aria-label="Faire défiler les miniatures vers la gauche"
+            onClick={() => scrollThumbs(-1)}
+          >
+            ←
+          </button>
+
+          <div
+            ref={thumbsRef}
+            className="pm-real-product-gallery__thumbs"
+            aria-label="Autres visuels du produit"
+          >
+            {product.images.map((image, index) => (
+              <button
+                key={image.id}
+                className={
+                  index === selectedIndex
+                    ? 'pm-real-product-gallery__thumb is-active'
+                    : 'pm-real-product-gallery__thumb'
+                }
+                type="button"
+                aria-label={`Afficher le visuel ${index + 1} sur ${product.images.length}`}
+                aria-current={
+                  index === selectedIndex ? 'true' : undefined
+                }
+                onClick={() => setSelectedIndex(index)}
+              >
+                <img
+                  src={apiAssetUrl(image.contentUrl)}
+                  alt=""
+                />
+              </button>
+            ))}
+          </div>
+
+          <button
+            className="pm-real-product-gallery__thumb-arrow"
+            type="button"
+            aria-label="Faire défiler les miniatures vers la droite"
+            onClick={() => scrollThumbs(1)}
+          >
+            →
+          </button>
         </div>
       ) : null}
     </div>
