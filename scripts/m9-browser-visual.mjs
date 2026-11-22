@@ -1771,13 +1771,13 @@ async function runFrontV2HomeJourney() {
     'const link=document.querySelector(' +
       JSON.stringify('.pm-exchange-grid .pm-exchange-card__link[href="/annonces/' + noPhoto.id + '"]') + ');' +
     'const card=link?.closest(".pm-exchange-card");const cover=card?.querySelector(".pm-exchange-card__fallback");' +
-    'if(!card||!cover)return null;return {label:cover.innerText.trim(),' +
+    'if(!card||!cover)return null;return {label:cover.querySelector("strong")?.textContent.trim()??"",' +
     'images:cover.querySelectorAll("img").length,height:cover.getBoundingClientRect().height,' +
     'link:link.getAttribute("href")};})()');
   assert.ok(missingImage, 'No-photo real listing must be present on Exchanges');
   assert.equal(
     missingImage.label,
-    noPhoto.operationType === 'DONATION' ? '🎁\\nDON' : '↔\\nÉCHANGE',
+    noPhoto.operationType === 'DONATION' ? 'DON' : 'ÉCHANGE',
     'No-photo listing must use the V2 operation fallback without inventing an image',
   );
   assert.equal(missingImage.images, 0, 'No fake product photo may be invented');
