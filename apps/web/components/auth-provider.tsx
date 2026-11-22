@@ -42,6 +42,7 @@ type AuthContextValue = {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   manageAccount: () => Promise<void>;
+  changePassword: () => Promise<void>;
   getToken: () => Promise<string>;
   hasAnyRole: (...roles: AppRole[]) => boolean;
 };
@@ -159,7 +160,23 @@ export function AuthProvider({
       throw new Error('Authentification requise.');
     }
 
-    await keycloak.accountManagement();
+    await keycloak.login({
+      action: 'UPDATE_PROFILE',
+      redirectUri: window.location.href,
+    });
+  }, []);
+
+  const changePassword = useCallback(async () => {
+    const keycloak = getKeycloak();
+
+    if (!keycloak.authenticated) {
+      throw new Error('Authentification requise.');
+    }
+
+    await keycloak.login({
+      action: 'UPDATE_PASSWORD',
+      redirectUri: window.location.href,
+    });
   }, []);
 
   const getToken = useCallback(async () => {
@@ -191,6 +208,7 @@ export function AuthProvider({
       login,
       logout,
       manageAccount,
+      changePassword,
       getToken,
       hasAnyRole,
     }),
@@ -200,6 +218,7 @@ export function AuthProvider({
       login,
       logout,
       manageAccount,
+      changePassword,
       getToken,
       hasAnyRole,
     ],
