@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { CatalogClientService } from '../catalog/catalog-client.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type CreateConversationMessageInput = {
@@ -13,9 +14,14 @@ export type CreateConversationMessageInput = {
 
 @Injectable()
 export class ConversationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly catalog: CatalogClientService,
+  ) {}
 
-  listMine(actorId: string) {
+  async listMine(actorId: string) {
+    await this.ensureLegacyConversations(actorId);
+
     return this.prisma.conversation.findMany({
       where: {
         OR: [
@@ -108,6 +114,100 @@ export class ConversationsService {
     });
 
     return { updated: result.count };
+  }
+
+  private async ensureLegacyConversations(
+    actorId: string,
+  ): Promise<void> {
+    const ownedListingIds =
+      await this.catalog.getOwnerListingIds(actorId);
+    const owned = new Set(ownedListingIds);
+
+    const proposals = await this.prisma.proposal.findMany({
+      where: {
+        OR: [
+          { requesterId: actorId },
+          ...(ownedListingIds.length > 0
+            ? [{
+                targetListingId: {
+                  in: ownedListingIds,
+                },
+              }]
+            : []),
+        ],
+      },
+      select: {
+        id: true,
+        targetListingId: true,
+        requesterId: true,
+        message: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+
+    if (proposals.length === 0) {
+      return;
+    }
+
+    const existing =
+      await this.prisma.conversation.findMany({
+        where: {
+          proposalId: {
+            in: proposals.map((proposal) => proposal.id),
+          },
+        },
+        select: { proposalId: true },
+      });
+    const existingIds = new Set(
+      existing.map((conversation) => conversation.proposalId),
+    );
+
+    for (const proposal of proposals) {
+      if (existingIds.has(proposal.id)) {
+        continue;
+      }
+
+      let ownerId: string;
+      if (owned.has(proposal.targetListingId)) {
+        ownerId = actorId;
+      } else {
+        try {
+          ownerId = (
+            await this.catalog.getListing(
+              proposal.targetListingId,
+            )
+          ).ownerId;
+        } catch {
+          // Historical listing no longer resolvable: do not fabricate
+          // conversation ownership.
+          continue;
+        }
+      }
+
+      await this.prisma.conversation.upsert({
+        where: { proposalId: proposal.id },
+        update: {},
+        create: {
+          proposalId: proposal.id,
+          ownerId,
+          requesterId: proposal.requesterId,
+          createdAt: proposal.createdAt,
+          updatedAt: proposal.updatedAt,
+          messages: proposal.message
+            ? {
+                create: {
+                  senderId: proposal.requesterId,
+                  body: proposal.message,
+                  createdAt: proposal.createdAt,
+                },
+              }
+            : undefined,
+        },
+      });
+    }
   }
 
   private async requireParticipant(
