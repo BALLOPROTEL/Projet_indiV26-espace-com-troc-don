@@ -7,6 +7,8 @@ import { useAuth } from './auth-provider';
 import { BrandMark } from './design-system';
 
 type IconName =
+  | 'cart'
+  | 'orders'
   | 'heart'
   | 'message'
   | 'bell'
@@ -17,6 +19,8 @@ type IconName =
 
 function HeaderIcon({ name }: { name: IconName }) {
   const paths: Record<IconName, ReactNode> = {
+    cart: <><circle cx="9" cy="20" r="1" /><circle cx="18" cy="20" r="1" /><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L20 8H7" /></>,
+    orders: <><path d="M5 5h14v16l-3-2-4 2-4-2-3 2V5Z" /><path d="M8 9h8M8 13h8" /></>,
     heart: <path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.5-7 10-7 10Z" />,
     message: <><path d="M4 5h16v11H8l-4 4V5Z" /><path d="M8 9h8M8 12h5" /></>,
     bell: <><path d="M6 16h12l-1.5-2V10a4.5 4.5 0 0 0-9 0v4L6 16Z" /><path d="M10 19h4" /></>,
@@ -114,6 +118,22 @@ export function SiteHeader() {
 
           <div className="pm-header__actions">
             <Link
+              className="pm-icon-button"
+              href="/panier"
+              aria-label="Mon panier"
+              title="Mon panier"
+            >
+              <HeaderIcon name="cart" />
+            </Link>
+            <Link
+              className="pm-icon-button"
+              href="/mes-commandes"
+              aria-label="Mes commandes"
+              title="Mes commandes"
+            >
+              <HeaderIcon name="orders" />
+            </Link>
+            <Link
               className="pm-icon-button pm-icon-button--future"
               href="/favoris"
               aria-label="Mes favoris"
@@ -157,6 +177,9 @@ export function SiteHeader() {
                   <Link href="/espace" onClick={closeAccountMenu}>Tableau de bord</Link>
                   <Link href="/publier" onClick={closeAccountMenu}>Déposer un objet</Link>
                   <Link href="/mes-annonces" onClick={closeAccountMenu}>Mes annonces</Link>
+                  <Link href="/panier" onClick={closeAccountMenu}>Mon panier</Link>
+                  <Link href="/commande" onClick={closeAccountMenu}>Passer commande</Link>
+                  <Link href="/mes-commandes" onClick={closeAccountMenu}>Mes commandes</Link>
                   <Link href="/messages" onClick={closeAccountMenu}>Mes échanges</Link>
                   {elevatedRole ? (
                     <Link href="/moderation" onClick={closeAccountMenu}>Modération</Link>
