@@ -1721,10 +1721,10 @@ async function runFrontV2HomeJourney() {
   // Screen 07 — real donation/trade catalogue lives here, not on Accueil.
   await journeyOpen('/echanges', '.pm-exchange-hero', 'Prototype 07 Exchanges');
   await waitUntil('Prototype 07 real Catalog cards',
-    'document.querySelectorAll(".pm-exchange-grid .listing-card").length>=' +
+    'document.querySelectorAll(".pm-exchange-grid .pm-exchange-card").length>=' +
       publicListings.length, 120);
   let exchangeLinks = await evaluate(
-    '[...document.querySelectorAll(".pm-exchange-grid .listing-card__link")].map(a=>a.getAttribute("href"))',
+    '[...document.querySelectorAll(".pm-exchange-grid .pm-exchange-card__link")].map(a=>a.getAttribute("href"))',
   );
   assert.deepEqual(
     exchangeLinks,
@@ -1747,10 +1747,10 @@ async function runFrontV2HomeJourney() {
     .filter(item => item.operationType === 'DONATION')
     .map(item => '/annonces/' + item.id);
   await waitUntil('Prototype 07 DON filter',
-    'document.querySelectorAll(".pm-exchange-grid .listing-card__link").length===' + donationLinks.length,
+    'document.querySelectorAll(".pm-exchange-grid .pm-exchange-card__link").length===' + donationLinks.length,
     120);
   exchangeLinks = await evaluate(
-    '[...document.querySelectorAll(".pm-exchange-grid .listing-card__link")].map(a=>a.getAttribute("href"))',
+    '[...document.querySelectorAll(".pm-exchange-grid .pm-exchange-card__link")].map(a=>a.getAttribute("href"))',
   );
   assert.deepEqual(exchangeLinks, donationLinks,
     'DON filter must show only real donation listings');
@@ -1761,7 +1761,7 @@ async function runFrontV2HomeJourney() {
     '.find(el=>el.textContent.includes("Toutes"));if(!button)return false;button.click();return true;})()'),
     true, 'Prototype 07 must expose an All filter');
   await waitUntil('Prototype 07 all listings restored',
-    'document.querySelectorAll(".pm-exchange-grid .listing-card").length===' + publicListings.length, 120);
+    'document.querySelectorAll(".pm-exchange-grid .pm-exchange-card").length===' + publicListings.length, 120);
 
   // F7/#81: a real approved fixture without images must display the existing accessible placeholder.
   const noPhoto = publicListings.find(item =>
@@ -1769,13 +1769,17 @@ async function runFrontV2HomeJourney() {
   assert.ok(noPhoto, 'F7 #81 requires an approved no-photo Catalog fixture');
   const missingImage = await evaluate('(() => {' +
     'const link=document.querySelector(' +
-      JSON.stringify('.pm-exchange-grid .listing-card__link[href="/annonces/' + noPhoto.id + '"]') + ');' +
-    'const card=link?.closest(".listing-card");const cover=card?.querySelector(".listing-card__cover--empty");' +
+      JSON.stringify('.pm-exchange-grid .pm-exchange-card__link[href="/annonces/' + noPhoto.id + '"]') + ');' +
+    'const card=link?.closest(".pm-exchange-card");const cover=card?.querySelector(".pm-exchange-card__fallback");' +
     'if(!card||!cover)return null;return {label:cover.innerText.trim(),' +
     'images:cover.querySelectorAll("img").length,height:cover.getBoundingClientRect().height,' +
     'link:link.getAttribute("href")};})()');
   assert.ok(missingImage, 'No-photo real listing must be present on Exchanges');
-  assert.equal(missingImage.label, 'Aucune photo disponible');
+  assert.equal(
+    missingImage.label,
+    noPhoto.operationType === 'DONATION' ? '🎁\\nDON' : '↔\\nÉCHANGE',
+    'No-photo listing must use the V2 operation fallback without inventing an image',
+  );
   assert.equal(missingImage.images, 0, 'No fake product photo may be invented');
   assert.ok(missingImage.height >= 175, 'Placeholder must preserve the cover area');
   assert.equal(missingImage.link, '/annonces/' + noPhoto.id);
@@ -1792,7 +1796,7 @@ async function runFrontV2HomeJourney() {
     await journeyOpen('/echanges', '.pm-exchange-hero h1',
       'Prototype 07 mobile at ' + width + 'px');
     await waitUntil('Prototype 07 mobile real cards at ' + width + 'px',
-      'document.querySelectorAll(".pm-exchange-grid .listing-card").length>=1', 120);
+      'document.querySelectorAll(".pm-exchange-grid .pm-exchange-card").length>=1', 120);
 
     const checks = await evaluate('(() => {' +
       'const root=document.documentElement;' +
@@ -1825,12 +1829,12 @@ async function runFrontV2HomeJourney() {
     await command('DOM.enable');
     await command('CSS.enable');
     const documentNode = await command('DOM.getDocument', { depth: 1 });
-    const cardSelector = '.pm-exchange-grid .listing-card--interactive:has(.listing-card__cover img)';
+    const cardSelector = '.pm-exchange-grid .pm-exchange-card:has(.pm-exchange-card__visual img)';
     const hoverNode = await command('DOM.querySelector', {
       nodeId: documentNode.root.nodeId, selector: cardSelector,
     });
     const hoverLink = await command('DOM.querySelector', {
-      nodeId: documentNode.root.nodeId, selector: cardSelector + ' .listing-card__link',
+      nodeId: documentNode.root.nodeId, selector: cardSelector + ' .pm-exchange-card__link',
     });
     assert.ok(hoverNode.nodeId && hoverLink.nodeId,
       'Touch test requires one real Catalog card with photo');
@@ -1842,11 +1846,11 @@ async function runFrontV2HomeJourney() {
     });
     const touchCard = await evaluate('(() => {' +
       'const el=document.querySelector(' + JSON.stringify(cardSelector) + ');' +
-      'const link=el.querySelector(".listing-card__link");' +
-      'const image=el.querySelector(".listing-card__cover img");' +
-      'const arrow=el.querySelector(".listing-card__cta span");' +
-      'const cta=el.querySelector(".listing-card__cta");' +
-      'const block=el.querySelector(".listing-card__wishes")||el.querySelector(".listing-card__assets");' +
+      'const link=el.querySelector(".pm-exchange-card__link");' +
+      'const image=el.querySelector(".pm-exchange-card__visual img");' +
+      'const arrow=el.querySelector(".pm-exchange-card__cta span");' +
+      'const cta=el.querySelector(".pm-exchange-card__cta");' +
+      'const block=el.querySelector(".pm-exchange-card__date");' +
       'return {hover:el.matches(":hover"),linkHover:link.matches(":hover"),' +
       'transform:getComputedStyle(el).transform,imageTransform:getComputedStyle(image).transform,' +
       'arrowTransform:getComputedStyle(arrow).transform,ctaTop:cta?.getBoundingClientRect().top,' +
