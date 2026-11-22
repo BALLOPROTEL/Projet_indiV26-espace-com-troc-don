@@ -1677,7 +1677,8 @@ async function runFrontV2HomeJourney() {
     'cards:document.querySelectorAll(".pm-real-product-card").length,' +
     'empty:!!document.querySelector(".pm-prototype-empty"),' +
     'fake:document.querySelectorAll("[data-fake-product],[data-fake-price]").length,' +
-    'text:document.body.innerText}))()');
+    'categoryHeading:document.querySelector(".pm-shop-filters h2")?.textContent ?? "",' +
+    'catalogNote:document.querySelector(".pm-future-note")?.textContent ?? ""}))()');
   assert.ok(boutique.filters >= 1,
     'Boutique must expose the real Catalog category filter');
   assert.equal(boutique.fake, 0,
@@ -1687,9 +1688,9 @@ async function runFrontV2HomeJourney() {
     'Boutique must render real product cards or an explicit real-catalog empty state',
   );
   assert.ok(
-    boutique.text.includes('Catégories réelles') &&
-      boutique.text.includes('Les prix et stocks sont issus du service Catalog') &&
-      boutique.text.includes('Stripe reste en mode test'),
+    boutique.categoryHeading.includes('Catégories réelles') &&
+      boutique.catalogNote.includes('Les prix et stocks sont issus du service Catalog') &&
+      boutique.catalogNote.includes('Stripe reste en mode test'),
     'Boutique must describe the real Catalog/Commerce/Stripe-test state',
   );
   await journeyScreenshot('prototype-02-boutique-desktop');
