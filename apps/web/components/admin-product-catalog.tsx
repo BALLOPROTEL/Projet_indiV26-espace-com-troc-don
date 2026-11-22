@@ -54,6 +54,16 @@ function centsFromInput(value: string) {
   return Math.round(parsed * 100);
 }
 
+function slugifyProduct(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 function stockFromInput(value: string) {
   const parsed = Number(value);
 
@@ -99,6 +109,7 @@ export function AdminProductCatalog() {
   const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [variants, setVariants] = useState<VariantDraft[]>([emptyVariant()]);
 
   useEffect(() => {
@@ -172,24 +183,80 @@ export function AdminProductCatalog() {
   ) {
     event.preventDefault();
     setCreateError(null);
+    setCreateSuccess(null);
 
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
 
     try {
+      const name = String(form.get('name') ?? '').trim();
+      const category = String(form.get('category') ?? '').trim();
+      const description = String(
+        form.get('description') ?? '',
+      ).trim();
+      const rawSlug = String(form.get('slug') ?? '').trim();
+      const slug = rawSlug || slugifyProduct(name);
+
+      if (name.length < 3) {
+        throw new Error(
+          'Renseignez un nom de produit d’au moins 3 caractères.',
+        );
+      }
+
+      if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+        throw new Error(
+          'Le slug doit contenir uniquement des lettres minuscules, chiffres et tirets.',
+        );
+      }
+
+      if (!category) {
+        throw new Error('Renseignez une catégorie.');
+      }
+
+      if (description.length < 10) {
+        throw new Error(
+          'La description doit contenir au moins 10 caractères.',
+        );
+      }
+
+      if (variants.length === 0) {
+        throw new Error('Ajoutez au moins une variante.');
+      }
+
+      const normalizedVariants = variants.map(
+        (variant, index) => {
+          const sku = variant.sku.trim().toUpperCase();
+          const label = variant.label.trim();
+
+          if (!sku) {
+            throw new Error(
+              `Renseignez le SKU de la variante ${index + 1}.`,
+            );
+          }
+
+          if (!label) {
+            throw new Error(
+              `Renseignez le libellé de la variante ${index + 1}.`,
+            );
+          }
+
+          return {
+            sku,
+            label,
+            priceCents: centsFromInput(variant.price),
+            stock: stockFromInput(variant.stock),
+            active: variant.active,
+          };
+        },
+      );
+
       const input: AdminProductCreateInput = {
-        slug: String(form.get('slug') ?? '').trim(),
-        name: String(form.get('name') ?? '').trim(),
-        description: String(form.get('description') ?? '').trim(),
-        category: String(form.get('category') ?? '').trim(),
+        slug,
+        name,
+        description,
+        category,
         currency: 'EUR',
-        variants: variants.map((variant) => ({
-          sku: variant.sku.trim().toUpperCase(),
-          label: variant.label.trim(),
-          priceCents: centsFromInput(variant.price),
-          stock: stockFromInput(variant.stock),
-          active: variant.active,
-        })),
+        variants: normalizedVariants,
       };
 
       setBusy('create');
@@ -206,6 +273,9 @@ export function AdminProductCatalog() {
       );
       formElement.reset();
       setVariants([emptyVariant()]);
+      setCreateSuccess(
+        `Le brouillon « ${product.name} » a bien été créé.`,
+      );
     } catch (reason) {
       setCreateError(
         reason instanceof Error
@@ -437,7 +507,10 @@ export function AdminProductCatalog() {
             </small>
           </div>
 
-          <form onSubmit={(event) => void createProduct(event)}>
+          <form
+            noValidate
+            onSubmit={(event) => void createProduct(event)}
+          >
             <div className="admin-products__form-grid">
               <label>
                 <span>Nom</span>
@@ -447,9 +520,8 @@ export function AdminProductCatalog() {
                 <span>Slug</span>
                 <input
                   name="slug"
-                  required
                   pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-                  placeholder="nom-du-produit"
+                  placeholder="Automatique si laissé vide"
                 />
               </label>
               <label>
@@ -608,6 +680,12 @@ export function AdminProductCatalog() {
                 </div>
               ))}
             </div>
+
+            {createSuccess ? (
+              <p className="notice notice--success" role="status">
+                {createSuccess}
+              </p>
+            ) : null}
 
             {createError ? (
               <p className="admin-products__error" role="alert">
