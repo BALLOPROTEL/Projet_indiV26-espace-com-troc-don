@@ -3600,3 +3600,28 @@ body {
     padding-right: 14px;
   }
 }
+
+
+.pm-settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 16px 0 8px;
+}
+
+.pm-settings-actions .pm-button {
+  min-width: 190px;
+}
+
+@media (max-width: 600px) {
+  .pm-settings-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pm-settings-actions .pm-button {
+    width: 100%;
+    min-width: 0;
+  }
+}
