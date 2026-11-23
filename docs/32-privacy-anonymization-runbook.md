@@ -22,9 +22,12 @@ idempotente : la rejouer ne recommence pas l'anonymisation.
 
 ## Catalog
 
-- les annonces restent conservées mais leur `ownerId` devient un identifiant
-  anonyme propre à Catalog ;
-- les favoris du compte sont supprimés ;
+- les annonces restent comme références métier mais sont retirées du public :
+  titre/description neutralisés, statut rejeté et `ownerId` remplacé ;
+- les images de ces annonces sont supprimées de MinIO puis de PostgreSQL ;
+- les souhaits de troc sont supprimés ;
+- après intégration de #170, catégorie/ville/état sont également remis à null ;
+- les favoris du compte et les favoris pointant vers ses annonces retirées sont supprimés ;
 - les signalements présents dans le schéma sont anonymisés lorsqu'ils existent ;
 - les anciennes demandes Contact/Privacy du compte sont détachées de l'identité,
   leur nom/e-mail/contenu sont neutralisés ;
