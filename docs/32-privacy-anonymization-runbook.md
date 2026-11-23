@@ -11,14 +11,32 @@ Ce document décrit le comportement technique livré avec les lots #168/#169.
 4. L'ADMIN confirme explicitement l'exécution.
 5. Catalog crée un ledger `PrivacyExecution` et des identifiants de
    remplacement distincts par domaine.
-6. Les services sont appelés uniquement par leurs endpoints internes protégés
-   par `x-internal-service-token`.
-7. La demande passe à `CLOSED` uniquement lorsque tous les domaines ont
+6. Catalog exécute d'abord les pré-contrôles métier sur les annonces,
+   Marketplace et Commerce.
+7. Les services sont ensuite appelés uniquement par leurs endpoints internes
+   protégés par `x-internal-service-token`.
+8. La demande passe à `CLOSED` uniquement lorsque tous les domaines ont
    terminé.
 
 Une exécution en échec reste `FAILED` avec son identifiant source conservé
 dans le ledger pour permettre une reprise sûre. Une exécution terminée devient
 idempotente : la rejouer ne recommence pas l'anonymisation.
+
+## Pré-contrôle métier
+
+Avant toute mutation, Catalog vérifie que l'anonymisation peut démarrer sans
+casser un flux métier actif :
+
+- aucune annonce appartenant au compte ne doit être `RESERVED` ;
+- Marketplace doit confirmer qu'aucune transaction `IN_PROGRESS` n'implique
+  le compte comme propriétaire ou demandeur ;
+- Commerce doit confirmer qu'aucune commande n'est
+  `AWAITING_PAYMENT`.
+
+Si un de ces contrôles échoue, la demande reste exécutable plus tard mais
+**aucune anonymisation distribuée ne démarre**. L'utilisateur doit d'abord
+terminer/annuler l'échange concerné ou laisser la commande être
+annulée/expirée.
 
 ## Catalog
 
