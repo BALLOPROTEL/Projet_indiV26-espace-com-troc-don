@@ -14,6 +14,7 @@ import {
   Prisma,
 } from '../../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
+import { ObjectStorageService } from '../storage/object-storage.service';
 
 type PrivacyTarget = {
   replacementId?: string;
@@ -29,6 +30,7 @@ export class PrivacyExecutionService {
   constructor(
     private readonly prisma: PrismaService,
     config: ConfigService,
+    private readonly storage: ObjectStorageService,
   ) {
     this.token = this.requireConfig(config, 'INTERNAL_SERVICE_TOKEN');
     this.marketplaceUrl = this.requireConfig(
@@ -183,14 +185,74 @@ export class PrivacyExecutionService {
     executionId: string,
     reviewerId: string,
   ) {
+    const ownedListings = await this.prisma.listing.findMany({
+      where: { ownerId: originalUserId },
+      select: {
+        id: true,
+        images: {
+          select: { objectKey: true },
+        },
+      },
+    });
+    const listingIds = ownedListings.map((listing) => listing.id);
+    const objectKeys = ownedListings.flatMap((listing) =>
+      listing.images.map((image) => image.objectKey),
+    );
+
+    // Object deletion is idempotent. Doing it before metadata cleanup means a
+    // database failure can be retried while the same object keys are still known.
+    await this.storage.deleteObjects(objectKeys);
+
     return this.prisma.$transaction(async (tx) => {
+      if (listingIds.length > 0) {
+        await tx.listingImage.deleteMany({
+          where: { listingId: { in: listingIds } },
+        });
+        await tx.listingTradeWish.deleteMany({
+          where: { listingId: { in: listingIds } },
+        });
+      }
+
       const listings = await tx.listing.updateMany({
         where: { ownerId: originalUserId },
-        data: { ownerId: replacementId },
+        data: {
+          ownerId: replacementId,
+          title: 'Annonce retirée',
+          description:
+            'Contenu retiré après anonymisation du compte.',
+          status: 'REJECTED',
+          moderationReason:
+            'Annonce retirée après anonymisation du compte.',
+        },
       });
       const favorites = await tx.listingFavorite.deleteMany({
-        where: { userId: originalUserId },
+        where: {
+          OR: [
+            { userId: originalUserId },
+            ...(listingIds.length > 0
+              ? [{ listingId: { in: listingIds } }]
+              : []),
+          ],
+        },
       });
+
+      const enrichmentColumns = await tx.$queryRaw<
+        Array<{ present: boolean }>
+      >(
+        Prisma.sql`SELECT EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_name = 'Listing' AND column_name = 'city'
+        ) AS present`,
+      );
+
+      if (enrichmentColumns[0]?.present && listingIds.length > 0) {
+        await tx.$executeRaw(
+          Prisma.sql`UPDATE "Listing"
+            SET "category" = NULL, "city" = NULL, "condition" = NULL
+            WHERE "id" IN (${Prisma.join(listingIds)})`,
+        );
+      }
 
       const reportTable = await tx.$queryRaw<Array<{ present: boolean }>>(
         Prisma.sql`SELECT to_regclass('"ListingReport"') IS NOT NULL AS present`,
@@ -253,6 +315,7 @@ export class PrivacyExecutionService {
           favoritesRemoved: favorites.count,
           reportsAnonymized: reports,
           contactMessagesRedacted: contactMessages.count,
+          listingImagesRemoved: objectKeys.length,
         },
       };
     });
