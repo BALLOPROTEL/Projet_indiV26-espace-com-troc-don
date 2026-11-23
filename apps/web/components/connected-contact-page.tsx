@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { contactApi } from '../lib/api';
 import type {
   ContactReceipt,
@@ -51,11 +51,9 @@ export function ConnectedContactPage({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    const identity = [firstName, lastName].filter(Boolean).join(' ');
-    if (identity && !name) setName(identity);
-    if (accountEmail && !email) setEmail(accountEmail);
-  }, [firstName, lastName, accountEmail, name, email]);
+  const accountName = [firstName, lastName].filter(Boolean).join(' ');
+  const effectiveName = name.trim() || accountName;
+  const effectiveEmail = email.trim() || accountEmail || '';
 
   async function submit() {
     if (busy) return;
@@ -73,8 +71,8 @@ export function ConnectedContactPage({
             },
           )
         : await contactApi.send({
-            name,
-            email,
+            name: effectiveName,
+            email: effectiveEmail,
             subject,
             message,
           });
@@ -164,6 +162,7 @@ export function ConnectedContactPage({
                   value={name}
                   maxLength={120}
                   autoComplete="name"
+                  placeholder={accountName || 'Votre nom'}
                   onChange={(event) => setName(event.target.value)}
                 />
               </label>
@@ -174,6 +173,7 @@ export function ConnectedContactPage({
                   value={email}
                   maxLength={254}
                   autoComplete="email"
+                  placeholder={accountEmail || 'vous@exemple.fr'}
                   onChange={(event) => setEmail(event.target.value)}
                 />
               </label>
@@ -216,7 +216,7 @@ export function ConnectedContactPage({
               message.trim().length < 10 ||
               (privacyMode && !authenticated) ||
               (!privacyMode &&
-                (name.trim().length < 2 || !email.includes('@')))
+                (effectiveName.length < 2 || !effectiveEmail.includes('@')))
             }
             onClick={() => void submit()}
           >
