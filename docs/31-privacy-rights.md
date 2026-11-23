@@ -39,6 +39,20 @@ Deux sujets restent volontairement séparés :
    sans politique de conservation. Une demande d'anonymisation est donc
    orientée vers le workflow de contact/Privacy Request du lot #169.
 
+### Ordre de suppression complète
+
+Le parcours de fermeture complète doit respecter cet ordre :
+
+1. exporter ses données si souhaité ;
+2. envoyer une demande `ERASE` ;
+3. faire exécuter l'anonymisation applicative par le workflow Privacy ;
+4. vérifier que les flux métier actifs sont terminés ;
+5. seulement ensuite finaliser la suppression de l'identité Keycloak.
+
+L'interface `/parametres` présente donc la suppression Keycloak comme une
+**étape finale** et demande une confirmation explicite que l'anonymisation
+applicative a déjà été traitée.
+
 ### Configuration Keycloak
 
 Dans le realm de production :
@@ -48,8 +62,19 @@ Dans le realm de production :
    autorisés à supprimer eux-mêmes leur identité ;
 3. tester la ré-authentification et le retour de session.
 
-Le fichier de realm contenant des identifiants de démonstration n'est pas
-réécrit automatiquement pour cette activation.
+Le fichier de realm contenant les identifiants de démonstration n'est jamais
+réécrit pour cette activation.
+
+En **GitHub Codespaces**, `pnpm codespaces:up` applique automatiquement cette
+configuration au realm runtime après le démarrage de Keycloak :
+
+- activation de la Required Action `delete_account` ;
+- attribution du rôle `account/delete-account` aux comptes
+  `demo-user`, `demo-moderator` et `demo-admin`.
+
+Cette automatisation est volontairement limitée au laboratoire Codespaces.
+En production, le rôle doit être attribué selon la politique de gestion des
+comptes retenue.
 
 ## Production
 

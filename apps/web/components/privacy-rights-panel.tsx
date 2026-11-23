@@ -33,6 +33,7 @@ export function PrivacyRightsPanel() {
   } = useAuth();
   const [exportState, setExportState] = useState<ExportState>({ status: 'idle' });
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [appCleanupConfirmed, setAppCleanupConfirmed] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function exportMyData() {
@@ -181,13 +182,20 @@ export function PrivacyRightsPanel() {
           Demander l’anonymisation
         </Link>
 
+        <Link
+          className="pm-button pm-button--danger"
+          href="/contact?subject=privacy&request=erase"
+        >
+          Demander la suppression complète
+        </Link>
+
         {!confirmDelete ? (
           <button
-            className="pm-button pm-button--danger"
+            className="pm-button pm-button--outline"
             type="button"
             onClick={() => setConfirmDelete(true)}
           >
-            Supprimer mon identité
+            Finaliser la suppression Keycloak
           </button>
         ) : null}
       </div>
@@ -211,27 +219,42 @@ export function PrivacyRightsPanel() {
 
       {confirmDelete ? (
         <div className="pm-privacy-rights__danger" role="alert">
-          <strong>Suppression irréversible de l’identité Keycloak</strong>
+          <strong>Étape finale — suppression irréversible de l’identité Keycloak</strong>
           <p>
-            Cette action supprime le compte d’authentification si la capacité
-            de suppression est activée pour votre utilisateur. Les données
-            applicatives qui doivent être conservées ou anonymisées suivent un
-            traitement séparé : utilisez d’abord la demande d’anonymisation si
-            vous souhaitez fermer complètement votre présence sur la
-            plateforme.
+            N’utilisez cette action qu’après le traitement de votre demande
+            d’effacement/anonymisation applicative. Sinon, votre identité
+            Keycloak pourrait disparaître avant que les données des
+            microservices aient été correctement anonymisées.
           </p>
+          <label className="pm-privacy-rights__confirm">
+            <input
+              type="checkbox"
+              checked={appCleanupConfirmed}
+              onChange={(event) =>
+                setAppCleanupConfirmed(event.target.checked)
+              }
+            />
+            <span>
+              Ma demande d’effacement/anonymisation applicative a déjà été
+              traitée.
+            </span>
+          </label>
           <div>
             <button
               className="pm-button pm-button--danger"
               type="button"
+              disabled={!appCleanupConfirmed}
               onClick={() => void startDeleteAccount()}
             >
-              Continuer vers Keycloak
+              Supprimer définitivement mon identité Keycloak
             </button>
             <button
               className="pm-button pm-button--outline"
               type="button"
-              onClick={() => setConfirmDelete(false)}
+              onClick={() => {
+                setConfirmDelete(false);
+                setAppCleanupConfirmed(false);
+              }}
             >
               Annuler
             </button>
