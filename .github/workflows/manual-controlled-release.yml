@@ -1,0 +1,128 @@
+name: Manual controlled release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_kind:
+        description: Release to publish
+        required: true
+        type: choice
+        options:
+          - v2
+          - jury-final-2026-11-19
+      tag:
+        description: V2 tag (ignored for jury historical release)
+        required: false
+        default: v2.0.0
+        type: string
+      title:
+        description: V2 release title (ignored for jury historical release)
+        required: false
+        default: V2 — Plateforme 2-en-1
+        type: string
+      notes:
+        description: Optional release notes
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: controlled-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Create immutable GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Resolve and validate immutable target
+        id: release
+        shell: bash
+        env:
+          RELEASE_KIND: ${{ inputs.release_kind }}
+          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_TITLE: ${{ inputs.title }}
+        run: |
+          set -euo pipefail
+          git fetch --force origin main --tags
+
+          if [[ "$RELEASE_KIND" == "jury-final-2026-11-19" ]]; then
+            target="209761290d04827f68941b990a887d61186dc234"
+            tag="jury-final-2026-11-19"
+            title="Jury Final — 2026-11-19"
+            git cat-file -e "${target}^{commit}"
+          else
+            target="$(git rev-parse origin/main)"
+            tag="${INPUT_TAG}"
+            title="${INPUT_TITLE}"
+
+            [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || {
+              echo "::error::V2 tag must use a semver-like vX.Y.Z format."
+              exit 1
+            }
+            [[ -n "$title" ]] || {
+              echo "::error::Release title is required."
+              exit 1
+            }
+          fi
+
+          if git show-ref --verify --quiet "refs/tags/$tag"; then
+            existing="$(git rev-list -n 1 "$tag")"
+            [[ "$existing" == "$target" ]] || {
+              echo "::error::Tag $tag already exists on $existing, refusing to rewrite it to $target."
+              exit 1
+            }
+          fi
+
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+
+      - name: Refuse an already-published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists. Historical releases are immutable."
+            exit 1
+          fi
+
+      - name: Create tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          TARGET: ${{ steps.release.outputs.target }}
+          TITLE: ${{ steps.release.outputs.title }}
+          NOTES: ${{ inputs.notes }}
+        run: |
+          set -euo pipefail
+          notes="$NOTES"
+          if [[ -z "$notes" ]]; then
+            notes="Release contrôlée depuis le dépôt. Target: `$TARGET`."
+          fi
+
+          gh release create "$TAG"             --target "$TARGET"             --title "$TITLE"             --notes "$notes"             --verify-tag=false
+
+      - name: Verify immutable release target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          EXPECTED: ${{ steps.release.outputs.target }}
+        run: |
+          set -euo pipefail
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          actual="$(git rev-list -n 1 "$TAG")"
+          [[ "$actual" == "$EXPECTED" ]] || {
+            echo "::error::Release verification failed: $TAG -> $actual, expected $EXPECTED."
+            exit 1
+          }
+          gh release view "$TAG" --json tagName,name,url,targetCommitish
