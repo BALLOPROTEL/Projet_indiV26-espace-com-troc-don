@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import {
   ContactStatus,
   ContactSubject,
+  ListingAvailabilityStatus,
   PrivacyAction,
   PrivacyExecutionStatus,
   Prisma,
@@ -91,11 +92,21 @@ export class PrivacyExecutionService {
       };
     }
 
+    const originalUserId =
+      execution?.originalUserId ?? request.userId;
+    if (!originalUserId) {
+      throw new ConflictException(
+        'Privacy execution no longer contains a source identity',
+      );
+    }
+
+    await this.assertAnonymizationReady(originalUserId);
+
     if (!execution) {
       execution = await this.prisma.privacyExecution.create({
         data: {
           contactMessageId,
-          originalUserId: request.userId,
+          originalUserId,
           catalogReplacementId: 'anon-catalog-' + randomUUID(),
           marketplaceReplacementId:
             'anon-marketplace-' + randomUUID(),
@@ -104,13 +115,6 @@ export class PrivacyExecutionService {
           reviewerId,
         },
       });
-    }
-
-    const originalUserId = execution.originalUserId;
-    if (!originalUserId) {
-      throw new ConflictException(
-        'Privacy execution no longer contains a source identity',
-      );
     }
 
     await this.prisma.privacyExecution.update({
@@ -177,6 +181,86 @@ export class PrivacyExecutionService {
         'Anonymization is incomplete and can be retried safely',
       );
     }
+  }
+
+  private async assertAnonymizationReady(
+    userId: string,
+  ): Promise<void> {
+    const reservedListings = await this.prisma.listing.count({
+      where: {
+        ownerId: userId,
+        availabilityStatus: ListingAvailabilityStatus.RESERVED,
+      },
+    });
+
+    if (reservedListings > 0) {
+      throw new ConflictException(
+        'Reserved listings must be completed or released before anonymization',
+      );
+    }
+
+    const [marketplace, commerce] = await Promise.all([
+      this.callPreflight(this.marketplaceUrl, userId),
+      this.callPreflight(this.commerceUrl, userId),
+    ]);
+
+    if (!marketplace.canAnonymize) {
+      throw new ConflictException(
+        'Active marketplace transaction must be completed or cancelled before anonymization',
+      );
+    }
+
+    if (!commerce.canAnonymize) {
+      throw new ConflictException(
+        'Order awaiting payment must be cancelled or expired before anonymization',
+      );
+    }
+  }
+
+  private async callPreflight(
+    baseUrl: string,
+    userId: string,
+  ): Promise<{ canAnonymize: boolean }> {
+    let response: Response;
+    try {
+      response = await fetch(
+        baseUrl +
+          '/internal/privacy/users/' +
+          encodeURIComponent(userId) +
+          '/preflight',
+        {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-internal-service-token': this.token,
+          },
+          body: JSON.stringify({}),
+          signal: AbortSignal.timeout(5000),
+        },
+      );
+    } catch {
+      throw new BadGatewayException(
+        'Privacy preflight service is unavailable',
+      );
+    }
+
+    if (!response.ok) {
+      throw new BadGatewayException(
+        'Privacy preflight service returned HTTP ' +
+          response.status,
+      );
+    }
+
+    const payload = (await response.json()) as {
+      canAnonymize?: unknown;
+    };
+    if (typeof payload.canAnonymize !== 'boolean') {
+      throw new BadGatewayException(
+        'Privacy preflight service returned an invalid response',
+      );
+    }
+
+    return { canAnonymize: payload.canAnonymize };
   }
 
   private async anonymizeCatalog(
