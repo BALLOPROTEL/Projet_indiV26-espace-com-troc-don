@@ -47,7 +47,7 @@ export function AdminContentManager() {
   const [contacts, setContacts] = useState<AdminContactMessage[]>([]);
   const [fanzineForm, setFanzineForm] = useState(emptyFanzine);
   const [festivalForm, setFestivalForm] = useState(emptyFestival);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -79,10 +79,40 @@ export function AdminContentManager() {
   }, [authenticated, isAdmin, getToken]);
 
   useEffect(() => {
-    if (ready && authenticated && isAdmin) {
-      void refresh();
-    }
-  }, [ready, authenticated, isAdmin, refresh]);
+    if (!ready || !authenticated || !isAdmin) return;
+
+    let active = true;
+    void getToken()
+      .then((token) =>
+        Promise.all([
+          adminContentApi.fanzines(token),
+          adminContentApi.festival(token),
+          adminContentApi.contacts(token),
+        ]),
+      )
+      .then(([nextFanzines, nextFestival, nextContacts]) => {
+        if (!active) return;
+        setFanzines(nextFanzines);
+        setFestival(nextFestival);
+        setContacts(nextContacts);
+        setError(null);
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : 'Impossible de charger la gestion éditoriale.',
+        );
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [ready, authenticated, isAdmin, getToken]);
 
   async function execute(key: string, action: () => Promise<unknown>, success: string) {
     if (busy) return;
