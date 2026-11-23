@@ -113,6 +113,8 @@ jobs:
           test -f scripts/m6-compose-up.sh
           test -f scripts/m6-compose-check.sh
           test -f scripts/m6-compose-smoke.sh
+          test -f scripts/codespaces-keycloak-account-delete.sh
+          bash -n scripts/codespaces-keycloak-account-delete.sh
           test -f scripts/ci-bootstrap-services.sh
           test -f docs/18-codespaces.md
           test -f docs/20-m7-kubernetes-microservices.md
