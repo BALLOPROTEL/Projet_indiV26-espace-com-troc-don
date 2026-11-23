@@ -386,3 +386,35 @@ export type ContactReceipt = {
   status: 'NEW' | 'IN_PROGRESS' | 'CLOSED';
   createdAt: string;
 };
+
+
+export type AdminFanzineInput = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  issueLabel?: string;
+};
+
+export type AdminFestivalInput = {
+  slug: string;
+  title: string;
+  summary: string;
+  body: string;
+  location?: string;
+  startsAt?: string;
+  endsAt?: string;
+};
+
+export type AdminContactMessage = {
+  id: string;
+  userId: string | null;
+  name: string | null;
+  email: string | null;
+  subject: ContactSubject | 'PRIVACY';
+  privacyAction: PrivacyAction | null;
+  message: string;
+  status: 'NEW' | 'IN_PROGRESS' | 'CLOSED';
+  createdAt: string;
+  updatedAt: string;
+};
