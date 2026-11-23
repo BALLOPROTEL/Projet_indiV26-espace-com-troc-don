@@ -1,16 +1,45 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
 } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma';
+import {
+  MarketplaceTransactionStatus,
+  Prisma,
+} from '../../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class PrivacyService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async preflight(userId: string) {
+    const activeTransactions =
+      await this.prisma.marketplaceTransaction.count({
+        where: {
+          status: MarketplaceTransactionStatus.IN_PROGRESS,
+          OR: [
+            { ownerId: userId },
+            { requesterId: userId },
+          ],
+        },
+      });
+
+    return {
+      canAnonymize: activeTransactions === 0,
+      activeTransactions,
+    };
+  }
+
   async anonymize(userId: string, replacementId: string) {
     this.assertReplacement(replacementId);
+
+    const preflight = await this.preflight(userId);
+    if (!preflight.canAnonymize) {
+      throw new ConflictException(
+        'Active marketplace transaction must be completed or cancelled before anonymization',
+      );
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const proposals = await tx.proposal.updateMany({
