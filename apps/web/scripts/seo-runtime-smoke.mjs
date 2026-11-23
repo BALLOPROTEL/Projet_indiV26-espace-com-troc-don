@@ -74,6 +74,7 @@ const web = spawn('pnpm', ['--filter', 'web', 'start'], {
     NEXT_PUBLIC_SITE_URL: WEB_ORIGIN,
   },
   stdio: ['ignore', 'pipe', 'pipe'],
+  detached: process.platform !== 'win32',
 });
 
 for (const stream of [web.stdout, web.stderr]) {
@@ -87,6 +88,21 @@ for (const stream of [web.stdout, web.stderr]) {
 function fail(message) {
   const tail = logs.join('').trim();
   throw new Error(tail ? `${message}\n--- next start ---\n${tail}` : message);
+}
+
+function signalWebTree(signal) {
+  if (process.platform !== 'win32' && web.pid) {
+    try {
+      process.kill(-web.pid, signal);
+      return;
+    } catch (error) {
+      if (error?.code !== 'ESRCH') throw error;
+    }
+  }
+
+  if (web.exitCode === null) {
+    web.kill(signal);
+  }
 }
 
 async function waitForWeb() {
@@ -208,7 +224,7 @@ try {
   }
 
   if (web.exitCode === null) {
-    web.kill('SIGTERM');
+    signalWebTree('SIGTERM');
     await Promise.race([
       once(web, 'exit'),
       new Promise((resolve) => setTimeout(resolve, 5_000)),
@@ -216,6 +232,15 @@ try {
   }
 
   if (web.exitCode === null) {
-    web.kill('SIGKILL');
+    signalWebTree('SIGKILL');
+    await Promise.race([
+      once(web, 'exit'),
+      new Promise((resolve) => setTimeout(resolve, 1_000)),
+    ]);
   }
+
+  // Descendants can inherit pnpm's pipes even after the parent exits.
+  // Destroy them explicitly so this smoke test never keeps the runner alive.
+  web.stdout.destroy();
+  web.stderr.destroy();
 }
