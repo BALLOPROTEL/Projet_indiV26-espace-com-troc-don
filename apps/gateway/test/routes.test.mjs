@@ -128,3 +128,28 @@ test('routes the exact ADMIN catalog summary without exposing unrelated admin pa
   assert.equal(resolveGatewayRoute('/api/admin/users'), null);
   assert.equal(resolveGatewayRoute('/api/admin/catalog/internal'), null);
 });
+
+
+test('routes editorial and contact contracts explicitly to Catalog', () => {
+  assert.deepEqual(resolveGatewayRoute('/api/fanzines'), {
+    target: 'catalog',
+    upstreamPath: '/fanzines',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/festival/news-1'), {
+    target: 'catalog',
+    upstreamPath: '/festival/news-1',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/contact/privacy'), {
+    target: 'catalog',
+    upstreamPath: '/contact/privacy',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/admin/fanzines/item-1/publish'), {
+    target: 'catalog',
+    upstreamPath: '/admin/fanzines/item-1/publish',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/admin/contact?status=NEW'), {
+    target: 'catalog',
+    upstreamPath: '/admin/contact?status=NEW',
+  });
+  assert.equal(resolveGatewayRoute('/api/admin/content-internal'), null);
+});
