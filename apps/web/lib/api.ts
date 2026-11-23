@@ -1,5 +1,8 @@
 import { parseAdminCatalogSummary } from './admin-dashboard';
 import type {
+  AdminContactMessage,
+  AdminFanzineInput,
+  AdminFestivalInput,
   AdminProduct,
   AdminProductCreateInput,
   AdminProductImage,
@@ -609,6 +612,81 @@ export const contactApi = {
       {
         method: 'POST',
         body: JSON.stringify(input),
+      },
+      token,
+    ),
+};
+
+
+export const adminContentApi = {
+  fanzines: (token: string) =>
+    request<Fanzine[]>('/admin/fanzines', {}, token),
+
+  createFanzine: (token: string, input: AdminFanzineInput) =>
+    request<Fanzine>(
+      '/admin/fanzines',
+      { method: 'POST', body: JSON.stringify(input) },
+      token,
+    ),
+
+  publishFanzine: (token: string, id: string) =>
+    request<Fanzine>(
+      `/admin/fanzines/${encodeURIComponent(id)}/publish`,
+      { method: 'POST' },
+      token,
+    ),
+
+  archiveFanzine: (token: string, id: string) =>
+    request<Fanzine>(
+      `/admin/fanzines/${encodeURIComponent(id)}/archive`,
+      { method: 'POST' },
+      token,
+    ),
+
+  festival: (token: string) =>
+    request<FestivalEntry[]>('/admin/festival', {}, token),
+
+  createFestival: (token: string, input: AdminFestivalInput) =>
+    request<FestivalEntry>(
+      '/admin/festival',
+      { method: 'POST', body: JSON.stringify(input) },
+      token,
+    ),
+
+  publishFestival: (token: string, id: string) =>
+    request<FestivalEntry>(
+      `/admin/festival/${encodeURIComponent(id)}/publish`,
+      { method: 'POST' },
+      token,
+    ),
+
+  archiveFestival: (token: string, id: string) =>
+    request<FestivalEntry>(
+      `/admin/festival/${encodeURIComponent(id)}/archive`,
+      { method: 'POST' },
+      token,
+    ),
+
+  contacts: (
+    token: string,
+    status?: 'NEW' | 'IN_PROGRESS' | 'CLOSED',
+  ) =>
+    request<AdminContactMessage[]>(
+      `/admin/contact${status ? `?status=${status}` : ''}`,
+      {},
+      token,
+    ),
+
+  updateContactStatus: (
+    token: string,
+    id: string,
+    status: 'NEW' | 'IN_PROGRESS' | 'CLOSED',
+  ) =>
+    request<AdminContactMessage>(
+      `/admin/contact/${encodeURIComponent(id)}/status`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
       },
       token,
     ),
