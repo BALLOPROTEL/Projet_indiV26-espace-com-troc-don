@@ -86,7 +86,17 @@ describe('PrivacyExecutionService', () => {
 
     await expect(
       service.execute('contact-1', 'admin-sub'),
-    ).resolves.toEqual(completed);
+    ).resolves.toEqual({
+      execution: completed,
+      catalog: {
+        listingsAnonymized: 0,
+        favoritesRemoved: 0,
+        reportsAnonymized: 0,
+        contactMessagesRedacted: 0,
+      },
+      identityDeletionRequired: false,
+      alreadyCompleted: true,
+    });
 
     expect(prisma.privacyExecution.create).not.toHaveBeenCalled();
     expect(prisma.privacyExecution.update).not.toHaveBeenCalled();
