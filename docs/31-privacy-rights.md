@@ -48,8 +48,19 @@ Dans le realm de production :
    autorisés à supprimer eux-mêmes leur identité ;
 3. tester la ré-authentification et le retour de session.
 
-Le fichier de realm contenant des identifiants de démonstration n'est pas
-réécrit automatiquement pour cette activation.
+Le fichier de realm contenant les identifiants de démonstration n'est jamais
+réécrit pour cette activation.
+
+En **GitHub Codespaces**, `pnpm codespaces:up` applique automatiquement cette
+configuration au realm runtime après le démarrage de Keycloak :
+
+- activation de la Required Action `delete_account` ;
+- attribution du rôle `account/delete-account` aux comptes
+  `demo-user`, `demo-moderator` et `demo-admin`.
+
+Cette automatisation est volontairement limitée au laboratoire Codespaces.
+En production, le rôle doit être attribué selon la politique de gestion des
+comptes retenue.
 
 ## Production
 
