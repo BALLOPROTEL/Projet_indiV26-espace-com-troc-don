@@ -185,6 +185,17 @@ export class PrivacyExecutionService {
     executionId: string,
     reviewerId: string,
   ) {
+    // Hide owned listings first. If storage cleanup later fails, no partially
+    // anonymized listing remains visible to the public while the execution is retried.
+    await this.prisma.listing.updateMany({
+      where: { ownerId: originalUserId },
+      data: {
+        status: 'REJECTED',
+        moderationReason:
+          'Retrait en cours après demande d’anonymisation du compte.',
+      },
+    });
+
     const ownedListings = await this.prisma.listing.findMany({
       where: { ownerId: originalUserId },
       select: {
