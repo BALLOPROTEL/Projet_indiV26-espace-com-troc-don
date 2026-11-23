@@ -1,5 +1,22 @@
 # GitHub hardening et releases — #171
 
+## État observé avant durcissement
+
+Audit du 23 novembre 2026 :
+
+- `main` est bien marquée **protected: true** ;
+- un seul check est actuellement requis :
+  `Validate repository structure` ;
+- aucun Ruleset GitHub n'est présent ;
+- l'auto-merge est désactivé au niveau dépôt ;
+- aucune GitHub Release n'est publiée ;
+- le seul tag existant est `baseline-2026-10-19`.
+
+Le endpoint détaillé de branch protection renvoie `403` avec l'intégration
+GitHub utilisée par ChatGPT, car cette intégration ne dispose pas du droit
+Repository Administration. Le script ci-dessous permet donc l'audit et
+l'application finale avec un token administrateur explicite.
+
 ## Protection cible de `main`
 
 La configuration cible requiert une PR et les trois jobs stables suivants :
