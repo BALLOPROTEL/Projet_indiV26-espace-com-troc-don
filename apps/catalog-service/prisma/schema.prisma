@@ -177,3 +177,83 @@ model ProductStockReservationItem {
   @@unique([reservationId, variantId])
   @@index([reservationId, createdAt])
 }
+
+
+enum EditorialStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ContactSubject {
+  SHOP
+  ACCOUNT
+  PRIVACY
+  FESTIVAL
+  FANZINE
+  OTHER
+}
+
+enum ContactStatus {
+  NEW
+  IN_PROGRESS
+  CLOSED
+}
+
+enum PrivacyAction {
+  ACCESS
+  EXPORT
+  RECTIFY
+  ANONYMIZE
+  ERASE
+}
+
+model Fanzine {
+  id          String          @id @default(cuid())
+  slug        String          @unique @db.VarChar(140)
+  title       String          @db.VarChar(160)
+  excerpt     String          @db.VarChar(500)
+  body        String          @db.Text
+  issueLabel  String?         @db.VarChar(80)
+  status      EditorialStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model FestivalEntry {
+  id          String          @id @default(cuid())
+  slug        String          @unique @db.VarChar(140)
+  title       String          @db.VarChar(180)
+  summary     String          @db.VarChar(600)
+  body        String          @db.Text
+  location    String?         @db.VarChar(160)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  status      EditorialStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([startsAt])
+}
+
+model ContactMessage {
+  id            String         @id @default(cuid())
+  userId        String?
+  name          String?        @db.VarChar(120)
+  email         String?        @db.VarChar(254)
+  subject       ContactSubject
+  privacyAction PrivacyAction?
+  message       String         @db.VarChar(4000)
+  status        ContactStatus  @default(NEW)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email, createdAt])
+  @@index([userId, createdAt])
+}
