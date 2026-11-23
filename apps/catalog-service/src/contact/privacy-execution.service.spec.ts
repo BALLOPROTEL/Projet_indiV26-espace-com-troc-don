@@ -130,7 +130,6 @@ describe('PrivacyExecutionService', () => {
         favoritesRemoved: 0,
         reportsAnonymized: 0,
         contactMessagesRedacted: 0,
-        listingImagesRemoved: 0,
       },
       identityDeletionRequired: false,
       alreadyCompleted: true,
