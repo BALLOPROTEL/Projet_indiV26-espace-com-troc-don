@@ -39,6 +39,20 @@ Deux sujets restent volontairement séparés :
    sans politique de conservation. Une demande d'anonymisation est donc
    orientée vers le workflow de contact/Privacy Request du lot #169.
 
+### Ordre de suppression complète
+
+Le parcours de fermeture complète doit respecter cet ordre :
+
+1. exporter ses données si souhaité ;
+2. envoyer une demande `ERASE` ;
+3. faire exécuter l'anonymisation applicative par le workflow Privacy ;
+4. vérifier que les flux métier actifs sont terminés ;
+5. seulement ensuite finaliser la suppression de l'identité Keycloak.
+
+L'interface `/parametres` présente donc la suppression Keycloak comme une
+**étape finale** et demande une confirmation explicite que l'anonymisation
+applicative a déjà été traitée.
+
 ### Configuration Keycloak
 
 Dans le realm de production :
