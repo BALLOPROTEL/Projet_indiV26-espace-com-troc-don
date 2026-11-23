@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
+import { StorageModule } from '../storage/storage.module';
 import {
   AdminContactController,
   ContactController,
@@ -9,7 +10,7 @@ import { ContactService } from './contact.service';
 import { PrivacyExecutionService } from './privacy-execution.service';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, StorageModule],
   controllers: [
     ContactController,
     PrivacyContactController,
