@@ -11,11 +11,11 @@ import {
   ContactSubject,
   PrivacyAction,
   PrivacyExecutionStatus,
+  Prisma,
 } from '../../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 
 type PrivacyTarget = {
-  baseUrl: string;
   replacementId?: string;
 };
 
@@ -118,20 +118,18 @@ export class PrivacyExecutionService {
         this.marketplaceUrl,
         originalUserId,
         {
-          baseUrl: this.marketplaceUrl,
           replacementId: execution.marketplaceReplacementId,
         },
       );
       await this.callRemote(
         this.notificationUrl,
         originalUserId,
-        { baseUrl: this.notificationUrl },
+        {},
       );
       await this.callRemote(
         this.commerceUrl,
         originalUserId,
         {
-          baseUrl: this.commerceUrl,
           replacementId: execution.commerceReplacementId,
         },
       );
@@ -183,23 +181,21 @@ export class PrivacyExecutionService {
         where: { userId: originalUserId },
       });
 
-      const reportTable = await tx.$queryRawUnsafe<
-        Array<{ present: boolean }>
-      >(
-        'SELECT to_regclass(\'"ListingReport"\') IS NOT NULL AS present',
+      const reportTable = await tx.$queryRaw<Array<{ present: boolean }>>(
+        Prisma.sql`SELECT to_regclass('"ListingReport"') IS NOT NULL AS present`,
       );
 
       let reports = 0;
       if (reportTable[0]?.present) {
-        reports += await tx.$executeRawUnsafe(
-          'UPDATE "ListingReport" SET "reporterId" = $1 WHERE "reporterId" = $2',
-          replacementId,
-          originalUserId,
+        reports += await tx.$executeRaw(
+          Prisma.sql`UPDATE "ListingReport"
+            SET "reporterId" = ${replacementId}
+            WHERE "reporterId" = ${originalUserId}`,
         );
-        reports += await tx.$executeRawUnsafe(
-          'UPDATE "ListingReport" SET "reviewerId" = $1 WHERE "reviewerId" = $2',
-          replacementId,
-          originalUserId,
+        reports += await tx.$executeRaw(
+          Prisma.sql`UPDATE "ListingReport"
+            SET "reviewerId" = ${replacementId}
+            WHERE "reviewerId" = ${originalUserId}`,
         );
       }
 
