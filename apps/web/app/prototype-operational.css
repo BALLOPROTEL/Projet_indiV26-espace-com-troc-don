@@ -4131,3 +4131,56 @@ body {
     grid-column: 1;
   }
 }
+
+
+/* #168/#169 — audited privacy execution from ADMIN inbox */
+.pm-admin-contact-list__actions {
+  display: grid;
+  gap: 8px;
+  min-width: min(100%, 250px);
+}
+
+.pm-admin-contact-list__privacy-confirm {
+  grid-column: 1 / -1;
+  border: 1px solid #e3b2b2;
+  border-radius: 10px;
+  background: #fff5f5;
+  padding: 12px;
+}
+
+.pm-admin-contact-list__privacy-confirm strong {
+  color: #7d2525;
+}
+
+.pm-admin-contact-list__privacy-confirm p {
+  margin: 7px 0 10px;
+  color: #6f4545;
+  font-size: .7rem;
+  line-height: 1.55;
+}
+
+.pm-admin-contact-list__privacy-confirm > div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pm-admin-content .pm-button--danger {
+  border: 1px solid #a43d3d;
+  background: #fff;
+  color: #8c2929;
+}
+
+.pm-admin-content .pm-button--danger:hover {
+  background: #fff0f0;
+}
+
+@media (max-width: 720px) {
+  .pm-admin-contact-list__actions {
+    min-width: 0;
+  }
+
+  .pm-admin-contact-list__privacy-confirm > div {
+    flex-direction: column;
+  }
+}
