@@ -61,8 +61,9 @@ export class PrivacyExecutionService {
       request.subject !== ContactSubject.PRIVACY ||
       !request.userId ||
       !request.privacyAction ||
-      ![PrivacyAction.ANONYMIZE, PrivacyAction.ERASE].includes(
-        request.privacyAction,
+      (
+        request.privacyAction !== PrivacyAction.ANONYMIZE &&
+        request.privacyAction !== PrivacyAction.ERASE
       )
     ) {
       throw new ConflictException(
