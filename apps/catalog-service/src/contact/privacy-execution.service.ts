@@ -75,7 +75,18 @@ export class PrivacyExecutionService {
     if (
       execution?.status === PrivacyExecutionStatus.COMPLETED
     ) {
-      return execution;
+      return {
+        execution,
+        catalog: {
+          listingsAnonymized: 0,
+          favoritesRemoved: 0,
+          reportsAnonymized: 0,
+          contactMessagesRedacted: 0,
+        },
+        identityDeletionRequired:
+          request.privacyAction === PrivacyAction.ERASE,
+        alreadyCompleted: true,
+      };
     }
 
     if (!execution) {
