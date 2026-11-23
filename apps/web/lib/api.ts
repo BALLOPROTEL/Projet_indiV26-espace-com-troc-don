@@ -703,6 +703,7 @@ export const adminContentApi = {
         favoritesRemoved: number;
         reportsAnonymized: number;
         contactMessagesRedacted: number;
+        listingImagesRemoved: number;
       };
       identityDeletionRequired: boolean;
       alreadyCompleted?: boolean;
