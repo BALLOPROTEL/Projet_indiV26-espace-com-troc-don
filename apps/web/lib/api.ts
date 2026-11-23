@@ -705,6 +705,7 @@ export const adminContentApi = {
         contactMessagesRedacted: number;
       };
       identityDeletionRequired: boolean;
+      alreadyCompleted?: boolean;
     }>(
       `/admin/contact/${encodeURIComponent(id)}/anonymize`,
       { method: 'POST' },
