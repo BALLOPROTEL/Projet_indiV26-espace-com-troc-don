@@ -52,6 +52,26 @@ export function resolveGatewayRoute(
   }
 
   if (
+    path === '/api/fanzines' ||
+    path.startsWith('/api/fanzines/') ||
+    path === '/api/festival' ||
+    path.startsWith('/api/festival/') ||
+    path === '/api/contact' ||
+    path.startsWith('/api/contact/') ||
+    path === '/api/admin/fanzines' ||
+    path.startsWith('/api/admin/fanzines/') ||
+    path === '/api/admin/festival' ||
+    path.startsWith('/api/admin/festival/') ||
+    path === '/api/admin/contact' ||
+    path.startsWith('/api/admin/contact/')
+  ) {
+    return {
+      target: 'catalog',
+      upstreamPath: `${stripApiPrefix(path)}${url.search}`,
+    };
+  }
+
+  if (
     path === '/api/products' ||
     path.startsWith('/api/products/')
   ) {
