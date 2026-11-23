@@ -690,4 +690,24 @@ export const adminContentApi = {
       },
       token,
     ),
+
+  anonymizeContact: (token: string, id: string) =>
+    request<{
+      execution: {
+        id: string;
+        status: 'COMPLETED';
+        completedAt: string | null;
+      };
+      catalog: {
+        listingsAnonymized: number;
+        favoritesRemoved: number;
+        reportsAnonymized: number;
+        contactMessagesRedacted: number;
+      };
+      identityDeletionRequired: boolean;
+    }>(
+      `/admin/contact/${encodeURIComponent(id)}/anonymize`,
+      { method: 'POST' },
+      token,
+    ),
 };
