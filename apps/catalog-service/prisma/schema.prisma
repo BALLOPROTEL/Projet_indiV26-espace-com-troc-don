@@ -257,3 +257,29 @@ model ContactMessage {
   @@index([email, createdAt])
   @@index([userId, createdAt])
 }
+
+
+enum PrivacyExecutionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model PrivacyExecution {
+  id                       String                 @id @default(cuid())
+  contactMessageId         String                 @unique
+  originalUserId           String?
+  catalogReplacementId     String
+  marketplaceReplacementId String
+  commerceReplacementId    String
+  reviewerId               String
+  status                   PrivacyExecutionStatus @default(PENDING)
+  lastError                String?                @db.VarChar(1000)
+  completedAt              DateTime?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+
+  @@index([status, createdAt])
+  @@index([reviewerId, createdAt])
+}
