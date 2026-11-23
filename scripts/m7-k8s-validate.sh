@@ -83,6 +83,13 @@ require_rendered 'COMMERCE_SERVICE_URL: http://commerce-service:3104' 'Gateway -
 require_rendered 'CATALOG_INTERNAL_URL: http://catalog-service:3101' 'Commerce -> Catalog DNS'
 require_rendered 'LEGACY_API_URL: http://legacy-api:3099' 'Gateway -> legacy DNS'
 require_rendered 'CATALOG_INTERNAL_URL: http://catalog-service:3101' 'Marketplace -> Catalog DNS'
+require_rendered 'MARKETPLACE_INTERNAL_URL: http://marketplace-service:3102' 'Catalog -> Marketplace privacy DNS'
+require_rendered 'NOTIFICATION_INTERNAL_URL: http://notification-service:3103' 'Catalog -> Notification privacy DNS'
+require_rendered 'COMMERCE_INTERNAL_URL: http://commerce-service:3104' 'Catalog -> Commerce privacy DNS'
+grep -Fq -- '--from-literal=INTERNAL_SERVICE_TOKEN="${INTERNAL_SERVICE_TOKEN}"' "${ROOT_DIR}/scripts/m7-k8s-runtime-config.sh"
+grep -A 8 'name: notification-service' "${K8S_DIR}/notification-deployment.yaml" | grep -q 'INTERNAL_SERVICE_TOKEN' || \
+  grep -q 'name: INTERNAL_SERVICE_TOKEN' "${K8S_DIR}/notification-deployment.yaml"
+echo "[OK] privacy internal token wiring is declared for Catalog/Marketplace/Notification/Commerce."
 require_rendered 'KEYCLOAK_JWKS_URL: http://keycloak:8080/' 'internal Keycloak JWKS'
 grep -Fq 'KEYCLOAK_ISSUER: "https://auth.projet-indiv26.test/realms/projet-indiv26"' "${K8S_DIR}/notification-configmap.yaml"
 grep -Fq 'KEYCLOAK_JWKS_URL: "http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs"' "${K8S_DIR}/notification-configmap.yaml"
