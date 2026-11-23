@@ -113,6 +113,11 @@ export function AdminDashboard() {
               <span>Produits, prix, stocks, images et publication</span>
               <span aria-hidden="true">↗</span>
             </Link>
+            <Link href="/admin/contenus">
+              <strong>Gérer les contenus</strong>
+              <span>Fanzines, festival, actualités et demandes Contact/Privacy</span>
+              <span aria-hidden="true">↗</span>
+            </Link>
             <Link href="/moderation">
               <strong>Examiner les annonces</strong>
               <span>Accepter ou refuser les publications en attente</span>
