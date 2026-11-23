@@ -34,9 +34,9 @@ export type Listing = {
   status: ListingStatus;
   availabilityStatus: ListingAvailabilityStatus;
   moderationReason: string | null;
-  category: string | null;
-  city: string | null;
-  condition: ListingCondition | null;
+  category?: string | null;
+  city?: string | null;
+  condition?: ListingCondition | null;
   createdAt: string;
   updatedAt: string;
   images: ListingImage[];
