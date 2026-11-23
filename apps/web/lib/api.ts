@@ -4,7 +4,11 @@ import type {
   AdminProductCreateInput,
   AdminProductImage,
   Cart,
+  ContactReceipt,
+  ContactSubject,
   CreateOrderInput,
+  Fanzine,
+  FestivalEntry,
   Listing,
   ListingImage,
   ListingInput,
@@ -16,6 +20,7 @@ import type {
   Order,
   ProposalType,
   Product,
+  PrivacyAction,
   UserNotification,
 } from './types';
 
@@ -566,6 +571,45 @@ export const marketplaceApi = {
     request<MarketplaceTransaction>(
       `/transactions/${encodeURIComponent(id)}/confirm`,
       { method: 'POST' },
+      token,
+    ),
+};
+
+
+export const editorialApi = {
+  fanzines: () => request<Fanzine[]>('/fanzines'),
+  fanzine: (slug: string) =>
+    request<Fanzine>(`/fanzines/${encodeURIComponent(slug)}`),
+  festival: () => request<FestivalEntry[]>('/festival'),
+  festivalEntry: (slug: string) =>
+    request<FestivalEntry>(`/festival/${encodeURIComponent(slug)}`),
+};
+
+export const contactApi = {
+  send: (input: {
+    name: string;
+    email: string;
+    subject: ContactSubject;
+    message: string;
+  }) =>
+    request<ContactReceipt>('/contact', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  privacy: (
+    token: string,
+    input: {
+      action: PrivacyAction;
+      message: string;
+    },
+  ) =>
+    request<ContactReceipt>(
+      '/contact/privacy',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
       token,
     ),
 };
