@@ -132,6 +132,7 @@ export class ListingReportsService {
           select: {
             id: true,
             status: true,
+            availabilityStatus: true,
           },
         },
       },
@@ -142,6 +143,12 @@ export class ListingReportsService {
     }
 
     if (input.status === ListingReportStatus.ACTIONED) {
+      if (report.listing.availabilityStatus !== 'AVAILABLE') {
+        throw new ConflictException(
+          'A reserved or completed listing cannot be removed through report moderation',
+        );
+      }
+
       return this.prisma.$transaction(async (tx) => {
         if (report.listing.status === ListingStatus.APPROVED) {
           await tx.listing.update({
