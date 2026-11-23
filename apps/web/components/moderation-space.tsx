@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { listingsApi } from '../lib/api';
-import type { Listing } from '../lib/types';
+import type { Listing, ListingReport, ListingReportStatus } from '../lib/types';
 import { filterPendingListings, moderationMetrics, type ModerationFilter } from '../lib/moderation-dashboard';
 import { useAuth } from './auth-provider';
 import { EmptyState } from './empty-state';
@@ -24,6 +24,8 @@ export function ModerationSpace() {
 
   const canModerate = hasAnyRole('MODERATOR', 'ADMIN');
   const [queue, setQueue] = useState<Listing[]>([]);
+  const [reports, setReports] = useState<ListingReport[]>([]);
+  const [reportBusyId, setReportBusyId] = useState<string | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [filter, setFilter] = useState<ModerationFilter>('ALL');
   const [query, setQuery] = useState('');
@@ -40,10 +42,16 @@ export function ModerationSpace() {
     let active = true;
 
     void getToken()
-      .then((token) => listingsApi.moderation(token))
-      .then((data) => {
+      .then((token) =>
+        Promise.all([
+          listingsApi.moderation(token),
+          listingsApi.moderationReports(token, 'OPEN'),
+        ]),
+      )
+      .then(([data, reportData]) => {
         if (active) {
           setQueue(data);
+          setReports(reportData);
           setLoadError(null);
           setError(null);
         }
@@ -123,6 +131,34 @@ export function ModerationSpace() {
       );
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function reviewReport(
+    report: ListingReport,
+    status: Extract<
+      ListingReportStatus,
+      'REVIEWED' | 'DISMISSED' | 'ACTIONED'
+    >,
+  ) {
+    if (reportBusyId) return;
+    setReportBusyId(report.id);
+    setError(null);
+
+    try {
+      const token = await getToken();
+      await listingsApi.reviewReport(token, report.id, status);
+      setReports((current) =>
+        current.filter((item) => item.id !== report.id),
+      );
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : 'Impossible de traiter ce signalement.',
+      );
+    } finally {
+      setReportBusyId(null);
     }
   }
 
@@ -303,6 +339,69 @@ export function ModerationSpace() {
           </ModerationQueueRow>
         ))}
       </div>
+
+      <section className="management-v2__reports" aria-labelledby="reports-title">
+        <div className="management-v2__section-head">
+          <div>
+            <span>Sécurité communautaire</span>
+            <h2 id="reports-title">Signalements utilisateurs</h2>
+          </div>
+          <strong>{reports.length} ouvert{reports.length === 1 ? '' : 's'}</strong>
+        </div>
+
+        {reports.length === 0 ? (
+          <EmptyState
+            eyebrow="Signalements"
+            title="Aucun signalement ouvert."
+            text="Les signalements authentifiés apparaîtront ici."
+          />
+        ) : (
+          <div className="management-v2__report-list">
+            {reports.map((report) => (
+              <article key={report.id} className="management-v2__report-card">
+                <div>
+                  <span className="eyebrow">{report.reason}</span>
+                  <h3>{report.listing.title}</h3>
+                  <p>{report.details ?? 'Aucun détail supplémentaire.'}</p>
+                  <small>
+                    {[
+                      report.listing.category,
+                      report.listing.city,
+                      report.listing.condition,
+                    ].filter(Boolean).join(' · ') || 'Aucune métadonnée optionnelle'}
+                  </small>
+                </div>
+                <div className="moderation-buttons">
+                  <button
+                    className="button button--quiet"
+                    type="button"
+                    disabled={reportBusyId === report.id}
+                    onClick={() => void reviewReport(report, 'DISMISSED')}
+                  >
+                    Classer sans suite
+                  </button>
+                  <button
+                    className="button button--quiet"
+                    type="button"
+                    disabled={reportBusyId === report.id}
+                    onClick={() => void reviewReport(report, 'REVIEWED')}
+                  >
+                    Marquer examiné
+                  </button>
+                  <button
+                    className="button"
+                    type="button"
+                    disabled={reportBusyId === report.id}
+                    onClick={() => void reviewReport(report, 'ACTIONED')}
+                  >
+                    Retirer l’annonce
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
         </div>
       </div>
       </section>
