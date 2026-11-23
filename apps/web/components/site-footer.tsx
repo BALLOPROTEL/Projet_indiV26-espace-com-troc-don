@@ -34,13 +34,15 @@ export function SiteFooter() {
           <h3>Besoin d&apos;aide ?</h3>
           <Link href="/faq">FAQ</Link>
           <Link href="/contact">Nous contacter</Link>
-          <span className="pm-footer__muted">Préférences · bientôt</span>
+          <Link href="/confidentialite">Confidentialité</Link>
+          <Link href="/conditions">Conditions d’utilisation</Link>
+          <Link href="/mentions-legales">Mentions légales</Link>
         </div>
       </div>
 
       <div className="pm-wrap pm-footer__bottom">
-        <span>© La Petite Maison de l’Épouvante — Prototype UX/UI intégré</span>
-        <span>Fonctions commerciales non actives tant que leurs backends ne sont pas livrés</span>
+        <span>© La Petite Maison de l’Épouvante — Projet pédagogique CESI</span>
+        <span>Confidentialité · droits utilisateur · aucune donnée carte stockée</span>
       </div>
     </footer>
   );
