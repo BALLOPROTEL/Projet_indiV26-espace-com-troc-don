@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
 } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -45,9 +46,9 @@ export class PrivacyService {
           body: '[message anonymisé à la demande du compte]',
         },
       });
-      const outboxEventsRemoved = await tx.$executeRawUnsafe(
-        'DELETE FROM "MarketplaceOutboxEvent" WHERE CAST("payload" AS TEXT) LIKE $1',
-        '%' + userId + '%',
+      const outboxEventsRemoved = await tx.$executeRaw(
+        Prisma.sql`DELETE FROM "MarketplaceOutboxEvent"
+          WHERE CAST("payload" AS TEXT) LIKE ${'%' + userId + '%'}`,
       );
 
       return {
