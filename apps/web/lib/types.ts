@@ -333,3 +333,56 @@ export type CreateOrderInput = {
   city: string;
   countryCode: string;
 };
+
+
+export type EditorialStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export type Fanzine = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  issueLabel: string | null;
+  status: EditorialStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FestivalEntry = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  body: string;
+  location: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  status: EditorialStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ContactSubject =
+  | 'SHOP'
+  | 'ACCOUNT'
+  | 'FESTIVAL'
+  | 'FANZINE'
+  | 'OTHER';
+
+export type PrivacyAction =
+  | 'ACCESS'
+  | 'EXPORT'
+  | 'RECTIFY'
+  | 'ANONYMIZE'
+  | 'ERASE';
+
+export type ContactReceipt = {
+  id: string;
+  subject: ContactSubject | 'PRIVACY';
+  privacyAction?: PrivacyAction | null;
+  status: 'NEW' | 'IN_PROGRESS' | 'CLOSED';
+  createdAt: string;
+};
