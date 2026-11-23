@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { FestivalShowcase } from '../../components/prototype-showcase-pages';
+import { FestivalConnectedPage } from '../../components/connected-editorial-pages';
 
 export const metadata: Metadata = {
   title: 'Festival',
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function FestivalPage() {
-  return <FestivalShowcase />;
+  return <FestivalConnectedPage />;
 }
