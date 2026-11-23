@@ -7,7 +7,7 @@ describe('Marketplace PrivacyService', () => {
     marketplaceTransaction: { updateMany: jest.fn() },
     conversation: { updateMany: jest.fn() },
     conversationMessage: { updateMany: jest.fn() },
-    $executeRawUnsafe: jest.fn(),
+    $executeRaw: jest.fn(),
   };
   const prisma = {
     $transaction: jest.fn(
@@ -27,7 +27,7 @@ describe('Marketplace PrivacyService', () => {
       .mockResolvedValueOnce({ count: 1 })
       .mockResolvedValueOnce({ count: 1 });
     tx.conversationMessage.updateMany.mockResolvedValue({ count: 4 });
-    tx.$executeRawUnsafe.mockResolvedValue(2);
+    tx.$executeRaw.mockResolvedValue(2);
   });
 
   it('anonymizes requester/participant ids and redacts message bodies', async () => {
