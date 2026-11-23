@@ -1695,26 +1695,45 @@ async function runFrontV2HomeJourney() {
   );
   await journeyScreenshot('prototype-02-boutique-desktop');
 
-  // Screen 04 — Fanzines is a dedicated editorial page.
+  // Screen 04 — Fanzines uses the real persistent editorial backend.
   await journeyOpen('/fanzines', '.pm-editorial-hero', 'Prototype 04 Fanzines');
+  await waitUntil(
+    'Prototype 04 real Fanzines settled',
+    '(() => {' +
+      'const cards=document.querySelectorAll(".pm-news-grid .pm-editorial-real-card").length;' +
+      'const empty=[...document.querySelectorAll(".pm-prototype-empty h3")]' +
+      '.some(el=>el.textContent?.includes("Aucun fanzine publié"));' +
+      'const loading=[...document.querySelectorAll("[role=status]")]' +
+      '.some(el=>el.textContent?.includes("Chargement des publications"));' +
+      'return !loading && (cards>0 || empty);' +
+    '})()',
+    120,
+  );
   assert.equal(
     await evaluate('document.querySelectorAll(".pm-formula-grid article").length'),
-    3,
-    'Fanzines must expose the three prototype formula cards',
+    0,
+    'Fanzines must not keep obsolete prototype subscription cards',
   );
   assert.equal(
     await evaluate('document.body.innerText.includes("39,90 €") || document.body.innerText.includes("29,00 €")'),
     false,
-    'Fanzines must not invent prototype prices before real subscriptions exist',
+    'Fanzines must not invent prices before a real subscription domain exists',
   );
   await journeyScreenshot('prototype-04-fanzines-desktop');
 
-  // Screen 06 — Festival has its own page.
+  // Screen 06 — Festival uses the real persistent editorial backend.
   await journeyOpen('/festival', '.pm-festival-hero', 'Prototype 06 Festival');
-  assert.equal(
-    await evaluate('document.querySelectorAll(".pm-news-grid article").length'),
-    3,
-    'Festival must keep the three-column editorial structure',
+  await waitUntil(
+    'Prototype 06 real Festival feed settled',
+    '(() => {' +
+      'const cards=document.querySelectorAll(".pm-news-grid .pm-editorial-real-card").length;' +
+      'const empty=[...document.querySelectorAll(".pm-prototype-empty h3")]' +
+      '.some(el=>el.textContent?.includes("Aucune actualité publiée"));' +
+      'const loading=[...document.querySelectorAll("[role=status]")]' +
+      '.some(el=>el.textContent?.includes("Chargement des publications"));' +
+      'return !loading && (cards>0 || empty);' +
+    '})()',
+    120,
   );
   await journeyScreenshot('prototype-06-festival-desktop');
 
