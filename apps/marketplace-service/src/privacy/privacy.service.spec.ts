@@ -10,6 +10,9 @@ describe('Marketplace PrivacyService', () => {
     $executeRaw: jest.fn(),
   };
   const prisma = {
+    marketplaceTransaction: {
+      count: jest.fn(),
+    },
     $transaction: jest.fn(
       async (callback: (client: typeof tx) => Promise<unknown>) =>
         callback(tx),
@@ -28,6 +31,8 @@ describe('Marketplace PrivacyService', () => {
       .mockResolvedValueOnce({ count: 1 });
     tx.conversationMessage.updateMany.mockResolvedValue({ count: 4 });
     tx.$executeRaw.mockResolvedValue(2);
+    (prisma.marketplaceTransaction.count as jest.Mock)
+      .mockResolvedValue(0);
   });
 
   it('anonymizes requester/participant ids and redacts message bodies', async () => {
@@ -54,6 +59,22 @@ describe('Marketplace PrivacyService', () => {
     });
     expect(result.messages).toBe(4);
     expect(result.outboxEventsRemoved).toBe(2);
+  });
+
+  it('blocks anonymization while a marketplace transaction is active', async () => {
+    (prisma.marketplaceTransaction.count as jest.Mock)
+      .mockResolvedValue(1);
+
+    await expect(
+      service.anonymize(
+        'user-sub-1',
+        'anon-marketplace-00000000-0000-4000-8000-000000000001',
+      ),
+    ).rejects.toThrow(
+      'Active marketplace transaction must be completed or cancelled before anonymization',
+    );
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('rejects replacement ids outside the dedicated namespace', async () => {
