@@ -7,6 +7,7 @@ import {
   PrivacyExecutionStatus,
 } from '../../generated/prisma';
 import type { PrismaService } from '../prisma/prisma.service';
+import type { ObjectStorageService } from '../storage/object-storage.service';
 import { PrivacyExecutionService } from './privacy-execution.service';
 
 describe('PrivacyExecutionService', () => {
@@ -35,7 +36,15 @@ describe('PrivacyExecutionService', () => {
     }),
   } as unknown as ConfigService;
 
-  const service = new PrivacyExecutionService(prisma, config);
+  const storage = {
+    deleteObjects: jest.fn(),
+  } as unknown as ObjectStorageService;
+
+  const service = new PrivacyExecutionService(
+    prisma,
+    config,
+    storage,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -93,6 +102,7 @@ describe('PrivacyExecutionService', () => {
         favoritesRemoved: 0,
         reportsAnonymized: 0,
         contactMessagesRedacted: 0,
+        listingImagesRemoved: 0,
       },
       identityDeletionRequired: false,
       alreadyCompleted: true,
