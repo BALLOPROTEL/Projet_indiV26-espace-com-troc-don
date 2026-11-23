@@ -67,7 +67,9 @@ export function resolveGatewayRoute(
     path === '/api/favorites' ||
     path.startsWith('/api/favorites/') ||
     path === '/api/moderation/listings' ||
-    path.startsWith('/api/moderation/listings/')
+    path.startsWith('/api/moderation/listings/') ||
+    path === '/api/moderation/reports' ||
+    path.startsWith('/api/moderation/reports/')
   ) {
     return {
       target: 'catalog',
