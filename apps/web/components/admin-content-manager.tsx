@@ -51,6 +51,7 @@ export function AdminContentManager() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [privacyConfirmId, setPrivacyConfirmId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!authenticated || !isAdmin) return;
@@ -471,27 +472,91 @@ export function AdminContentManager() {
                   </small>
                 </div>
                 <p>{item.message}</p>
-                <select
-                  aria-label={'Statut de la demande ' + item.id}
-                  value={item.status}
-                  disabled={Boolean(busy)}
-                  onChange={(event) =>
-                    void execute(
-                      'contact-' + item.id,
-                      async () =>
-                        adminContentApi.updateContactStatus(
-                          await getToken(),
-                          item.id,
-                          event.target.value as 'NEW' | 'IN_PROGRESS' | 'CLOSED',
-                        ),
-                      'Statut de la demande mis à jour.',
+                <div className="pm-admin-contact-list__actions">
+                  <select
+                    aria-label={'Statut de la demande ' + item.id}
+                    value={item.status}
+                    disabled={Boolean(busy)}
+                    onChange={(event) =>
+                      void execute(
+                        'contact-' + item.id,
+                        async () =>
+                          adminContentApi.updateContactStatus(
+                            await getToken(),
+                            item.id,
+                            event.target.value as 'NEW' | 'IN_PROGRESS' | 'CLOSED',
+                          ),
+                        'Statut de la demande mis à jour.',
+                      )
+                    }
+                  >
+                    <option value="NEW">NEW</option>
+                    <option value="IN_PROGRESS">IN_PROGRESS</option>
+                    <option value="CLOSED">CLOSED</option>
+                  </select>
+
+                  {item.subject === 'PRIVACY' &&
+                  item.userId &&
+                  (item.privacyAction === 'ANONYMIZE' ||
+                    item.privacyAction === 'ERASE') &&
+                  item.status !== 'CLOSED' ? (
+                    privacyConfirmId === item.id ? (
+                      <div className="pm-admin-contact-list__privacy-confirm" role="alert">
+                        <strong>Confirmer l’anonymisation distribuée ?</strong>
+                        <p>
+                          Cette opération anonymise les identifiants applicatifs,
+                          efface les notifications et le panier, neutralise les
+                          coordonnées des commandes et ferme la demande. Pour une
+                          demande ERASE, la suppression de l’identité Keycloak
+                          reste une étape séparée.
+                        </p>
+                        <div>
+                          <button
+                            className="pm-button pm-button--danger"
+                            type="button"
+                            disabled={Boolean(busy)}
+                            onClick={() =>
+                              void execute(
+                                'privacy-' + item.id,
+                                async () => {
+                                  const result =
+                                    await adminContentApi.anonymizeContact(
+                                      await getToken(),
+                                      item.id,
+                                    );
+                                  setPrivacyConfirmId(null);
+                                  return result;
+                                },
+                                item.privacyAction === 'ERASE'
+                                  ? 'Données applicatives anonymisées. La suppression Keycloak reste à finaliser.'
+                                  : 'Données applicatives anonymisées.',
+                              )
+                            }
+                          >
+                            Exécuter l’anonymisation
+                          </button>
+                          <button
+                            className="pm-button pm-button--outline"
+                            type="button"
+                            disabled={Boolean(busy)}
+                            onClick={() => setPrivacyConfirmId(null)}
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        className="pm-button pm-button--danger"
+                        type="button"
+                        disabled={Boolean(busy)}
+                        onClick={() => setPrivacyConfirmId(item.id)}
+                      >
+                        Traiter anonymisation
+                      </button>
                     )
-                  }
-                >
-                  <option value="NEW">NEW</option>
-                  <option value="IN_PROGRESS">IN_PROGRESS</option>
-                  <option value="CLOSED">CLOSED</option>
-                </select>
+                  ) : null}
+                </div>
               </article>
             ))}
             {!loading && contacts.length === 0 ? <p>Aucune demande reçue.</p> : null}
