@@ -14,6 +14,11 @@ import { PrivacyService } from './privacy.service';
 export class PrivacyController {
   constructor(private readonly privacy: PrivacyService) {}
 
+  @Post(':userId/preflight')
+  preflight(@Param('userId') userId: string) {
+    return this.privacy.preflight(userId);
+  }
+
   @Post(':userId/anonymize')
   anonymize(
     @Param('userId') userId: string,
