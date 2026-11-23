@@ -23,6 +23,9 @@ export function createBlankListingInput(): ListingInput {
     title: '',
     description: '',
     operationType: 'TRADE',
+    category: '',
+    city: '',
+    condition: undefined,
     tradeWishes: Array.from({ length: MIN_WISHES }, () => ''),
   };
 }
@@ -48,6 +51,9 @@ export function normalizedListingInput(
     title: value.title.trim(),
     description: value.description.trim(),
     operationType: value.operationType,
+    category: value.category?.trim() || undefined,
+    city: value.city?.trim() || undefined,
+    condition: value.condition,
     tradeWishes:
       value.operationType === 'TRADE'
         ? value.tradeWishes

@@ -71,6 +71,34 @@ describe('enriched publication helpers', () => {
     expect(normalizedListingInput(draft).tradeWishes).toEqual([]);
   });
 
+  it('normalizes optional category, city and condition without inventing location', () => {
+    const draft = {
+      ...createBlankListingInput(),
+      category: '  Livres & BD  ',
+      city: '  Argenteuil  ',
+      condition: 'GOOD' as const,
+    };
+
+    expect(normalizedListingInput(draft)).toEqual(
+      expect.objectContaining({
+        category: 'Livres & BD',
+        city: 'Argenteuil',
+        condition: 'GOOD',
+      }),
+    );
+  });
+
+  it('omits blank optional category and city', () => {
+    const normalized = normalizedListingInput({
+      ...createBlankListingInput(),
+      category: '   ',
+      city: '',
+    });
+
+    expect(normalized.category).toBeUndefined();
+    expect(normalized.city).toBeUndefined();
+  });
+
   it('rejects unsupported or oversized images', () => {
     const donation = {
       ...createBlankListingInput(),

@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { ListingOperationType } from '../../../generated/prisma';
+import { ListingCondition, ListingOperationType } from '../../../generated/prisma';
 import {
   ArrayMaxSize,
   IsArray,
@@ -29,6 +29,26 @@ export class UpdateListingDto {
   @IsOptional()
   @IsEnum(ListingOperationType)
   operationType?: ListingOperationType;
+
+  @ApiPropertyOptional({ maxLength: 80 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  category?: string;
+
+  @ApiPropertyOptional({
+    maxLength: 120,
+    description: 'Ville volontairement déclarée, sans adresse précise.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  city?: string;
+
+  @ApiPropertyOptional({ enum: ListingCondition })
+  @IsOptional()
+  @IsEnum(ListingCondition)
+  condition?: ListingCondition;
 
   @ApiPropertyOptional({
     type: [String],

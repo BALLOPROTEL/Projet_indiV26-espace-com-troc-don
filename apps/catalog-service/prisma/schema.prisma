@@ -25,6 +25,30 @@ enum ListingAvailabilityStatus {
   COMPLETED
 }
 
+enum ListingCondition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  FOR_PARTS
+}
+
+enum ListingReportReason {
+  PROHIBITED
+  SCAM
+  MISLEADING
+  HARASSMENT
+  DUPLICATE
+  OTHER
+}
+
+enum ListingReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+  ACTIONED
+}
+
 model Listing {
   id                 String                    @id @default(cuid())
   ownerId            String
@@ -34,16 +58,42 @@ model Listing {
   status             ListingStatus             @default(PENDING)
   availabilityStatus ListingAvailabilityStatus @default(AVAILABLE)
   moderationReason   String?                   @db.VarChar(500)
+  category           String?                   @db.VarChar(80)
+  city               String?                   @db.VarChar(120)
+  condition          ListingCondition?
   createdAt          DateTime                  @default(now())
   updatedAt          DateTime                  @updatedAt
 
   images      ListingImage[]
   tradeWishes ListingTradeWish[]
   favorites   ListingFavorite[]
+  reports     ListingReport[]
 
   @@index([ownerId, createdAt])
   @@index([status, createdAt])
   @@index([status, availabilityStatus, createdAt])
+  @@index([status, category, createdAt])
+  @@index([status, city, createdAt])
+}
+
+model ListingReport {
+  id         String              @id @default(cuid())
+  listingId  String
+  reporterId String
+  reason     ListingReportReason
+  details    String?             @db.VarChar(1000)
+  status     ListingReportStatus @default(OPEN)
+  reviewerId String?
+  reviewedAt DateTime?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, reporterId])
+  @@index([status, createdAt])
+  @@index([listingId, createdAt])
+  @@index([reporterId, createdAt])
 }
 
 model ListingImage {

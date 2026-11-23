@@ -18,6 +18,7 @@ import { MarketplaceRulesService } from '../marketplace/marketplace-rules.servic
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { RejectListingDto } from './dto/reject-listing.dto';
+import { ListingSearchDto } from './dto/listing-search.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 
 type ListingWithAssets = Listing & {
@@ -81,6 +82,9 @@ export class ListingsService {
         title: input.title,
         description: input.description,
         operationType: input.operationType,
+        category: input.category?.trim() || null,
+        city: input.city?.trim() || null,
+        condition: input.condition ?? null,
         status: ListingStatus.PENDING,
         tradeWishes: {
           create: tradeWishes.map((label, position) => ({
@@ -131,10 +135,51 @@ export class ListingsService {
     return result;
   }
 
-  async findPublic(): Promise<ListingView[]> {
+  async findPublic(
+    query: ListingSearchDto = {},
+  ): Promise<ListingView[]> {
+    const q = query.q?.trim();
+    const category = query.category?.trim();
+    const city = query.city?.trim();
+
     const listings = await this.prisma.listing.findMany({
       where: {
         status: ListingStatus.APPROVED,
+        ...(query.condition ? { condition: query.condition } : {}),
+        ...(category
+          ? {
+              category: {
+                equals: category,
+                mode: 'insensitive' as const,
+              },
+            }
+          : {}),
+        ...(city
+          ? {
+              city: {
+                equals: city,
+                mode: 'insensitive' as const,
+              },
+            }
+          : {}),
+        ...(q
+          ? {
+              OR: [
+                {
+                  title: {
+                    contains: q,
+                    mode: 'insensitive' as const,
+                  },
+                },
+                {
+                  description: {
+                    contains: q,
+                    mode: 'insensitive' as const,
+                  },
+                },
+              ],
+            }
+          : {}),
       },
       include: assetInclude,
       orderBy: {
@@ -207,6 +252,9 @@ export class ListingsService {
       input.title === undefined &&
       input.description === undefined &&
       input.operationType === undefined &&
+      input.category === undefined &&
+      input.city === undefined &&
+      input.condition === undefined &&
       input.tradeWishes === undefined
     ) {
       throw new BadRequestException(
@@ -254,6 +302,15 @@ export class ListingsService {
         title: input.title,
         description: input.description,
         operationType: input.operationType,
+        category:
+          input.category === undefined
+            ? undefined
+            : input.category.trim() || null,
+        city:
+          input.city === undefined
+            ? undefined
+            : input.city.trim() || null,
+        condition: input.condition,
         status: ListingStatus.PENDING,
         moderationReason: null,
         tradeWishes: shouldReplaceWishes
@@ -431,6 +488,9 @@ export class ListingsService {
       status: listing.status,
       availabilityStatus: listing.availabilityStatus,
       moderationReason: listing.moderationReason,
+      category: listing.category,
+      city: listing.city,
+      condition: listing.condition,
       createdAt: listing.createdAt,
       updatedAt: listing.updatedAt,
       images: listing.images.map((image) => ({

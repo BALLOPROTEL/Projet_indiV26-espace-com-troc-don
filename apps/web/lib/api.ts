@@ -13,7 +13,11 @@ import type {
   Fanzine,
   FestivalEntry,
   Listing,
+  ListingCondition,
   ListingImage,
+  ListingReport,
+  ListingReportReason,
+  ListingReportStatus,
   ListingInput,
   ListingStatus,
   ConversationMessage,
@@ -246,7 +250,22 @@ export const productsApi = {
 };
 
 export const listingsApi = {
-  public: () => request<Listing[]>('/listings'),
+  public: (
+    filters: {
+      q?: string;
+      category?: string;
+      city?: string;
+      condition?: ListingCondition | '';
+    } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (filters.q?.trim()) params.set('q', filters.q.trim());
+    if (filters.category?.trim()) params.set('category', filters.category.trim());
+    if (filters.city?.trim()) params.set('city', filters.city.trim());
+    if (filters.condition) params.set('condition', filters.condition);
+    const query = params.toString();
+    return request<Listing[]>(`/listings${query ? `?${query}` : ''}`);
+  },
 
   publicById: (id: string) =>
     request<Listing>(`/listings/${encodeURIComponent(id)}`),
@@ -351,6 +370,53 @@ export const listingsApi = {
       {
         method: 'POST',
         body: JSON.stringify({ reason, reviewedUpdatedAt }),
+      },
+      token,
+    ),
+
+  report: (
+    token: string,
+    id: string,
+    input: {
+      reason: ListingReportReason;
+      details?: string;
+    },
+  ) =>
+    request<{
+      id: string;
+      listingId: string;
+      reason: ListingReportReason;
+      status: ListingReportStatus;
+      createdAt: string;
+    }>(
+      `/listings/${encodeURIComponent(id)}/reports`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+
+  moderationReports: (
+    token: string,
+    status: ListingReportStatus = 'OPEN',
+  ) =>
+    request<ListingReport[]>(
+      `/moderation/reports?status=${status}`,
+      {},
+      token,
+    ),
+
+  reviewReport: (
+    token: string,
+    id: string,
+    status: Extract<ListingReportStatus, 'REVIEWED' | 'DISMISSED' | 'ACTIONED'>,
+  ) =>
+    request<ListingReport>(
+      `/moderation/reports/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
       },
       token,
     ),

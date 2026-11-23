@@ -356,3 +356,35 @@
 .workspace-v3--exchanges .workspace-grid {
   display: none;
 }
+
+
+/* #170 — optional listing enrichment fields */
+.workspace-v3 .listing-form__enrichment {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.workspace-v3 .field select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #ccd7df;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--pm-text);
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 16px;
+}
+
+.workspace-v3 .field small {
+  color: var(--pm-muted);
+  font-size: .66rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .workspace-v3 .listing-form__enrichment {
+    grid-template-columns: 1fr;
+  }
+}

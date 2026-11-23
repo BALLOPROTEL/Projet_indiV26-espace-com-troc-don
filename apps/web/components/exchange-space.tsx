@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { listingsApi } from '../lib/api';
 import { filterPublicListings } from '../lib/home-pagination';
-import type { Listing, ListingOperationType } from '../lib/types';
+import type { Listing, ListingCondition, ListingOperationType } from '../lib/types';
 import { EmptyState } from './empty-state';
 import { ExchangeListingCard } from './exchange-listing-card';
 
@@ -13,6 +13,10 @@ type Filter = ListingOperationType | 'ALL';
 export function ExchangeSpace() {
   const [items, setItems] = useState<Listing[]>([]);
   const [filter, setFilter] = useState<Filter>('ALL');
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('');
+  const [city, setCity] = useState('');
+  const [condition, setCondition] = useState<ListingCondition | ''>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,9 +38,27 @@ export function ExchangeSpace() {
     return () => { active = false; };
   }, []);
 
+  const categories = useMemo(
+    () =>
+      [...new Set(items.map((item) => item.category).filter((value): value is string => Boolean(value)))]
+        .sort((a, b) => a.localeCompare(b, 'fr')),
+    [items],
+  );
+  const cities = useMemo(
+    () =>
+      [...new Set(items.map((item) => item.city).filter((value): value is string => Boolean(value)))]
+        .sort((a, b) => a.localeCompare(b, 'fr')),
+    [items],
+  );
+
   const filtered = useMemo(
-    () => filterPublicListings(items, '', filter),
-    [items, filter],
+    () =>
+      filterPublicListings(items, query, filter).filter((item) =>
+        (!category || item.category?.toLocaleLowerCase('fr') === category.toLocaleLowerCase('fr')) &&
+        (!city || item.city?.toLocaleLowerCase('fr') === city.toLocaleLowerCase('fr')) &&
+        (!condition || item.condition === condition),
+      ),
+    [items, query, filter, category, city, condition],
   );
 
   return (
@@ -68,6 +90,46 @@ export function ExchangeSpace() {
           <Link className="pm-button pm-button--teal" href="/espace#publier">
             + Déposer une annonce
           </Link>
+        </div>
+
+        <div className="pm-exchange-advanced-filters">
+          <label>
+            <span>Rechercher</span>
+            <input
+              type="search"
+              value={query}
+              placeholder="Titre ou description…"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
+          <label>
+            <span>Catégorie</span>
+            <select value={category} onChange={(event) => setCategory(event.target.value)}>
+              <option value="">Toutes</option>
+              {categories.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Ville</span>
+            <select value={city} onChange={(event) => setCity(event.target.value)}>
+              <option value="">Toutes</option>
+              {cities.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>État</span>
+            <select
+              value={condition}
+              onChange={(event) => setCondition(event.target.value as ListingCondition | '')}
+            >
+              <option value="">Tous</option>
+              <option value="NEW">Neuf</option>
+              <option value="LIKE_NEW">Comme neuf</option>
+              <option value="GOOD">Bon état</option>
+              <option value="FAIR">État correct</option>
+              <option value="FOR_PARTS">À réparer / pour pièces</option>
+            </select>
+          </label>
         </div>
 
         <div className="pm-filter-pills" role="group" aria-label="Filtrer les annonces">

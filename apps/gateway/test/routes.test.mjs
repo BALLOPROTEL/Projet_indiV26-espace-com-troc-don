@@ -14,6 +14,14 @@ test('routes Catalog public contracts', () => {
       upstreamPath: '/moderation/listings/abc/approve',
     },
   );
+  assert.deepEqual(resolveGatewayRoute('/api/moderation/reports?status=OPEN'), {
+    target: 'catalog',
+    upstreamPath: '/moderation/reports?status=OPEN',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/listings/abc/reports'), {
+    target: 'catalog',
+    upstreamPath: '/listings/abc/reports',
+  });
   assert.deepEqual(resolveGatewayRoute('/api/favorites'), {
     target: 'catalog',
     upstreamPath: '/favorites',
