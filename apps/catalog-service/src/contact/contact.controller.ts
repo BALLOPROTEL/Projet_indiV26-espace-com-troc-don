@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { ContactService } from './contact.service';
+import { PrivacyExecutionService } from './privacy-execution.service';
 import {
   ContactAdminQueryDto,
   CreateContactDto,
@@ -59,7 +60,10 @@ export class PrivacyContactController {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('admin/contact')
 export class AdminContactController {
-  constructor(private readonly contact: ContactService) {}
+  constructor(
+    private readonly contact: ContactService,
+    private readonly privacy: PrivacyExecutionService,
+  ) {}
 
   @Get()
   list(@Query() query: ContactAdminQueryDto) {
@@ -72,5 +76,16 @@ export class AdminContactController {
     @Body() input: UpdateContactStatusDto,
   ) {
     return this.contact.updateStatus(id, input.status);
+  }
+
+  @Post(':id/anonymize')
+  anonymize(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    if (!request.user?.sub) {
+      throw new UnauthorizedException('Authenticated administrator is missing');
+    }
+    return this.privacy.execute(id, request.user.sub);
   }
 }
