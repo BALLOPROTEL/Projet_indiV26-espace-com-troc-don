@@ -12,6 +12,9 @@ import { PrivacyExecutionService } from './privacy-execution.service';
 
 describe('PrivacyExecutionService', () => {
   const prisma = {
+    listing: {
+      count: jest.fn(),
+    },
     contactMessage: {
       findUnique: jest.fn(),
       update: jest.fn(),
@@ -48,6 +51,7 @@ describe('PrivacyExecutionService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    (prisma.listing.count as jest.Mock).mockResolvedValue(0);
   });
 
   it('refuses a normal contact message that is not a privacy anonymization request', async () => {
@@ -62,6 +66,30 @@ describe('PrivacyExecutionService', () => {
     await expect(
       service.execute('contact-1', 'admin-sub'),
     ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('blocks anonymization before any mutation when the account owns a reserved listing', async () => {
+    (prisma.contactMessage.findUnique as jest.Mock).mockResolvedValue({
+      id: 'contact-reserved',
+      userId: 'user-sub-1',
+      subject: ContactSubject.PRIVACY,
+      privacyAction: PrivacyAction.ANONYMIZE,
+      status: ContactStatus.NEW,
+    });
+    (prisma.privacyExecution.findUnique as jest.Mock)
+      .mockResolvedValue(null);
+    (prisma.listing.count as jest.Mock).mockResolvedValue(1);
+
+    await expect(
+      service.execute('contact-reserved', 'admin-sub'),
+    ).rejects.toThrow(
+      'Reserved listings must be completed or released before anonymization',
+    );
+
+    expect(prisma.privacyExecution.create).not.toHaveBeenCalled();
+    expect(prisma.privacyExecution.update).not.toHaveBeenCalled();
+    expect(prisma.contactMessage.update).not.toHaveBeenCalled();
+    expect(storage.deleteObjects).not.toHaveBeenCalled();
   });
 
   it('returns an already completed execution without calling remote services again', async () => {
