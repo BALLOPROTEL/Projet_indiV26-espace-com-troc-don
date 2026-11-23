@@ -43,6 +43,7 @@ type AuthContextValue = {
   logout: () => Promise<void>;
   manageAccount: () => Promise<void>;
   changePassword: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   getToken: () => Promise<string>;
   hasAnyRole: (...roles: AppRole[]) => boolean;
 };
@@ -179,6 +180,19 @@ export function AuthProvider({
     });
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    const keycloak = getKeycloak();
+
+    if (!keycloak.authenticated) {
+      throw new Error('Authentification requise.');
+    }
+
+    await keycloak.login({
+      action: 'delete_account',
+      redirectUri: window.location.origin,
+    });
+  }, []);
+
   const getToken = useCallback(async () => {
     const keycloak = getKeycloak();
 
@@ -209,6 +223,7 @@ export function AuthProvider({
       logout,
       manageAccount,
       changePassword,
+      deleteAccount,
       getToken,
       hasAnyRole,
     }),
@@ -219,6 +234,7 @@ export function AuthProvider({
       logout,
       manageAccount,
       changePassword,
+      deleteAccount,
       getToken,
       hasAnyRole,
     ],
