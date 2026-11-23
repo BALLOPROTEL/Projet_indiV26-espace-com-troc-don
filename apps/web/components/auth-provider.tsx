@@ -20,6 +20,10 @@ type AppRole = 'USER' | 'MODERATOR' | 'ADMIN';
 type ParsedToken = KeycloakTokenParsed & {
   preferred_username?: string;
   name?: string;
+  given_name?: string;
+  family_name?: string;
+  email?: string;
+  email_verified?: boolean;
   realm_access?: {
     roles?: string[];
   };
@@ -29,10 +33,16 @@ type AuthContextValue = {
   ready: boolean;
   authenticated: boolean;
   username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  emailVerified: boolean | null;
   subject: string | null;
   roles: AppRole[];
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  manageAccount: () => Promise<void>;
+  changePassword: () => Promise<void>;
   getToken: () => Promise<string>;
   hasAnyRole: (...roles: AppRole[]) => boolean;
 };
@@ -55,6 +65,22 @@ function readIdentity() {
       token?.name ??
       token?.preferred_username ??
       null,
+    firstName:
+      typeof token?.given_name === 'string'
+        ? token.given_name
+        : null,
+    lastName:
+      typeof token?.family_name === 'string'
+        ? token.family_name
+        : null,
+    email:
+      typeof token?.email === 'string'
+        ? token.email
+        : null,
+    emailVerified:
+      typeof token?.email_verified === 'boolean'
+        ? token.email_verified
+        : null,
     subject: token?.sub ?? null,
     roles,
   };
@@ -69,6 +95,10 @@ export function AuthProvider({
   const [identity, setIdentity] = useState(() => ({
     authenticated: false,
     username: null as string | null,
+    firstName: null as string | null,
+    lastName: null as string | null,
+    email: null as string | null,
+    emailVerified: null as boolean | null,
     subject: null as string | null,
     roles: [] as AppRole[],
   }));
@@ -123,6 +153,32 @@ export function AuthProvider({
     });
   }, []);
 
+  const manageAccount = useCallback(async () => {
+    const keycloak = getKeycloak();
+
+    if (!keycloak.authenticated) {
+      throw new Error('Authentification requise.');
+    }
+
+    await keycloak.login({
+      action: 'UPDATE_PROFILE',
+      redirectUri: window.location.href,
+    });
+  }, []);
+
+  const changePassword = useCallback(async () => {
+    const keycloak = getKeycloak();
+
+    if (!keycloak.authenticated) {
+      throw new Error('Authentification requise.');
+    }
+
+    await keycloak.login({
+      action: 'UPDATE_PASSWORD',
+      redirectUri: window.location.href,
+    });
+  }, []);
+
   const getToken = useCallback(async () => {
     const keycloak = getKeycloak();
 
@@ -151,6 +207,8 @@ export function AuthProvider({
       ...identity,
       login,
       logout,
+      manageAccount,
+      changePassword,
       getToken,
       hasAnyRole,
     }),
@@ -159,6 +217,8 @@ export function AuthProvider({
       identity,
       login,
       logout,
+      manageAccount,
+      changePassword,
       getToken,
       hasAnyRole,
     ],

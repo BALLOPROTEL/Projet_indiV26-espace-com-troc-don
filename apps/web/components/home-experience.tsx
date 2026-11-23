@@ -3,272 +3,244 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { listingsApi } from '../lib/api';
-import {
-  HOME_PAGE_SIZE,
-  filterPublicListings,
-  paginateListings,
-  paginationNumbers,
-} from '../lib/home-pagination';
-import type { Listing, ListingOperationType } from '../lib/types';
-import { EmptyState } from './empty-state';
+import type { Listing } from '../lib/types';
 import { ListingCard } from './listing-card';
+import { RoadmapBadge, SectionHeading } from './design-system';
 
-type OperationFilter = ListingOperationType | 'ALL';
+const shopUniverses = [
+  ['🧛', 'Figurines'],
+  ['🎬', 'Films & Blu-ray'],
+  ['📚', 'BD & Livres'],
+  ['🎲', 'Jeux'],
+  ['🎁', 'Goodies'],
+] as const;
 
 export function HomeExperience() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
-  const [search, setSearch] = useState('');
-  const [type, setType] = useState<OperationFilter>('ALL');
-  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let active = true;
+
     void listingsApi.public()
       .then((data) => {
-        if (active) {
-          setListings(data);
-          setError(null);
-        }
+        if (!active) return;
+        setListings(data);
+        setError(null);
       })
       .catch((reason: unknown) => {
-        if (active) {
-          setListings([]);
-          setError(reason instanceof Error
+        if (!active) return;
+        setListings([]);
+        setError(
+          reason instanceof Error
             ? reason.message
-            : 'Impossible de charger les annonces.');
-        }
+            : 'Impossible de charger les annonces.',
+        );
       })
       .finally(() => {
         if (active) setLoading(false);
       });
-    return () => { active = false; };
+
+    return () => {
+      active = false;
+    };
   }, [reload]);
 
-  const approved = useMemo(
-    () => listings.filter((listing) => listing.status === 'APPROVED'),
+  const communityPreview = useMemo(
+    () => listings.filter((listing) => listing.status === 'APPROVED').slice(0, 3),
     [listings],
   );
-  const filtered = useMemo(
-    () => filterPublicListings(approved, search, type),
-    [approved, search, type],
-  );
-  const result = paginateListings(filtered, page);
-  const numberedPages = paginationNumbers(result.page, result.pages);
-  const availableCount = approved.filter(
-    (item) => item.availabilityStatus === 'AVAILABLE',
-  ).length;
-  const giftCount = approved.filter(
-    (item) => item.operationType === 'DONATION',
-  ).length;
-
-  function updateSearch(value: string) {
-    setSearch(value);
-    setPage(1);
-  }
-  function updateType(value: OperationFilter) {
-    setType(value);
-    setPage(1);
-  }
 
   return (
-    <div className="home-v2">
-      <section className="home-v2__welcome" aria-labelledby="home-welcome-title">
-        <div className="home-v2__welcome-inner">
-          <div className="home-v2__welcome-copy">
-            <span className="home-v2__kicker">
-              <span className="home-v2__status-dot" aria-hidden="true" />
-              La communauté du don et du troc
-            </span>
-            <h1 id="home-welcome-title">
-              Donnez, trouvez, échangez. <span>Tout simplement.</span>
-            </h1>
-            <p>
-              Un objet inutilisé peut servir à quelqu’un d’autre. Explorez
-              les annonces de la communauté ou proposez le vôtre en quelques étapes.
-            </p>
-            <div className="home-v2__hero-actions">
-              <a className="home-v2__hero-action" href="#annonces">
-                Voir les annonces <span aria-hidden="true">↓</span>
-              </a>
-              <Link className="home-v2__hero-action home-v2__hero-action--secondary" href="/espace#publier">
-                Déposer un objet <span aria-hidden="true">→</span>
-              </Link>
-            </div>
-            <a className="home-v2__helper-link" href="#fonctionnement">
-              Comment ça marche ? <span aria-hidden="true">↘</span>
-            </a>
+    <div className="pm-home home-v2">
+      <section className="pm-hero home-v2__welcome" aria-labelledby="pm-home-title">
+        <div className="pm-hero__copy">
+          <span className="pm-eyebrow">✦ Boutique &amp; univers communautaire</span>
+          <h1 id="pm-home-title">
+            Des frissons à acheter.<br />
+            <em>Des passions à partager.</em>
+          </h1>
+          <p>
+            Découvrez les univers de la maison, puis retrouvez chaque expérience
+            sur sa propre page : boutique, échanges, fanzines et festival.
+          </p>
+          <div className="pm-hero__actions home-v2__hero-actions">
+            <Link className="pm-button pm-button--orange" href="/boutique">
+              Explorer la boutique →
+            </Link>
+            <Link className="pm-button pm-button--light" href="/echanges">
+              Découvrir les échanges ↔
+            </Link>
           </div>
-          <div className="home-v2__facts" aria-label="La communauté en chiffres">
-            {loading || error ? (
-              <p className="home-v2__facts-pending">
-                {loading ? 'Actualisation du catalogue…' : 'Catalogue indisponible'}
-              </p>
-            ) : (
-              <>
-                <div><strong>{approved.length}</strong><span>Annonces publiées</span></div>
-                <div><strong>{availableCount}</strong><span>Articles disponibles</span></div>
-                <div><strong>{giftCount}</strong><span>Dons proposés</span></div>
-              </>
-            )}
+        </div>
+
+        <div className="pm-hero__graphic" aria-hidden="true">
+          <div className="pm-moon" />
+          <span className="pm-bat">⌁</span>
+          <div className="pm-house">
+            <div className="pm-house__roof" />
+            <div className="pm-house__main" />
+            <div className="pm-house__window pm-house__window--one" />
+            <div className="pm-house__window pm-house__window--two" />
+            <div className="pm-house__door" />
           </div>
+          <div className="pm-hero-float pm-hero-float--a">🛍️ Boutique &amp; collections</div>
+          <div className="pm-hero-float pm-hero-float--b">♻️ Échanges entre passionnés</div>
         </div>
       </section>
 
-      <section className="home-v2__how" id="fonctionnement" aria-labelledby="home-how-title">
-        <div className="home-v2__how-heading">
-          <div>
-            <span className="home-v2__overline">Simple, de bout en bout</span>
-            <h2 id="home-how-title">Comment fonctionne La Petite Maison ?</h2>
-          </div>
-          <p>Trois étapes pour donner une seconde vie aux objets.</p>
-        </div>
-        <ol className="home-v2__steps">
-          <li className="home-v2__step">
-            <span className="home-v2__step-index" aria-hidden="true">01</span>
-            <h3>Découvrir</h3>
-            <p>Parcourez les annonces de dons et de trocs, sans obligation de connexion.</p>
-            <a href="#annonces">Explorer les articles <span aria-hidden="true">→</span></a>
-          </li>
-          <li className="home-v2__step">
-            <span className="home-v2__step-index" aria-hidden="true">02</span>
-            <h3>Proposer</h3>
-            <p>Connectez-vous, décrivez votre objet, ajoutez ses photos et soumettez-le à la modération.</p>
-            <Link href="/espace#publier">Déposer une annonce <span aria-hidden="true">→</span></Link>
-          </li>
-          <li className="home-v2__step">
-            <span className="home-v2__step-index" aria-hidden="true">03</span>
-            <h3>Échanger</h3>
-            <p>Suivez vos demandes, choisissez une contrepartie et confirmez la remise entre membres.</p>
-            <Link href="/espace#mes-echanges">Suivre mes échanges <span aria-hidden="true">→</span></Link>
-          </li>
-        </ol>
+      <section className="pm-promises" aria-label="Promesses de la plateforme">
+        <article><span>📦</span><div><strong>Univers boutique</strong><small>Catalogue commercial à venir</small></div></article>
+        <article><span>🔐</span><div><strong>Parcours sécurisé</strong><small>Connexion Keycloak</small></div></article>
+        <article><span>♻️</span><div><strong>Seconde vie</strong><small>Dons et trocs entre membres</small></div></article>
+        <article><span>💬</span><div><strong>Une vraie communauté</strong><small>Échanges avec les passionnés</small></div></article>
       </section>
 
-      <section className="home-v2__catalog" id="annonces" aria-labelledby="home-catalog-title">
-        <div className="home-v2__section-intro">
-          <div>
-            <span className="home-v2__overline">Notre sélection communautaire</span>
-            <h2 id="home-catalog-title">Les articles à découvrir</h2>
-            <p>De belles histoires commencent avec un objet qui change de mains.</p>
-          </div>
-          <Link className="home-v2__secondary-link" href="/espace#mes-echanges">
-            Suivre mes échanges <span aria-hidden="true">↗</span>
-          </Link>
+      <section className="pm-section">
+        <SectionHeading
+          eyebrow="Explorez nos univers"
+          title="Une maison, plusieurs expériences"
+          description="Chaque univers possède désormais sa propre page."
+        />
+        <div className="pm-home-universe-strip">
+          {shopUniverses.map(([icon, label]) => (
+            <Link href="/boutique" key={label}>
+              <span aria-hidden="true">{icon}</span>
+              <strong>{label}</strong>
+            </Link>
+          ))}
         </div>
+      </section>
 
-        <form className="home-v2__filters" role="search" onSubmit={(event) => event.preventDefault()}>
-          <label htmlFor="home-v2-search" className="home-v2__search-label">
-            Rechercher un article
-          </label>
-          <div className="home-v2__search-row">
-            <div className="home-v2__search-box">
-              <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <circle cx="10.7" cy="10.7" r="6.8" />
-                <path d="m16 16 5 5" />
-              </svg>
-              <input
-                id="home-v2-search"
-                type="search"
-                value={search}
-                onChange={(event) => updateSearch(event.target.value)}
-                placeholder="Un livre, une lampe, un meuble…"
-              />
-            </div>
-            <label className="home-v2__filter-type">
-              <span>Type</span>
-              <select
-                value={type}
-                onChange={(event) => updateType(event.target.value as OperationFilter)}
-              >
-                <option value="ALL">Tous les articles</option>
-                <option value="DONATION">Dons</option>
-                <option value="TRADE">Trocs</option>
-              </select>
-            </label>
+      <section className="pm-section pm-home-shop-teaser" aria-labelledby="home-shop-title">
+        <div className="pm-home-section-line">
+          <div>
+            <span className="pm-overline">Boutique</span>
+            <h2 id="home-shop-title">Les coups de cœur du moment</h2>
+            <p>Le catalogue réel sera affiché uniquement quand son backend sera disponible.</p>
           </div>
-        </form>
+          <Link className="pm-text-link" href="/boutique">Tout voir →</Link>
+        </div>
+        <div className="pm-home-shop-grid">
+          {[
+            ['🧛', 'Figurines'],
+            ['🎬', 'Films & Blu-ray'],
+            ['📖', 'Fanzines'],
+            ['🎲', 'Jeux'],
+          ].map(([icon, label]) => (
+            <Link href="/boutique" key={label}>
+              <div aria-hidden="true">{icon}</div>
+              <small>UNIVERS</small>
+              <strong>{label}</strong>
+              <RoadmapBadge>BIENTÔT</RoadmapBadge>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="pm-section pm-community-feature">
+        <div>
+          <span className="pm-overline">Le coin des passionnés</span>
+          <h2>Un objet chez vous.<br />Une belle histoire ailleurs.</h2>
+          <p>
+            Proposez un livre, un jeu, une figurine ou un objet en don ou en troc.
+            Les annonces et transactions sont reliées aux services réels.
+          </p>
+          <div className="pm-community-feature__actions">
+            <Link className="pm-button pm-button--teal" href="/echanges">
+              Voir les annonces ↔
+            </Link>
+            <Link className="pm-button pm-button--outline" href="/publier">
+              Déposer une annonce
+            </Link>
+          </div>
+        </div>
+        <div className="pm-swap-illustration" aria-hidden="true">
+          <span>📚</span><strong>⇄</strong><span>🎲</span>
+        </div>
+      </section>
+
+      <section className="pm-section" aria-labelledby="pm-community-title">
+        <SectionHeading
+          eyebrow="Communauté"
+          title="Tout juste dans la communauté"
+          titleId="pm-community-title"
+          description="Un aperçu des dernières annonces approuvées. Le catalogue complet est sur la page Échanges & dons."
+          action={<Link className="pm-text-link" href="/echanges">Tout voir →</Link>}
+        />
 
         {loading ? (
-          <div className="home-v2__grid" aria-label="Chargement des articles" aria-busy="true">
-            {Array.from({ length: HOME_PAGE_SIZE }, (_, index) => (
-              <div className="home-v2__skeleton" key={index} aria-hidden="true" />
+          <div className="pm-listing-grid home-v2__grid" aria-busy="true">
+            {Array.from({ length: 3 }, (_, index) => (
+              <div className="pm-skeleton" key={index} aria-hidden="true" />
             ))}
           </div>
         ) : null}
+
         {!loading && error ? (
-          <div className="home-v2__error" role="alert">
-            <strong>Impossible de charger le catalogue.</strong>
+          <div className="pm-error home-v2__error" role="alert">
+            <strong>Impossible de charger l’aperçu communautaire.</strong>
             <p>{error}</p>
-            <button type="button" onClick={() => {
-              setLoading(true);
-              setError(null);
-              setReload((count) => count + 1);
-            }}>
+            <button
+              className="pm-button pm-button--navy"
+              type="button"
+              onClick={() => {
+                setLoading(true);
+                setError(null);
+                setReload((count) => count + 1);
+              }}
+            >
               Réessayer
             </button>
           </div>
         ) : null}
-        {!loading && !error && filtered.length === 0 ? (
-          <EmptyState
-            eyebrow={approved.length === 0 ? 'Premiers articles à venir' : 'Aucun résultat'}
-            title={approved.length === 0
-              ? 'Il n’y a pas encore d’annonces publiées.'
-              : 'Aucun article ne correspond à votre recherche.'}
-            text={approved.length === 0
-              ? 'Les prochaines annonces apparaîtront ici après leur approbation.'
-              : 'Essayez un autre mot ou changez le type de publication.'}
-          />
+
+        {!loading && !error && communityPreview.length === 0 ? (
+          <div className="pm-prototype-empty">
+            <h2>Les premières annonces arriveront bientôt.</h2>
+            <p>Les annonces approuvées par la modération apparaîtront ici.</p>
+          </div>
         ) : null}
 
-        {!loading && !error && result.items.length > 0 ? (
-          <>
-            <p className="home-v2__results" aria-live="polite">
-              {result.start}–{result.end} sur {result.total} article{result.total > 1 ? 's' : ''}
-              <span> · Six articles maximum par page</span>
-            </p>
-            <div className="home-v2__grid">
-              {result.items.map((listing) => (
-                <ListingCard
-                  key={listing.id}
-                  listing={listing}
-                  href={`/annonces/${listing.id}`}
-                  showAvailability
-                />
-              ))}
-            </div>
-          </>
-        ) : null}
-
-        {!loading && !error && result.pages > 1 && result.total > 0 ? (
-          <nav className="home-v2__pagination" aria-label="Pagination des annonces">
-            <button type="button" disabled={result.page === 1} onClick={() => setPage(result.page - 1)}>
-              ← Précédent
-            </button>
-            {numberedPages.map((number, index) => (
-              <span className="home-v2__page-segment" key={number}>
-                {index > 0 && number > numberedPages[index - 1] + 1 ? (
-                  <span className="home-v2__gap" aria-hidden="true">…</span>
-                ) : null}
-                <button
-                  type="button"
-                  aria-label={`Page ${number}`}
-                  aria-current={number === result.page ? 'page' : undefined}
-                  className={number === result.page ? 'is-current' : ''}
-                  onClick={() => setPage(number)}
-                >
-                  {number}
-                </button>
-              </span>
+        {!loading && !error && communityPreview.length > 0 ? (
+          <div className="pm-listing-grid home-v2__grid">
+            {communityPreview.map((listing) => (
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                href={'/annonces/' + listing.id}
+                showAvailability
+              />
             ))}
-            <button type="button" disabled={result.page === result.pages} onClick={() => setPage(result.page + 1)}>
-              Suivant →
-            </button>
-            <span className="home-v2__page-counter">Page {result.page} sur {result.pages}</span>
-          </nav>
+          </div>
         ) : null}
+      </section>
+
+      <section className="pm-section pm-story-grid">
+        <article>
+          <div className="pm-story-art" aria-hidden="true">
+            <strong>ÉPOUVANTE</strong><span>☾</span>
+          </div>
+          <div>
+            <span className="pm-overline">Le fanzine</span>
+            <h2>Des histoires à dévorer.</h2>
+            <p>Découvrez l’espace éditorial sur sa page dédiée.</p>
+            <Link className="pm-text-link" href="/fanzines">Découvrir →</Link>
+          </div>
+        </article>
+        <article>
+          <div className="pm-story-art pm-story-art--festival" aria-hidden="true">
+            <strong>FESTIVAL</strong><span>✦</span>
+          </div>
+          <div>
+            <span className="pm-overline">Événements</span>
+            <h2>Le Petit Festival</h2>
+            <p>Actualités et rencontres ont désormais leur propre espace.</p>
+            <Link className="pm-text-link" href="/festival">Voir l’actualité →</Link>
+          </div>
+        </article>
       </section>
     </div>
   );

@@ -58,6 +58,32 @@ export type MarketplaceProposal = {
   updatedAt: string;
 };
 
+export type ConversationMessage = {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export type MarketplaceConversation = {
+  id: string;
+  proposalId: string;
+  ownerId: string;
+  requesterId: string;
+  createdAt: string;
+  updatedAt: string;
+  proposal: {
+    id: string;
+    targetListingId: string;
+    offeredListingId: string | null;
+    type: ProposalType;
+    status: ProposalStatus;
+  };
+  messages: ConversationMessage[];
+};
+
 export type MarketplaceTransaction = {
   id: string;
   proposalId: string;
@@ -89,4 +115,221 @@ export type AdminCatalogSummary = {
     reserved: number;
     completed: number;
   };
+};
+
+
+export type NotificationEvent =
+  | {
+      eventId: string;
+      type: 'proposal.created';
+      version: 1;
+      occurredAt: string;
+      source: 'marketplace-service';
+      data: {
+        proposalId: string;
+        targetListingId: string;
+        requesterId: string;
+        ownerId: string | null;
+        proposalType: ProposalType;
+        offeredListingId: string | null;
+      };
+    }
+  | {
+      eventId: string;
+      type: 'proposal.accepted';
+      version: 1;
+      occurredAt: string;
+      source: 'marketplace-service';
+      data: {
+        proposalId: string;
+        transactionId: string;
+        targetListingId: string;
+        offeredListingId: string | null;
+        ownerId: string;
+        requesterId: string;
+      };
+    }
+  | {
+      eventId: string;
+      type: 'proposal.rejected';
+      version: 1;
+      occurredAt: string;
+      source: 'marketplace-service';
+      data: {
+        proposalId: string;
+        targetListingId: string;
+        requesterId: string;
+        ownerId: string;
+      };
+    }
+  | {
+      eventId: string;
+      type: 'transaction.completed';
+      version: 1;
+      occurredAt: string;
+      source: 'marketplace-service';
+      data: {
+        transactionId: string;
+        proposalId: string;
+        targetListingId: string;
+        offeredListingId: string | null;
+        ownerId: string;
+        requesterId: string;
+      };
+    };
+
+export type UserNotification = {
+  receivedAt: string;
+  event: NotificationEvent;
+};
+
+
+export type ProductImage = {
+  id: string;
+  position: number;
+  mimeType: string;
+  sizeBytes: number;
+  contentUrl: string;
+};
+
+export type ProductVariant = {
+  id: string;
+  sku: string;
+  label: string;
+  priceCents: number;
+  stock: number;
+  active: boolean;
+};
+
+export type Product = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  currency: string;
+  fromPriceCents: number;
+  availableStock: number;
+  variants: ProductVariant[];
+  images: ProductImage[];
+};
+
+
+export type AdminProductStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export type AdminProductImage = {
+  id: string;
+  position: number;
+  mimeType: string;
+  sizeBytes: number;
+};
+
+export type AdminProduct = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  currency: string;
+  status: AdminProductStatus;
+  createdAt: string;
+  updatedAt: string;
+  variants: ProductVariant[];
+  images: AdminProductImage[];
+};
+
+export type AdminProductCreateInput = {
+  slug: string;
+  name: string;
+  description: string;
+  category: string;
+  currency?: 'EUR';
+  variants: Array<{
+    sku: string;
+    label: string;
+    priceCents: number;
+    stock: number;
+    active?: boolean;
+  }>;
+};
+
+
+export type CartUnavailableReason =
+  | 'PRODUCT_NOT_FOUND'
+  | 'PRODUCT_NOT_PUBLISHED'
+  | 'VARIANT_INACTIVE'
+  | 'INSUFFICIENT_STOCK';
+
+export type CartItem = {
+  productId: string;
+  variantId: string;
+  quantity: number;
+  productName: string | null;
+  productSlug: string | null;
+  variantLabel: string | null;
+  currency: 'EUR' | null;
+  unitPriceCents: number | null;
+  stock: number | null;
+  available: boolean;
+  unavailableReason: CartUnavailableReason | null;
+  lineTotalCents: number | null;
+  imageUrl: string | null;
+};
+
+export type Cart = {
+  items: CartItem[];
+  currency: 'EUR';
+  subtotalCents: number;
+  hasUnavailableItems: boolean;
+};
+
+
+export type OrderStatus =
+  | 'DRAFT'
+  | 'AWAITING_PAYMENT'
+  | 'PAID'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
+export type OrderItem = {
+  id: string;
+  orderId: string;
+  productId: string;
+  variantId: string;
+  productSlug: string;
+  productName: string;
+  variantLabel: string;
+  unitPriceCents: number;
+  quantity: number;
+  lineTotalCents: number;
+  createdAt: string;
+};
+
+export type Order = {
+  id: string;
+  status: OrderStatus;
+  currency: 'EUR';
+  subtotalCents: number;
+  recipientFirstName: string;
+  recipientLastName: string;
+  email: string;
+  addressLine1: string;
+  postalCode: string;
+  city: string;
+  countryCode: string;
+  reservationExpiresAt: string | null;
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: OrderItem[];
+};
+
+export type CreateOrderInput = {
+  recipientFirstName: string;
+  recipientLastName: string;
+  email: string;
+  addressLine1: string;
+  postalCode: string;
+  city: string;
+  countryCode: string;
 };

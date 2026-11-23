@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("COMMERCE_DATABASE_URL")
+}
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  variantId String
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, variantId])
+  @@index([cartId, createdAt])
+}
+
+
+enum OrderStatus {
+  DRAFT
+  AWAITING_PAYMENT
+  PAID
+  CANCELLED
+  EXPIRED
+}
+
+model Order {
+  id                 String      @id @default(cuid())
+  userId             String
+  status             OrderStatus @default(DRAFT)
+  currency           String      @default("EUR")
+  subtotalCents      Int
+  idempotencyKey     String
+  recipientFirstName String
+  recipientLastName  String
+  email              String
+  addressLine1       String
+  postalCode         String
+  city               String
+  countryCode        String
+  reservationExpiresAt DateTime?
+  paymentSessionId      String?    @unique
+  paymentIntentId       String?
+  paidAt                DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  items OrderItem[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt])
+}
+
+model OrderItem {
+  id             String   @id @default(cuid())
+  orderId        String
+  productId      String
+  variantId      String
+  productSlug    String
+  productName    String
+  variantLabel   String
+  unitPriceCents Int
+  quantity       Int
+  lineTotalCents Int
+  createdAt      DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+}
+
+
+model PaymentWebhookEvent {
+  id              String   @id @default(cuid())
+  providerEventId String   @unique @db.VarChar(255)
+  type            String   @db.VarChar(120)
+  orderId         String?  @db.VarChar(128)
+  receivedAt      DateTime @default(now())
+  processedAt     DateTime @default(now())
+
+  @@index([orderId, processedAt])
+}

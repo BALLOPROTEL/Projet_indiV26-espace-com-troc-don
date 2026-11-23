@@ -2,6 +2,8 @@ export type GatewayTarget =
   | 'gateway'
   | 'catalog'
   | 'marketplace'
+  | 'notification'
+  | 'commerce'
   | 'legacy';
 
 export type GatewayRoute = {
@@ -31,7 +33,7 @@ export function resolveGatewayRoute(
     };
   }
 
-  // Explicit ADMIN-only route. Do not forward /api/admin/* broadly.
+  // Explicit ADMIN-only routes. Do not forward /api/admin/* broadly.
   if (path === '/api/admin/catalog/summary') {
     return {
       target: 'catalog',
@@ -40,8 +42,30 @@ export function resolveGatewayRoute(
   }
 
   if (
+    path === '/api/admin/products' ||
+    path.startsWith('/api/admin/products/')
+  ) {
+    return {
+      target: 'catalog',
+      upstreamPath: `${stripApiPrefix(path)}${url.search}`,
+    };
+  }
+
+  if (
+    path === '/api/products' ||
+    path.startsWith('/api/products/')
+  ) {
+    return {
+      target: 'catalog',
+      upstreamPath: `${stripApiPrefix(path)}${url.search}`,
+    };
+  }
+
+  if (
     path === '/api/listings' ||
     path.startsWith('/api/listings/') ||
+    path === '/api/favorites' ||
+    path.startsWith('/api/favorites/') ||
     path === '/api/moderation/listings' ||
     path.startsWith('/api/moderation/listings/')
   ) {
@@ -55,11 +79,41 @@ export function resolveGatewayRoute(
     path === '/api/proposals' ||
     path.startsWith('/api/proposals/') ||
     path === '/api/transactions' ||
-    path.startsWith('/api/transactions/')
+    path.startsWith('/api/transactions/') ||
+    path === '/api/conversations' ||
+    path.startsWith('/api/conversations/')
   ) {
     return {
       target: 'marketplace',
       upstreamPath: `${stripApiPrefix(path)}${url.search}`,
+    };
+  }
+
+  if (path === '/api/payments/stripe/webhook') {
+    return {
+      target: 'commerce',
+      upstreamPath: '/payments/stripe/webhook',
+    };
+  }
+
+  if (
+    path === '/api/cart' ||
+    path.startsWith('/api/cart/') ||
+    path === '/api/orders' ||
+    path.startsWith('/api/orders/')
+  ) {
+    return {
+      target: 'commerce',
+      upstreamPath: `${stripApiPrefix(path)}${url.search}`,
+    };
+  }
+
+  // Expose only the authenticated user inbox. The global technical
+  // /notifications/recent endpoint stays unreachable through the Gateway.
+  if (path === '/api/notifications/me') {
+    return {
+      target: 'notification',
+      upstreamPath: `/notifications/me${url.search}`,
     };
   }
 

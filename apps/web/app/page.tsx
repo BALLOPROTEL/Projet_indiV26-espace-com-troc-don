@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import { HomeExperience } from '../components/home-experience';
-import './home-v2.css';
 
 const description =
-  'Découvrez les objets proposés en don ou en troc par la communauté et faites circuler ce qui peut encore servir.';
+  'Découvrez les annonces DON/TROC de la communauté et la future plateforme 2-en-1 de La Petite Maison de l’Épouvante.';
 
 export const metadata: Metadata = {
   title: {

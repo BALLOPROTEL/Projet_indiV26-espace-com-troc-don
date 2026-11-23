@@ -16,6 +16,9 @@ const keycloak = process.env.KEYCLOAK_PUBLIC_URL ?? 'http://127.0.0.1:18081';
 const internalToken = 'local_internal_change_me_2026_very_long_token'; // disposable Compose only
 const listingId = 'm8-' + randomUUID();
 const transientId = 'm8-' + randomUUID();
+const productSuffix = randomUUID().slice(0, 8);
+const productSlug = 'm8-product-' + productSuffix;
+const productSku = 'M8-' + productSuffix.toUpperCase();
 
 function info(message) {
   process.stdout.write('[M8-B] ' + message + '\n');
@@ -100,14 +103,471 @@ function seed(ownerSubject) {
 async function run() {
   const requester = await token('demo-user');
   const owner = await token('demo-moderator');
-  assert.notEqual(requester.subject, owner.subject);
+  const admin = await token('demo-admin');
+  assert.equal(new Set([
+    requester.subject,
+    owner.subject,
+    admin.subject,
+  ]).size, 3);
 
   await request(gateway, '/api/health/ready', {}, 200);
   await request(gateway, '/api/proposals/me', {}, 401);
   await request(gateway, '/api/auth/protected', {}, 401);
   await request(gateway, '/api/internal/listings/unreachable', {}, 404);
   await request(gateway, '/api/notifications/recent', {}, 404);
+  await request(gateway, '/api/notifications/me', {}, 401);
   info('Gateway paths, legacy fallback, protected and private routes: PASS');
+
+  await request(gateway, '/api/admin/products', {}, 401);
+  await request(gateway, '/api/admin/products', {
+    method: 'POST',
+    headers: {
+      ...auth(requester),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      slug: productSlug,
+      name: 'M8 disposable commercial product',
+      description:
+        'Synthetic product created only inside the isolated M8 integration environment.',
+      category: 'M8 Tests',
+      variants: [{
+        sku: productSku,
+        label: 'Standard',
+        priceCents: 2599,
+        stock: 3,
+      }],
+    }),
+  }, 403);
+
+  const draftProduct = await request(gateway, '/api/admin/products', {
+    method: 'POST',
+    headers: {
+      ...auth(admin),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      slug: productSlug,
+      name: 'M8 disposable commercial product',
+      description:
+        'Synthetic product created only inside the isolated M8 integration environment.',
+      category: 'M8 Tests',
+      variants: [{
+        sku: productSku,
+        label: 'Standard',
+        priceCents: 2599,
+        stock: 3,
+      }],
+    }),
+  }, 201);
+  assert.equal(draftProduct.status, 'DRAFT');
+  assert.equal(draftProduct.variants[0].priceCents, 2599);
+  assert.equal(draftProduct.variants[0].stock, 3);
+
+  await request(gateway, '/api/products/' + productSlug, {}, 404);
+  await request(
+    gateway,
+    '/api/admin/products/' + draftProduct.id + '/publish',
+    {
+      method: 'POST',
+      headers: auth(admin),
+    },
+    409,
+  );
+
+  const productImageBytes = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl9ZVQAAAAASUVORK5CYII=',
+    'base64',
+  );
+  const productImagesBody = new FormData();
+  productImagesBody.append(
+    'images',
+    new Blob([productImageBytes], { type: 'image/png' }),
+    'm8-product.png',
+  );
+  const uploadedProductImages = await request(
+    gateway,
+    '/api/admin/products/' + draftProduct.id + '/images',
+    {
+      method: 'PUT',
+      headers: auth(admin),
+      body: productImagesBody,
+    },
+    200,
+  );
+  assert.equal(uploadedProductImages.length, 1);
+  assert.equal(uploadedProductImages[0].mimeType, 'image/png');
+
+  const publishedProduct = await request(
+    gateway,
+    '/api/admin/products/' + draftProduct.id + '/publish',
+    {
+      method: 'POST',
+      headers: auth(admin),
+    },
+    200,
+  );
+  assert.equal(publishedProduct.status, 'PUBLISHED');
+
+  const publicProduct = await request(
+    gateway,
+    '/api/products/' + productSlug,
+    {},
+    200,
+  );
+  assert.equal(publicProduct.slug, productSlug);
+  assert.equal(publicProduct.fromPriceCents, 2599);
+  assert.equal(publicProduct.availableStock, 3);
+  assert.equal(publicProduct.images.length, 1);
+  assert.equal('status' in publicProduct, false);
+
+  const publicImageResponse = await fetch(
+    new URL(publicProduct.images[0].contentUrl, gateway),
+    { signal: AbortSignal.timeout(12000) },
+  );
+  assert.equal(publicImageResponse.status, 200);
+  assert.equal(
+    publicImageResponse.headers.get('content-type'),
+    'image/png',
+  );
+  assert.ok((await publicImageResponse.arrayBuffer()).byteLength > 0);
+
+  const searchedProducts = await request(
+    gateway,
+    '/api/products?category=' + encodeURIComponent('M8 Tests'),
+    {},
+    200,
+  );
+  assert.ok(searchedProducts.some(item => item.id === draftProduct.id));
+
+  await request(gateway, '/api/cart', {}, 401);
+  const emptyCart = await request(gateway, '/api/cart', {
+    headers: auth(requester),
+  }, 200);
+  assert.deepEqual(emptyCart.items, []);
+  assert.equal(emptyCart.subtotalCents, 0);
+
+  await request(gateway, '/api/cart/items', {
+    method: 'POST',
+    headers: {
+      ...auth(requester),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      productId: draftProduct.id,
+      variantId: publicProduct.variants[0].id,
+      quantity: 1,
+      priceCents: 1,
+    }),
+  }, 400);
+
+  await request(gateway, '/api/cart/items', {
+    method: 'POST',
+    headers: {
+      ...auth(requester),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      productId: draftProduct.id,
+      variantId: publicProduct.variants[0].id,
+      quantity: 4,
+    }),
+  }, 409);
+
+  const addedCart = await request(gateway, '/api/cart/items', {
+    method: 'POST',
+    headers: {
+      ...auth(requester),
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      productId: draftProduct.id,
+      variantId: publicProduct.variants[0].id,
+      quantity: 2,
+    }),
+  }, 201);
+  assert.equal(addedCart.items.length, 1);
+  assert.equal(addedCart.items[0].unitPriceCents, 2599);
+  assert.equal(addedCart.items[0].lineTotalCents, 5198);
+  assert.equal(addedCart.subtotalCents, 5198);
+
+  const secondUserCart = await request(gateway, '/api/cart', {
+    headers: auth(owner),
+  }, 200);
+  assert.deepEqual(secondUserCart.items, []);
+
+  const productAfterCart = await request(
+    gateway,
+    '/api/products/' + productSlug,
+    {},
+    200,
+  );
+  assert.equal(
+    productAfterCart.variants[0].stock,
+    3,
+    'Cart must not reserve product stock',
+  );
+
+  const quantityCart = await request(
+    gateway,
+    '/api/cart/items/' + publicProduct.variants[0].id,
+    {
+      method: 'PATCH',
+      headers: {
+        ...auth(requester),
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ quantity: 3 }),
+    },
+    200,
+  );
+  assert.equal(quantityCart.subtotalCents, 7797);
+
+  await request(
+    gateway,
+    '/api/admin/products/' + draftProduct.id +
+      '/variants/' + publicProduct.variants[0].id,
+    {
+      method: 'PATCH',
+      headers: {
+        ...auth(admin),
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        priceCents: 2999,
+        stock: 5,
+      }),
+    },
+    200,
+  );
+
+  const repricedCart = await request(gateway, '/api/cart', {
+    headers: auth(requester),
+  }, 200);
+  assert.equal(repricedCart.items[0].unitPriceCents, 2999);
+  assert.equal(repricedCart.items[0].stock, 5);
+  assert.equal(repricedCart.subtotalCents, 8997);
+
+  await request(gateway, '/api/orders', {}, 401);
+  await request(gateway, '/api/orders', {
+    method: 'POST',
+    headers: {
+      ...auth(owner),
+      'content-type': 'application/json',
+      'idempotency-key': 'm8-owner-empty-' + productSuffix,
+    },
+    body: JSON.stringify({
+      recipientFirstName: 'Owner',
+      recipientLastName: 'Empty',
+      email: 'owner@example.test',
+      addressLine1: '1 rue du Test',
+      postalCode: '75001',
+      city: 'Paris',
+      countryCode: 'FR',
+    }),
+  }, 400);
+
+  const orderIdempotencyKey = 'm8-order-' + productSuffix;
+  const orderInput = {
+    recipientFirstName: 'Demo',
+    recipientLastName: 'User',
+    email: 'demo-user@example.test',
+    addressLine1: '1 rue du Commerce',
+    postalCode: '75001',
+    city: 'Paris',
+    countryCode: 'FR',
+  };
+
+  const draftOrder = await request(gateway, '/api/orders', {
+    method: 'POST',
+    headers: {
+      ...auth(requester),
+      'content-type': 'application/json',
+      'idempotency-key': orderIdempotencyKey,
+    },
+    body: JSON.stringify(orderInput),
+  }, 201);
+  assert.equal(draftOrder.status, 'DRAFT');
+  assert.equal(draftOrder.subtotalCents, 8997);
+  assert.equal(draftOrder.items.length, 1);
+  assert.equal(draftOrder.items[0].unitPriceCents, 2999);
+  assert.equal(draftOrder.items[0].quantity, 3);
+  assert.equal(draftOrder.items[0].lineTotalCents, 8997);
+
+  const replayedOrder = await request(gateway, '/api/orders', {
+    method: 'POST',
+    headers: {
+      ...auth(requester),
+      'content-type': 'application/json',
+      'idempotency-key': orderIdempotencyKey,
+    },
+    body: JSON.stringify(orderInput),
+  }, 201);
+  assert.equal(replayedOrder.id, draftOrder.id);
+
+  await request(gateway, '/api/orders/' + draftOrder.id, {
+    headers: auth(owner),
+  }, 404);
+
+  const reservedOrder = await request(
+    gateway,
+    '/api/orders/' + draftOrder.id + '/reserve',
+    {
+      method: 'POST',
+      headers: auth(requester),
+    },
+    201,
+  );
+  assert.equal(reservedOrder.status, 'AWAITING_PAYMENT');
+  assert.equal(typeof reservedOrder.reservationExpiresAt, 'string');
+
+  const productDuringReservation = await request(
+    gateway,
+    '/api/products/' + productSlug,
+    {},
+    200,
+  );
+  assert.equal(
+    productDuringReservation.variants[0].stock,
+    2,
+    'Reserving quantity 3 from stock 5 must leave stock 2',
+  );
+
+  const replayedReservation = await request(
+    gateway,
+    '/api/orders/' + draftOrder.id + '/reserve',
+    {
+      method: 'POST',
+      headers: auth(requester),
+    },
+    201,
+  );
+  assert.equal(
+    replayedReservation.reservationExpiresAt,
+    reservedOrder.reservationExpiresAt,
+  );
+
+  const productAfterReservationReplay = await request(
+    gateway,
+    '/api/products/' + productSlug,
+    {},
+    200,
+  );
+  assert.equal(
+    productAfterReservationReplay.variants[0].stock,
+    2,
+    'Reservation replay must not decrement stock twice',
+  );
+
+  const cancelledOrder = await request(
+    gateway,
+    '/api/orders/' + draftOrder.id + '/cancel',
+    {
+      method: 'POST',
+      headers: auth(requester),
+    },
+    201,
+  );
+  assert.equal(cancelledOrder.status, 'CANCELLED');
+
+  const productAfterReservationCancel = await request(
+    gateway,
+    '/api/products/' + productSlug,
+    {},
+    200,
+  );
+  assert.equal(
+    productAfterReservationCancel.variants[0].stock,
+    5,
+    'Cancelling an awaiting order must restore reserved stock',
+  );
+
+  const requesterOrders = await request(gateway, '/api/orders', {
+    headers: auth(requester),
+  }, 200);
+  assert.ok(requesterOrders.some(order => order.id === draftOrder.id));
+
+  await request(
+    gateway,
+    '/api/admin/products/' + draftProduct.id +
+      '/variants/' + publicProduct.variants[0].id,
+    {
+      method: 'PATCH',
+      headers: {
+        ...auth(admin),
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        priceCents: 3499,
+        stock: 5,
+      }),
+    },
+    200,
+  );
+
+  const frozenOrder = await request(
+    gateway,
+    '/api/orders/' + draftOrder.id,
+    { headers: auth(requester) },
+    200,
+  );
+  assert.equal(frozenOrder.items[0].unitPriceCents, 2999);
+  assert.equal(frozenOrder.subtotalCents, 8997);
+
+  const cartAfterOrder = await request(gateway, '/api/cart', {
+    headers: auth(requester),
+  }, 200);
+  assert.equal(cartAfterOrder.items[0].unitPriceCents, 3499);
+  assert.equal(cartAfterOrder.items[0].stock, 5);
+  assert.equal(cartAfterOrder.items[0].quantity, 3);
+  assert.equal(cartAfterOrder.subtotalCents, 10497);
+
+  const productAfterOrder = await request(
+    gateway,
+    '/api/products/' + productSlug,
+    {},
+    200,
+  );
+  assert.equal(
+    productAfterOrder.variants[0].stock,
+    5,
+    'L5B order draft must not reserve or decrement product stock',
+  );
+  info('Commerce Order drafts: JWT isolation + idempotency + frozen price snapshot + no reservation: PASS');
+
+  await request(
+    gateway,
+    '/api/admin/products/' + draftProduct.id + '/archive',
+    {
+      method: 'POST',
+      headers: auth(admin),
+    },
+    200,
+  );
+  await request(gateway, '/api/products/' + productSlug, {}, 404);
+
+  const archivedCart = await request(gateway, '/api/cart', {
+    headers: auth(requester),
+  }, 200);
+  assert.equal(archivedCart.hasUnavailableItems, true);
+  assert.equal(
+    archivedCart.items[0].unavailableReason,
+    'PRODUCT_NOT_PUBLISHED',
+  );
+  assert.equal(archivedCart.subtotalCents, 0);
+
+  const clearedCart = await request(
+    gateway,
+    '/api/cart/items/' + publicProduct.variants[0].id,
+    {
+      method: 'DELETE',
+      headers: auth(requester),
+    },
+    200,
+  );
+  assert.deepEqual(clearedCart.items, []);
+  info('Commerce Cart: JWT isolation + server price/stock + no reservation: PASS');
+  info('Commercial Product: ADMIN RBAC + DRAFT/PUBLISHED/ARCHIVED visibility: PASS');
 
   seed(owner.subject);
   info('Two approved donation listings seeded in isolated Catalog DB');
@@ -138,6 +598,28 @@ async function run() {
   }, 201);
   assert.equal(released.availabilityStatus, 'AVAILABLE');
   info('Catalog internal service-token authorization + 404/409/reserve/release: PASS');
+
+  await request(gateway, '/api/favorites/' + listingId, {}, 401);
+  const favorite = await request(gateway, '/api/favorites/' + listingId, {
+    method: 'POST',
+    headers: auth(requester),
+  }, 201);
+  assert.equal(favorite.listingId, listingId);
+  assert.equal(favorite.favorited, true);
+  const favoriteState = await request(gateway, '/api/favorites/' + listingId, {
+    headers: auth(requester),
+  }, 200);
+  assert.equal(favoriteState.favorited, true);
+  const favorites = await request(gateway, '/api/favorites', {
+    headers: auth(requester),
+  }, 200);
+  assert.ok(favorites.some(item => item.id === listingId));
+  const removedFavorite = await request(gateway, '/api/favorites/' + listingId, {
+    method: 'DELETE',
+    headers: auth(requester),
+  }, 200);
+  assert.equal(removedFavorite.favorited, false);
+  info('Catalog favorites: JWT add/read/list/remove real persistence: PASS');
 
   const proposal = await request(gateway, '/api/proposals', {
     method: 'POST',
@@ -198,6 +680,34 @@ async function run() {
     assert.equal(item.event.source, 'marketplace-service');
     assert.equal(typeof item.event.eventId, 'string');
   }
+
+  const ownerInbox = await request(gateway, '/api/notifications/me', {
+    headers: auth(owner),
+  }, 200);
+  const requesterInbox = await request(gateway, '/api/notifications/me', {
+    headers: auth(requester),
+  }, 200);
+  const ownerTypes = new Set(
+    ownerInbox
+      .filter(item => item.event?.data?.targetListingId === listingId)
+      .map(item => item.event.type),
+  );
+  const requesterTypes = new Set(
+    requesterInbox
+      .filter(item => item.event?.data?.targetListingId === listingId)
+      .map(item => item.event.type),
+  );
+  assert.deepEqual(
+    ownerTypes,
+    new Set(['proposal.created', 'transaction.completed']),
+    'Owner inbox must contain only owner-targeted events',
+  );
+  assert.deepEqual(
+    requesterTypes,
+    new Set(['proposal.accepted', 'transaction.completed']),
+    'Requester inbox must contain only requester-targeted events',
+  );
+  info('Gateway -> Notification JWT user inbox isolation: PASS');
   info('Marketplace -> RabbitMQ -> Notification real event delivery: PASS (' + events.length + ' unique events)');
   info('M8-B integration: PASS');
 }

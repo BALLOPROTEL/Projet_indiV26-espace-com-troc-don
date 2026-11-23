@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: commerce-config
+  namespace: projet-indiv26
+data:
+  PORT: "3104"
+  NODE_ENV: "production"
+  SWAGGER_ENABLED: "false"
+  KEYCLOAK_ISSUER: "https://auth.projet-indiv26.test/realms/projet-indiv26"
+  KEYCLOAK_JWKS_URL: "http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs"
+  KEYCLOAK_AUDIENCE: "api"
+  CATALOG_INTERNAL_URL: "http://catalog-service:3101"
+  WEB_PUBLIC_URL: "https://app.projet-indiv26.test"

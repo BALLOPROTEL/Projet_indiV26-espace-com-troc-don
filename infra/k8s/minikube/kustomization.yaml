@@ -28,6 +28,9 @@ resources:
   - notification-configmap.yaml
   - notification-deployment.yaml
   - notification-service.yaml
+  - commerce-configmap.yaml
+  - commerce-deployment.yaml
+  - commerce-service.yaml
   - gateway-configmap.yaml
   - gateway-deployment.yaml
   - gateway-service.yaml

@@ -16,6 +16,10 @@ compose=(
 )
 
 echo "=== ProjetIndiv26 Codespaces M6 stack ==="
+# A previous plain `docker compose up` may have created Keycloak with the
+# localhost realm. Recreate it explicitly so the generated Codespaces realm,
+# hostname and proxy settings are always applied.
+"${compose[@]}" up -d --force-recreate --no-deps keycloak
 "${compose[@]}" up -d --build
 
 bash scripts/m6-compose-check.sh

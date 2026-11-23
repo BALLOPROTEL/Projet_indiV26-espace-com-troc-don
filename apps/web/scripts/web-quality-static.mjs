@@ -12,8 +12,28 @@ const sourceRoots = [
 const staticRoutes = new Set([
   '/',
   '/admin',
+  '/admin/boutique',
   '/espace',
   '/moderation',
+  '/boutique',
+  '/echanges',
+  '/fanzines',
+  '/festival',
+  '/publier',
+  '/mes-annonces',
+  '/messages',
+  '/faq',
+  '/notre-histoire',
+  '/contact',
+  '/boutique/produit',
+  '/fanzines/lecteur',
+  '/panier',
+  '/commande',
+  '/commande/confirmation',
+  '/mes-commandes',
+  '/favoris',
+  '/notifications',
+  '/parametres',
 ]);
 
 async function collect(dir) {
@@ -92,7 +112,10 @@ function isKnownInternalRoute(href) {
     return true;
   }
 
-  return /^\/annonces\/[^/]+$/.test(path);
+  return (
+    /^\/annonces\/[^/]+$/.test(path) ||
+    /^\/boutique\/produit\/[^/]+$/.test(path)
+  );
 }
 
 const findings = [];
@@ -151,15 +174,36 @@ const seoChecks = [
   ['app/layout.tsx', ['metadataBase', 'openGraph', 'twitter']],
   ['app/page.tsx', ['canonical']],
   ['app/robots.ts', ['/admin', '/espace', '/moderation', 'sitemap.xml']],
-  ['app/sitemap.ts', ['changeFrequency', 'priority']],
+  ['app/sitemap.ts', ['changeFrequency', 'priority', 'getPublicListings']],
   ['app/not-found.tsx', ['Page introuvable', 'index: false']],
   ['app/admin/page.tsx', ['index: false']],
   ['app/espace/page.tsx', ['index: false']],
   ['app/moderation/page.tsx', ['index: false']],
+  ['app/publier/page.tsx', ['index: false']],
+  ['app/mes-annonces/page.tsx', ['index: false']],
+  ['app/messages/page.tsx', ['index: false']],
+  ['app/boutique/page.tsx', ['canonical', '/boutique']],
+  ['app/echanges/page.tsx', ['canonical', '/echanges']],
+  ['app/fanzines/page.tsx', ['canonical', '/fanzines']],
+  ['app/festival/page.tsx', ['canonical', '/festival']],
+  ['app/faq/page.tsx', ['canonical', '/faq']],
+  ['app/notre-histoire/page.tsx', ['canonical', '/notre-histoire']],
+  ['app/contact/page.tsx', ['canonical', '/contact']],
+  ['app/boutique/produit/page.tsx', ['index: false']],
+  ['app/fanzines/lecteur/page.tsx', ['index: false']],
+  ['app/panier/page.tsx', ['index: false']],
+  ['app/commande/page.tsx', ['index: false']],
+  ['app/commande/confirmation/page.tsx', ['index: false']],
+  ['app/mes-commandes/page.tsx', ['index: false']],
+  ['app/favoris/page.tsx', ['index: false']],
+  ['app/notifications/page.tsx', ['index: false']],
+  ['app/parametres/page.tsx', ['index: false']],
   ['app/opengraph-image.tsx', ['ImageResponse', '1200', '630']],
   ['app/twitter-image.tsx', ['ImageResponse', '1200', '630']],
   ['app/icon.svg', ['<svg']],
   ['app/apple-icon.tsx', ['ImageResponse', '180']],
+  ['app/annonces/[id]/page.tsx', ['generateMetadata', 'notFound()', 'canonical']],
+  ['lib/server-listings.ts', ['API_INTERNAL_URL', 'getPublicListing', 'getPublicListings', 'publicListingAssetUrl']],
   ['public/humans.txt', ['Projet pédagogique CESI']],
 ];
 

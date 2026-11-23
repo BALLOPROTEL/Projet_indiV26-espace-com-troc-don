@@ -39,6 +39,7 @@ model Listing {
 
   images      ListingImage[]
   tradeWishes ListingTradeWish[]
+  favorites   ListingFavorite[]
 
   @@index([ownerId, createdAt])
   @@index([status, createdAt])
@@ -71,4 +72,108 @@ model ListingTradeWish {
 
   @@unique([listingId, position])
   @@index([listingId])
+}
+
+
+model ListingFavorite {
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@id([userId, listingId])
+  @@index([userId, createdAt])
+}
+
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Product {
+  id          String        @id @default(cuid())
+  slug        String        @unique @db.VarChar(140)
+  name        String        @db.VarChar(160)
+  description String        @db.VarChar(4000)
+  category    String        @db.VarChar(120)
+  currency    String        @default("EUR") @db.Char(3)
+  status      ProductStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  variants ProductVariant[]
+  images   ProductImage[]
+
+  @@index([status, createdAt])
+  @@index([status, category, createdAt])
+}
+
+model ProductVariant {
+  id         String   @id @default(cuid())
+  productId  String
+  sku        String   @unique @db.VarChar(80)
+  label      String   @db.VarChar(120)
+  priceCents Int
+  stock      Int      @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, active])
+}
+
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  objectKey String   @unique @db.VarChar(500)
+  mimeType  String   @db.VarChar(100)
+  sizeBytes Int
+  position  Int
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, position])
+  @@index([productId])
+}
+
+
+enum ProductStockReservationStatus {
+  ACTIVE
+  RELEASED
+  EXPIRED
+  COMMITTED
+}
+
+model ProductStockReservation {
+  id        String                        @id @default(cuid())
+  orderId   String                        @unique @db.VarChar(128)
+  status    ProductStockReservationStatus @default(ACTIVE)
+  expiresAt DateTime
+  createdAt DateTime                      @default(now())
+  updatedAt DateTime                      @updatedAt
+
+  items ProductStockReservationItem[]
+
+  @@index([status, expiresAt])
+}
+
+model ProductStockReservationItem {
+  id            String   @id @default(cuid())
+  reservationId String
+  productId     String
+  variantId     String
+  quantity      Int
+  createdAt     DateTime @default(now())
+
+  reservation ProductStockReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@unique([reservationId, variantId])
+  @@index([reservationId, createdAt])
 }

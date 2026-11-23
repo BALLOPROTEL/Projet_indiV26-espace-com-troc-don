@@ -201,6 +201,8 @@ services:
       KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs
       KEYCLOAK_AUDIENCE: api
       INTERNAL_SERVICE_TOKEN: local_internal_change_me_2026_very_long_token
+      PRODUCT_RESERVATION_TTL_SECONDS: "900"
+      PAYMENT_RESERVATION_TTL_SECONDS: "2100"
       SWAGGER_ENABLED: "true"
       S3_ENDPOINT: http://minio:9000
       S3_REGION: us-east-1
@@ -267,6 +269,18 @@ services:
       timeout: 4s
       retries: 30
 
+  commerce-migrate:
+    build:
+      context: .
+      dockerfile: apps/commerce-service/Dockerfile
+      target: migration
+    environment:
+      COMMERCE_DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=commerce
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   notification-migrate:
     build:
       context: .
@@ -274,6 +288,9 @@ services:
       target: migration
     environment:
       NOTIFICATION_DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=notification
+      KEYCLOAK_ISSUER: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}/realms/projet-indiv26
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: api
     depends_on:
       postgres:
         condition: service_healthy
@@ -288,6 +305,9 @@ services:
       PORT: "3103"
       RABBITMQ_URL: amqp://app:rabbitmq_local_change_me_2026@rabbitmq:5672
       NOTIFICATION_DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=notification
+      KEYCLOAK_ISSUER: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}/realms/projet-indiv26
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: api
     ports:
       - "127.0.0.1:${NOTIFICATION_HOST_PORT:-3103}:3103"
     depends_on:
@@ -295,6 +315,8 @@ services:
         condition: service_healthy
       notification-migrate:
         condition: service_completed_successfully
+      keycloak:
+        condition: service_started
     healthcheck:
       test:
         [
@@ -302,6 +324,44 @@ services:
           "node",
           "-e",
           "fetch('http://127.0.0.1:3103/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+
+  commerce-service:
+    build:
+      context: .
+      dockerfile: apps/commerce-service/Dockerfile
+    restart: unless-stopped
+    environment:
+      PORT: "3104"
+      COMMERCE_DATABASE_URL: postgresql://app:app_local_change_me@postgres:5432/projet_indiv26?schema=commerce
+      KEYCLOAK_ISSUER: ${KEYCLOAK_PUBLIC_URL:-http://localhost:8081}/realms/projet-indiv26
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/projet-indiv26/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: api
+      CATALOG_INTERNAL_URL: http://catalog-service:3101
+      INTERNAL_SERVICE_TOKEN: local_internal_change_me_2026_very_long_token
+      WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-http://localhost:3001}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      SWAGGER_ENABLED: "true"
+    ports:
+      - "127.0.0.1:${COMMERCE_HOST_PORT:-3104}:3104"
+    depends_on:
+      commerce-migrate:
+        condition: service_completed_successfully
+      catalog-service:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3104/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
         ]
       interval: 5s
       timeout: 4s
@@ -316,6 +376,8 @@ services:
       PORT: "3000"
       CATALOG_SERVICE_URL: http://catalog-service:3101
       MARKETPLACE_SERVICE_URL: http://marketplace-service:3102
+      NOTIFICATION_SERVICE_URL: http://notification-service:3103
+      COMMERCE_SERVICE_URL: http://commerce-service:3104
       LEGACY_API_URL: http://legacy-api:3099
       WEB_ORIGIN: ${WEB_PUBLIC_URL:-http://localhost:3001}
       METRICS_TOKEN: local_optional_metrics_token
@@ -327,6 +389,10 @@ services:
       catalog-service:
         condition: service_healthy
       marketplace-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      commerce-service:
         condition: service_healthy
     healthcheck:
       test:

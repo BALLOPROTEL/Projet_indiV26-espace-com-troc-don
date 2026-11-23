@@ -1,12 +1,22 @@
 import { parseAdminCatalogSummary } from './admin-dashboard';
 import type {
+  AdminProduct,
+  AdminProductCreateInput,
+  AdminProductImage,
+  Cart,
+  CreateOrderInput,
   Listing,
   ListingImage,
   ListingInput,
   ListingStatus,
+  ConversationMessage,
+  MarketplaceConversation,
   MarketplaceProposal,
   MarketplaceTransaction,
+  Order,
   ProposalType,
+  Product,
+  UserNotification,
 } from './types';
 
 const API_URL =
@@ -91,13 +101,141 @@ async function requestBlob(
   return response.blob();
 }
 
-export function listingAssetUrl(path: string): string {
+export function apiAssetUrl(path: string): string {
   if (!API_ORIGIN || !path.startsWith('/')) {
     return path;
   }
 
   return `${API_ORIGIN}${path}`;
 }
+
+export function listingAssetUrl(path: string): string {
+  return apiAssetUrl(path);
+}
+
+export const cartApi = {
+  mine: (token: string) =>
+    request<Cart>('/cart', {}, token),
+
+  add: (
+    token: string,
+    input: {
+      productId: string;
+      variantId: string;
+      quantity: number;
+    },
+  ) =>
+    request<Cart>(
+      '/cart/items',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+
+  updateQuantity: (
+    token: string,
+    variantId: string,
+    quantity: number,
+  ) =>
+    request<Cart>(
+      `/cart/items/${encodeURIComponent(variantId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ quantity }),
+      },
+      token,
+    ),
+
+  remove: (token: string, variantId: string) =>
+    request<Cart>(
+      `/cart/items/${encodeURIComponent(variantId)}`,
+      { method: 'DELETE' },
+      token,
+    ),
+
+  clear: (token: string) =>
+    request<Cart>(
+      '/cart',
+      { method: 'DELETE' },
+      token,
+    ),
+};
+
+export const ordersApi = {
+  prepare: (
+    token: string,
+    idempotencyKey: string,
+    input: CreateOrderInput,
+  ) =>
+    request<Order>(
+      '/orders',
+      {
+        method: 'POST',
+        headers: {
+          'Idempotency-Key': idempotencyKey,
+        },
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+
+  mine: (token: string) =>
+    request<Order[]>('/orders', {}, token),
+
+  reserve: (token: string, id: string) =>
+    request<Order>(
+      `/orders/${encodeURIComponent(id)}/reserve`,
+      { method: 'POST' },
+      token,
+    ),
+
+  cancel: (token: string, id: string) =>
+    request<Order>(
+      `/orders/${encodeURIComponent(id)}/cancel`,
+      { method: 'POST' },
+      token,
+    ),
+
+  paymentSession: (token: string, id: string) =>
+    request<{
+      sessionId: string;
+      url: string;
+      expiresAt: string;
+    }>(
+      `/orders/${encodeURIComponent(id)}/payment-session`,
+      { method: 'POST' },
+      token,
+    ),
+
+  byId: (token: string, id: string) =>
+    request<Order>(
+      `/orders/${encodeURIComponent(id)}`,
+      {},
+      token,
+    ),
+};
+
+export const productsApi = {
+  public: (filters: { q?: string; category?: string } = {}) => {
+    const params = new URLSearchParams();
+
+    if (filters.q?.trim()) {
+      params.set('q', filters.q.trim());
+    }
+    if (filters.category?.trim()) {
+      params.set('category', filters.category.trim());
+    }
+
+    const query = params.toString();
+
+    return request<Product[]>(`/products${query ? `?${query}` : ''}`);
+  },
+
+  publicBySlug: (slug: string) =>
+    request<Product>(`/products/${encodeURIComponent(slug)}`),
+};
 
 export const listingsApi = {
   public: () => request<Listing[]>('/listings'),
@@ -214,6 +352,176 @@ export const listingsApi = {
 export const adminApi = {
   catalogSummary: (token: string) =>
     request<unknown>('/admin/catalog/summary', {}, token).then(parseAdminCatalogSummary),
+
+  products: (token: string) =>
+    request<AdminProduct[]>('/admin/products', {}, token),
+
+  createProduct: (
+    token: string,
+    input: AdminProductCreateInput,
+  ) =>
+    request<AdminProduct>(
+      '/admin/products',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+
+  updateProduct: (
+    token: string,
+    id: string,
+    input: Partial<Pick<
+      AdminProductCreateInput,
+      'slug' | 'name' | 'description' | 'category'
+    >>,
+  ) =>
+    request<AdminProduct>(
+      `/admin/products/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+
+  updateProductVariant: (
+    token: string,
+    productId: string,
+    variantId: string,
+    input: {
+      label?: string;
+      priceCents?: number;
+      stock?: number;
+      active?: boolean;
+    },
+  ) =>
+    request<AdminProduct>(
+      `/admin/products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+
+  replaceProductImages: (
+    token: string,
+    productId: string,
+    files: File[],
+  ) => {
+    const body = new FormData();
+    for (const file of files) {
+      body.append('images', file, file.name);
+    }
+
+    return request<AdminProductImage[]>(
+      `/admin/products/${encodeURIComponent(productId)}/images`,
+      {
+        method: 'PUT',
+        body,
+      },
+      token,
+    );
+  },
+
+  publishProduct: (token: string, id: string) =>
+    request<AdminProduct>(
+      `/admin/products/${encodeURIComponent(id)}/publish`,
+      { method: 'POST' },
+      token,
+    ),
+
+  archiveProduct: (token: string, id: string) =>
+    request<AdminProduct>(
+      `/admin/products/${encodeURIComponent(id)}/archive`,
+      { method: 'POST' },
+      token,
+    ),
+};
+
+export const favoritesApi = {
+  mine: (token: string) =>
+    request<Listing[]>('/favorites', {}, token),
+
+  state: (token: string, listingId: string) =>
+    request<{ listingId: string; favorited: boolean }>(
+      `/favorites/${encodeURIComponent(listingId)}`,
+      {},
+      token,
+    ),
+
+  add: (token: string, listingId: string) =>
+    request<{ listingId: string; favorited: boolean }>(
+      `/favorites/${encodeURIComponent(listingId)}`,
+      { method: 'POST' },
+      token,
+    ),
+
+  remove: (token: string, listingId: string) =>
+    request<{ listingId: string; favorited: boolean }>(
+      `/favorites/${encodeURIComponent(listingId)}`,
+      { method: 'DELETE' },
+      token,
+    ),
+};
+
+export const notificationsApi = {
+  mine: (token: string) =>
+    request<UserNotification[]>('/notifications/me', {}, token),
+};
+
+export const conversationsApi = {
+  mine: (token: string) =>
+    request<MarketplaceConversation[]>(
+      '/conversations',
+      {},
+      token,
+    ),
+
+  messages: (
+    token: string,
+    conversationId: string,
+    before?: string,
+  ) => {
+    const params = new URLSearchParams({
+      limit: '50',
+    });
+    if (before) {
+      params.set('before', before);
+    }
+
+    return request<ConversationMessage[]>(
+      `/conversations/${encodeURIComponent(conversationId)}/messages?${params.toString()}`,
+      {},
+      token,
+    );
+  },
+
+  send: (
+    token: string,
+    conversationId: string,
+    body: string,
+  ) =>
+    request<ConversationMessage>(
+      `/conversations/${encodeURIComponent(conversationId)}/messages`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ body }),
+      },
+      token,
+    ),
+
+  markRead: (
+    token: string,
+    conversationId: string,
+  ) =>
+    request<{ updated: number }>(
+      `/conversations/${encodeURIComponent(conversationId)}/read`,
+      { method: 'POST' },
+      token,
+    ),
 };
 
 export const marketplaceApi = {

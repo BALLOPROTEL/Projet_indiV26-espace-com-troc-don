@@ -3,12 +3,36 @@ import Keycloak from 'keycloak-js';
 let keycloak: Keycloak | null = null;
 let initPromise: Promise<boolean> | null = null;
 
+function resolveKeycloakUrl(): string {
+  const configured =
+    process.env.NEXT_PUBLIC_KEYCLOAK_URL ??
+    'http://localhost:8081';
+
+  if (typeof window === 'undefined') {
+    return configured;
+  }
+
+  const hostname = window.location.hostname;
+  const codespacesMatch = hostname.match(
+    /^(?<name>.+)-3001\.(?<domain>app\.github\.dev)$/,
+  );
+
+  if (
+    codespacesMatch?.groups &&
+    /^https?:\/\/(localhost|127\.0\.0\.1):8081\/?$/.test(
+      configured,
+    )
+  ) {
+    return `https://${codespacesMatch.groups.name}-8081.${codespacesMatch.groups.domain}`;
+  }
+
+  return configured.replace(/\/$/, '');
+}
+
 export function getKeycloak(): Keycloak {
   if (!keycloak) {
     keycloak = new Keycloak({
-      url:
-        process.env.NEXT_PUBLIC_KEYCLOAK_URL ??
-        'http://localhost:8081',
+      url: resolveKeycloakUrl(),
       realm:
         process.env.NEXT_PUBLIC_KEYCLOAK_REALM ??
         'projet-indiv26',

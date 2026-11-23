@@ -37,6 +37,8 @@ function createGateway(target) {
   const middleware = createProxyMiddleware({
     catalog: target,
     marketplace: target,
+    notification: target,
+    commerce: target,
     legacy: target,
   });
 

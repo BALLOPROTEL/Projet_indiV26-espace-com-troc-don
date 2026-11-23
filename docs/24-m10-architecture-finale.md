@@ -374,3 +374,155 @@ flowchart TB
 **État actualisé au 16 octobre 2026 :** ① M10 fusionné et clôturé (#57) ; ② frontend V2 F0–F5/F7 développé **après accord explicite du propriétaire**, fusionné sur `main` ; ③ recette finale sur vrais appareils (#71) et kit de démonstration jury reproductible (#56) encore à valider ; ④ seulement ensuite dossier de preuves LOT 10-A (#58), puis présentation/répétition/vidéo LOT 10-B (#59). Cette mise à jour du statut n'altère pas les diagrammes techniques décrivant le POC.
 
 Le guide opérationnel associé est [`25-m10-operations-limits.md`](25-m10-operations-limits.md). Les schémas précédents sont des fichiers Markdown avec blocs `mermaid` : ils sont affichés par GitHub et éditables dans la PR.
+
+
+---
+
+## Extension L5A — Commerce / panier
+
+L'évolution Boutique introduit un cinquième microservice métier :
+
+- **Commerce Service `:3104`** : propriétaire du panier utilisateur ;
+- schéma PostgreSQL dédié **`commerce`** ;
+- authentification JWT Keycloak ;
+- accès Catalog uniquement par HTTP interne authentifié ;
+- aucune lecture directe du schéma `catalog` ;
+- aucun prix stocké dans `CartItem`.
+
+La frontière finale devient :
+
+```text
+Gateway
+  ├── Catalog       -> produits / variantes / stocks / médias
+  ├── Marketplace   -> propositions / transactions DON-TROC
+  ├── Notification  -> inbox événementielle utilisateur
+  ├── Commerce      -> paniers utilisateur
+  └── Legacy        -> fallback auth historique uniquement
+```
+
+Le détail de la décision est documenté dans `docs/27-l5a-commerce-cart.md`.
+
+
+---
+
+## Extension L5B — Brouillons de commande
+
+L5B étend le **Commerce Service** sans ajouter de paiement fictif.
+
+Le service devient propriétaire de :
+
+- `Cart` / `CartItem` pour l'état courant du panier ;
+- `Order` / `OrderItem` pour les brouillons de commande et leurs snapshots.
+
+Le flux est :
+
+```text
+Navigateur
+  -> Gateway /api/orders
+  -> Commerce
+       -> Cart réel
+       -> Catalog HTTP interne pour état/prix/stock courants
+       -> Order/OrderItem figés en PostgreSQL commerce
+```
+
+Invariants :
+
+- propriétaire dérivé du JWT `sub` ;
+- `Idempotency-Key` obligatoire à la création ;
+- nom, variante, prix, quantité et total de ligne figés dans `OrderItem` ;
+- changement ultérieur de prix Catalog sans effet rétroactif sur le brouillon ;
+- aucun `userId` interne ni clé d'idempotence exposés au navigateur ;
+- aucun paiement ;
+- aucune réservation ni décrémentation de stock ;
+- panier conservé après préparation du brouillon.
+
+La frontière Commerce devient donc :
+
+```text
+Commerce
+  ├── panier courant      -> données dynamiques, prix/stock relus depuis Catalog
+  └── brouillon commande  -> snapshot historique immuable
+```
+
+Le détail et les preuves attendues sont documentés dans `docs/28-l5b-order-drafts.md`.
+
+
+---
+
+## Extension L5C1 — Réservation de stock avant paiement
+
+L5C1 ajoute une vraie étape pré-paiement sans simuler l'encaissement.
+
+```text
+Commerce Order DRAFT
+  -> POST /api/orders/:id/reserve
+  -> Catalog réservation atomique
+       -> stock décrémenté en transaction Serializable
+       -> TTL 15 minutes
+  -> Commerce AWAITING_PAYMENT
+```
+
+Catalog possède `ProductStockReservation` et `ProductStockReservationItem`.
+Commerce conserve seulement l'état de commande et `reservationExpiresAt`.
+
+Transitions démontrées :
+
+```text
+DRAFT
+  ├── réserve stock avec succès -> AWAITING_PAYMENT
+  └── annulation               -> CANCELLED
+
+AWAITING_PAYMENT
+  ├── annulation               -> release Catalog -> CANCELLED
+  └── expiration               -> release Catalog -> EXPIRED
+```
+
+Le contrat Catalog `commit` existe pour le futur L5C2, mais L5C1 n'expose aucun faux statut payé.
+
+Détail : `docs/29-l5c1-stock-reservations.md`.
+
+
+---
+
+## Extension L5C2 — Paiement Stripe Checkout
+
+L5C2 connecte le cycle Commerce à un prestataire de paiement réel en **mode test**.
+
+```text
+Order AWAITING_PAYMENT
+  -> Catalog extend réservation (35 min, sans nouveau décrément)
+  -> Stripe Checkout Session (30 min)
+  -> webhook signé
+  -> Catalog commit réservation
+  -> Commerce PAID
+```
+
+Principes :
+
+- aucune donnée carte dans Web, Gateway ou Commerce ;
+- `STRIPE_SECRET_KEY` et `STRIPE_WEBHOOK_SECRET` restent côté serveur ;
+- le retour navigateur Stripe n'est jamais suffisant pour déclarer le paiement ;
+- seul un webhook `checkout.session.completed` signé et `payment_status=paid` produit `PAID` ;
+- les événements webhook sont dédupliqués par identifiant fournisseur ;
+- une annulation expire d'abord Checkout avant de restituer le stock ;
+- une session déjà `complete + paid` interdit toute restitution du stock en attendant le webhook ;
+- la réservation L5C1 normale reste à 15 minutes ; seule la phase paiement l'étend à 35 minutes.
+
+Détail : `docs/30-l5c2-stripe-checkout.md`.
+
+
+---
+
+## Consolidation V2 — SEO, profil et conversations
+
+La branche V2 consolidée réintègre les trois chantiers historiques qui avaient divergé de la refonte #149 :
+
+- **SEO annonces** : metadata/canonical/Open Graph dynamiques, sitemap des annonces et vraie réponse 404 côté serveur ;
+- **Profil Keycloak** : prénom, nom, e-mail/vérification depuis les claims et accès à l'Account Console depuis `/parametres` ;
+- **Conversations Marketplace** : `Conversation` et `ConversationMessage` persistés, ownership requester/owner, pagination, lecture et anti-spam.
+
+Une conversation est créée atomiquement avec chaque proposition. Le message initial éventuel devient le premier message du fil.
+
+Le Gateway expose uniquement les routes authentifiées `/api/conversations...`. Un utilisateur tiers reçoit volontairement 404 afin de ne pas révéler l'existence d'une conversation privée.
+
+La page `/messages` est connectée à ces contrats. Aucun nom d'interlocuteur fictif n'est fabriqué tant qu'un contrat de profil public n'existe pas.

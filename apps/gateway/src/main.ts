@@ -57,6 +57,7 @@ async function bootstrap(): Promise<void> {
       'Content-Type',
       'Authorization',
       'X-Request-ID',
+      'Idempotency-Key',
     ],
     exposedHeaders: ['X-Request-ID'],
   });
@@ -70,6 +71,14 @@ async function bootstrap(): Promise<void> {
       marketplace: new URL(
         process.env.MARKETPLACE_SERVICE_URL ??
           'http://127.0.0.1:3102',
+      ),
+      notification: new URL(
+        process.env.NOTIFICATION_SERVICE_URL ??
+          'http://127.0.0.1:3103',
+      ),
+      commerce: new URL(
+        process.env.COMMERCE_SERVICE_URL ??
+          'http://127.0.0.1:3104',
       ),
       legacy: new URL(
         process.env.LEGACY_API_URL ??

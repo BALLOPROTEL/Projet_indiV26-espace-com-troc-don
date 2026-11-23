@@ -36,3 +36,5 @@ jobs:
         run: pnpm web:test
       - name: Production build
         run: pnpm web:build
+      - name: SEO runtime smoke
+        run: pnpm web:seo:runtime

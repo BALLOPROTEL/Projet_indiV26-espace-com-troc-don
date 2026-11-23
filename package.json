@@ -55,8 +55,8 @@
     "marketplace-service:quality": "pnpm marketplace-service:prisma:validate && pnpm --filter marketplace-service typecheck && pnpm marketplace-service:test && pnpm --filter marketplace-service build",
     "notification:dev": "pnpm --filter notification-service start:dev",
     "services:dev": "bash scripts/services-dev.sh",
-    "services:typecheck": "pnpm --filter gateway typecheck && pnpm --filter catalog-service typecheck && pnpm --filter marketplace-service typecheck && pnpm --filter notification-service typecheck",
-    "services:build": "pnpm --filter gateway build && pnpm --filter catalog-service build && pnpm --filter marketplace-service build && pnpm --filter notification-service build",
+    "services:typecheck": "pnpm --filter gateway typecheck && pnpm --filter catalog-service typecheck && pnpm --filter marketplace-service typecheck && pnpm --filter notification-service typecheck && pnpm --filter commerce-service typecheck",
+    "services:build": "pnpm --filter gateway build && pnpm --filter catalog-service build && pnpm --filter marketplace-service build && pnpm --filter notification-service build && pnpm --filter commerce-service build",
     "codespaces:up": "bash scripts/codespaces-up.sh",
     "codespaces:down": "bash scripts/codespaces-down.sh",
     "codespaces:check": "bash scripts/codespaces-check.sh",
@@ -71,7 +71,7 @@
     "m5:smoke": "bash scripts/m5-rabbitmq-notification-smoke.sh",
     "compose:up": "bash scripts/m6-compose-up.sh",
     "compose:check": "bash scripts/m6-compose-check.sh",
-    "compose:logs": "docker compose logs -f --tail=100 gateway legacy-api catalog-service marketplace-service notification-service web",
+    "compose:logs": "docker compose logs -f --tail=100 gateway legacy-api catalog-service marketplace-service notification-service commerce-service web",
     "compose:down": "docker compose down --remove-orphans",
     "m6:smoke": "bash scripts/m6-compose-smoke.sh",
     "m7:k8s:render": "kubectl kustomize infra/k8s/minikube",
@@ -97,7 +97,13 @@
     "jury:assets:fetch": "node scripts/jury-assets-fetch.mjs --fetch",
     "jury:assets:fetch:test": "node --test scripts/jury-assets-fetch.test.mjs",
     "security:web:static": "node scripts/security-web-audit.mjs",
-    "web:quality:static": "pnpm --filter web quality:static"
+    "web:quality:static": "pnpm --filter web quality:static",
+    "commerce:dev": "pnpm --filter commerce-service start:dev",
+    "commerce:prisma:validate": "pnpm --filter commerce-service prisma:validate",
+    "commerce:migrate:deploy": "pnpm --filter commerce-service prisma:migrate:deploy",
+    "commerce:test": "pnpm --filter commerce-service test",
+    "commerce:quality": "pnpm commerce:prisma:validate && pnpm --filter commerce-service typecheck && pnpm commerce:test && pnpm --filter commerce-service build",
+    "web:seo:runtime": "node apps/web/scripts/seo-runtime-smoke.mjs"
   },
   "pnpm": {
     "overrides": {

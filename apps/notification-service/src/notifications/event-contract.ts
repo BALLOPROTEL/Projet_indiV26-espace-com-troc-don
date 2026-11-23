@@ -16,6 +16,7 @@ type ProposalCreatedData = {
   proposalId: string;
   targetListingId: string;
   requesterId: string;
+  ownerId: string | null;
   proposalType: 'DONATION_REQUEST' | 'TRADE_OFFER';
   offeredListingId: string | null;
 };
@@ -196,6 +197,10 @@ export function parseMarketplaceEvent(
             'targetListingId',
           ),
           requesterId: requiredString(base.data, 'requesterId'),
+          ownerId:
+            base.data.ownerId === undefined
+              ? null
+              : nullableString(base.data, 'ownerId'),
           proposalType,
           offeredListingId: nullableString(
             base.data,

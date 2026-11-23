@@ -14,6 +14,37 @@ test('routes Catalog public contracts', () => {
       upstreamPath: '/moderation/listings/abc/approve',
     },
   );
+  assert.deepEqual(resolveGatewayRoute('/api/favorites'), {
+    target: 'catalog',
+    upstreamPath: '/favorites',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/favorites/listing-1'), {
+    target: 'catalog',
+    upstreamPath: '/favorites/listing-1',
+  });
+});
+
+test('routes Product public and explicit ADMIN contracts', () => {
+  assert.deepEqual(resolveGatewayRoute('/api/products?q=figurine'), {
+    target: 'catalog',
+    upstreamPath: '/products?q=figurine',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/products/figurine-test'), {
+    target: 'catalog',
+    upstreamPath: '/products/figurine-test',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/admin/products'), {
+    target: 'catalog',
+    upstreamPath: '/admin/products',
+  });
+  assert.deepEqual(
+    resolveGatewayRoute('/api/admin/products/product-1/publish'),
+    {
+      target: 'catalog',
+      upstreamPath: '/admin/products/product-1/publish',
+    },
+  );
+  assert.equal(resolveGatewayRoute('/api/admin/orders'), null);
 });
 
 test('routes Marketplace public contracts', () => {
@@ -28,6 +59,42 @@ test('routes Marketplace public contracts', () => {
       upstreamPath: '/transactions/tx-1/confirm',
     },
   );
+  assert.deepEqual(
+    resolveGatewayRoute('/api/conversations/conversation-1/messages?limit=20'),
+    {
+      target: 'marketplace',
+      upstreamPath: '/conversations/conversation-1/messages?limit=20',
+    },
+  );
+});
+
+test('routes explicit cart and order contracts to Commerce', () => {
+  assert.deepEqual(resolveGatewayRoute('/api/cart'), {
+    target: 'commerce',
+    upstreamPath: '/cart',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/cart/items/variant-1'), {
+    target: 'commerce',
+    upstreamPath: '/cart/items/variant-1',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/orders'), {
+    target: 'commerce',
+    upstreamPath: '/orders',
+  });
+  assert.deepEqual(resolveGatewayRoute('/api/orders/order-1'), {
+    target: 'commerce',
+    upstreamPath: '/orders/order-1',
+  });
+  assert.equal(resolveGatewayRoute('/api/checkout'), null);
+});
+
+test('routes only the authenticated notification inbox', () => {
+  assert.deepEqual(resolveGatewayRoute('/api/notifications/me'), {
+    target: 'notification',
+    upstreamPath: '/notifications/me',
+  });
+  assert.equal(resolveGatewayRoute('/api/notifications/recent'), null);
+  assert.equal(resolveGatewayRoute('/api/notifications/other'), null);
 });
 
 test('keeps temporary auth fallback prefixed with /api', () => {

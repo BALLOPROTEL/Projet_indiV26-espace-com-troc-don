@@ -99,7 +99,12 @@ function seed(owner, requester) {
 function requestTrade(requester, targetListingId, offeredListingId) {
   return call(gateway, '/api/proposals', {
     method: 'POST', headers: jsonHeaders(requester),
-    body: JSON.stringify({ targetListingId, offeredListingId, type: 'TRADE_OFFER' }),
+    body: JSON.stringify({
+      targetListingId,
+      offeredListingId,
+      type: 'TRADE_OFFER',
+      message: 'Bonjour, je propose cet échange.',
+    }),
     expected: 201,
   });
 }
@@ -186,6 +191,8 @@ async function run() {
     expected: 401,
   });
   await call(gateway, '/api/transactions/me', { expected: 401 });
+  await call(gateway, '/api/notifications/me', { expected: 401 });
+  await call(gateway, '/api/notifications/recent', { expected: 404 });
   await call(gateway, '/api/transactions/me', {
     headers: { authorization: 'Bearer invalid.jwt.value' }, expected: 401,
   });
@@ -216,6 +223,73 @@ async function run() {
   assert.equal(proposal.type, 'TRADE_OFFER');
   assert.equal(proposal.status, 'PENDING');
   assert.equal(proposal.requesterId, requester.sub);
+
+  const requesterConversations = await call(gateway, '/api/conversations', {
+    headers: jwtHeader(requester),
+  });
+  const conversation = requesterConversations.find(
+    item => item.proposalId === proposal.id,
+  );
+  assert.ok(conversation, 'Requester must see the proposal conversation');
+  assert.equal(conversation.ownerId, owner.sub);
+  assert.equal(conversation.requesterId, requester.sub);
+
+  const ownerConversations = await call(gateway, '/api/conversations', {
+    headers: jwtHeader(owner),
+  });
+  assert.ok(
+    ownerConversations.some(item => item.id === conversation.id),
+    'Owner must see the same conversation',
+  );
+
+  await call(gateway, '/api/conversations/' + conversation.id + '/messages', {
+    headers: jwtHeader(other),
+    expected: 404,
+  });
+
+  const initialMessages = await call(
+    gateway,
+    '/api/conversations/' + conversation.id + '/messages',
+    { headers: jwtHeader(owner) },
+  );
+  assert.equal(initialMessages.length, 1);
+  assert.equal(initialMessages[0].senderId, requester.sub);
+  assert.equal(initialMessages[0].body, 'Bonjour, je propose cet échange.');
+
+  const reply = await call(
+    gateway,
+    '/api/conversations/' + conversation.id + '/messages',
+    {
+      method: 'POST',
+      headers: jsonHeaders(owner),
+      body: JSON.stringify({ body: 'Entendu, poursuivons cet échange.' }),
+      expected: 201,
+    },
+  );
+  assert.equal(reply.senderId, owner.sub);
+
+  await call(
+    gateway,
+    '/api/conversations/' + conversation.id + '/messages',
+    {
+      method: 'POST',
+      headers: jsonHeaders(other),
+      body: JSON.stringify({ body: 'Je ne dois pas entrer ici.' }),
+      expected: 404,
+    },
+  );
+
+  const read = await call(
+    gateway,
+    '/api/conversations/' + conversation.id + '/read',
+    {
+      method: 'POST',
+      headers: jwtHeader(requester),
+      expected: 201,
+    },
+  );
+  assert.equal(read.updated, 1);
+  say('Private conversation E2E: requester/owner 200, third-party 404, message + read receipt: PASS');
   await call(gateway, '/api/proposals/' + proposal.id + '/accept', {
     method: 'POST', headers: jwtHeader(other), expected: 403,
   });
@@ -260,6 +334,28 @@ async function run() {
     new Set(['proposal.created', 'proposal.accepted', 'transaction.completed']),
   );
   assert.equal(new Set(events.map(item => item.event.eventId)).size, 3);
+
+  const ownerInbox = await call(gateway, '/api/notifications/me', {
+    headers: jwtHeader(owner),
+  });
+  const requesterInbox = await call(gateway, '/api/notifications/me', {
+    headers: jwtHeader(requester),
+  });
+  const unrelatedInbox = await call(gateway, '/api/notifications/me', {
+    headers: jwtHeader(other),
+  });
+  const forTarget = items =>
+    items.filter(item => item.event?.data?.targetListingId === tradeTarget);
+  assert.deepEqual(
+    new Set(forTarget(ownerInbox).map(item => item.event.type)),
+    new Set(['proposal.created', 'transaction.completed']),
+  );
+  assert.deepEqual(
+    new Set(forTarget(requesterInbox).map(item => item.event.type)),
+    new Set(['proposal.accepted', 'transaction.completed']),
+  );
+  assert.equal(forTarget(unrelatedInbox).length, 0);
+  say('Notification JWT inbox is isolated for owner/requester/third party: PASS');
   say('TROC RabbitMQ 3 unique actual notifications: PASS');
 
   // Real duplicate delivery to the same queue while Notification is alive.

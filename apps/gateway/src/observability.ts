@@ -61,6 +61,22 @@ function metricRouteLabel(requestUrl: string): string {
     return path;
   }
 
+  if (path === '/api/products') {
+    return path;
+  }
+
+  if (path.startsWith('/api/products/')) {
+    return '/api/products/*';
+  }
+
+  if (path === '/api/admin/products') {
+    return path;
+  }
+
+  if (path.startsWith('/api/admin/products/')) {
+    return '/api/admin/products/*';
+  }
+
   if (path === '/api/listings') {
     return path;
   }
@@ -83,6 +99,30 @@ function metricRouteLabel(requestUrl: string): string {
 
   if (path.startsWith('/api/proposals/')) {
     return '/api/proposals/*';
+  }
+
+  if (path === '/api/cart') {
+    return path;
+  }
+
+  if (path.startsWith('/api/cart/')) {
+    return '/api/cart/*';
+  }
+
+  if (path === '/api/payments/stripe/webhook') {
+    return path;
+  }
+
+  if (path === '/api/orders') {
+    return path;
+  }
+
+  if (path.startsWith('/api/orders/')) {
+    return '/api/orders/*';
+  }
+
+  if (path === '/api/notifications/me') {
+    return path;
   }
 
   if (path === '/api/transactions') {

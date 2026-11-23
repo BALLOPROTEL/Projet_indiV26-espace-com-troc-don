@@ -161,6 +161,29 @@ export class ListingsService {
     return this.toView(listing);
   }
 
+  async findPublicByIds(ids: string[]): Promise<ListingView[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const uniqueIds = [...new Set(ids)];
+    const listings = await this.prisma.listing.findMany({
+      where: {
+        id: { in: uniqueIds },
+        status: ListingStatus.APPROVED,
+      },
+      include: assetInclude,
+    });
+    const byId = new Map(
+      listings.map((listing) => [listing.id, listing]),
+    );
+
+    return ids.flatMap((id) => {
+      const listing = byId.get(id);
+      return listing ? [this.toView(listing)] : [];
+    });
+  }
+
   async findMine(ownerId: string): Promise<ListingView[]> {
     const listings = await this.prisma.listing.findMany({
       where: {

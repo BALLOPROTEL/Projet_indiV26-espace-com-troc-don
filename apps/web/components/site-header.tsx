@@ -2,20 +2,32 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { headerLinks } from '../lib/header-navigation';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useAuth } from './auth-provider';
+import { BrandMark } from './design-system';
 
-type IconName = 'home' | 'box' | 'shield' | 'menu' | 'chevron' | 'sign-out';
+type IconName =
+  | 'cart'
+  | 'orders'
+  | 'heart'
+  | 'message'
+  | 'bell'
+  | 'account'
+  | 'chevron'
+  | 'shield'
+  | 'sign-out';
 
 function HeaderIcon({ name }: { name: IconName }) {
   const paths: Record<IconName, ReactNode> = {
-    home: <><path d="m3 10 9-7 9 7v10H3z" /><path d="M9 20v-7h6v7" /></>,
-    box: <><path d="m3 7 9-4 9 4v10l-9 4-9-4z" /><path d="m3 7 9 4 9-4M12 11v10" /></>,
-    shield: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" /></>,
-    menu: <><path d="M4 6h16M4 12h16M4 18h16" /></>,
-    chevron: <><path d="m6 9 6 6 6-6" /></>,
-    'sign-out': <><path d="M10 17l5-5-5-5m5 5H3" /><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7" /></>,
+    cart: <><circle cx="9" cy="20" r="1" /><circle cx="18" cy="20" r="1" /><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L20 8H7" /></>,
+    orders: <><path d="M5 5h14v16l-3-2-4 2-4-2-3 2V5Z" /><path d="M8 9h8M8 13h8" /></>,
+    heart: <path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.5-7 10-7 10Z" />,
+    message: <><path d="M4 5h16v11H8l-4 4V5Z" /><path d="M8 9h8M8 12h5" /></>,
+    bell: <><path d="M6 16h12l-1.5-2V10a4.5 4.5 0 0 0-9 0v4L6 16Z" /><path d="M10 19h4" /></>,
+    account: <><circle cx="12" cy="8" r="3.5" /><path d="M5.5 20a6.5 6.5 0 0 1 13 0" /></>,
+    chevron: <path d="m7 10 5 5 5-5" />,
+    shield: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" /><path d="m9 12 2 2 4-4" /></>,
+    'sign-out': <><path d="m10 17 5-5-5-5m5 5H3" /><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7" /></>,
   };
 
   return (
@@ -34,121 +46,179 @@ function HeaderIcon({ name }: { name: IconName }) {
   );
 }
 
+const desktopLinks = [
+  { href: '/', label: 'Accueil' },
+  { href: '/boutique', label: 'Boutique' },
+  { href: '/echanges', label: 'Échanges & dons' },
+  { href: '/fanzines', label: 'Fanzines' },
+  { href: '/festival', label: 'Festival' },
+] as const;
+
+const mobileLinks = [
+  { href: '/', label: 'Accueil', icon: '⌂' },
+  { href: '/boutique', label: 'Boutique', icon: '▣' },
+  { href: '/echanges', label: 'Échanges', icon: '⇄' },
+  { href: '/publier', label: 'Publier', icon: '+' },
+  { href: '/espace', label: 'Compte', icon: '◉' },
+] as const;
+
 export function SiteHeader() {
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDetailsElement>(null);
-  const closeAccountMenu = () => {
-    if (accountMenuRef.current) accountMenuRef.current.open = false;
-  };
-  useEffect(() => {
-    closeAccountMenu();
-  }, [pathname]);
   const { ready, authenticated, username, roles, login, logout } = useAuth();
-  const links = headerLinks(authenticated, roles);
   const elevatedRole = roles.includes('ADMIN')
     ? 'Administrateur'
     : roles.includes('MODERATOR')
       ? 'Modérateur'
       : null;
-  const label = username?.trim() || 'Mon compte';
-  const initial = (Array.from(label)[0] ?? 'M').toLocaleUpperCase('fr');
+
+  const closeAccountMenu = () => {
+    if (accountMenuRef.current) accountMenuRef.current.open = false;
+  };
+
+  useEffect(() => {
+    closeAccountMenu();
+  }, [pathname]);
 
   return (
-    <header className="site-header">
-      <div className="site-header__inner">
-        <Link className="brand" href="/" aria-label="Petite Maison, accueil">
-          <span className="brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 21.5 24 6l19 15.5V42H5V21.5Z" />
-              <path d="M18 42V25h12v17M13 19.5 24 11l11 8.5" />
-            </svg>
-          </span>
-          <span className="brand__copy">
-            <strong><span>Petite</span> Maison</strong>
-            <small>de l&apos;Épouvante</small>
-          </span>
-        </Link>
+    <>
+      <div className="pm-topbar">
+        <span aria-hidden="true">✦</span>
+        La maison de tous les passionnés : collectionner, donner et échanger
+        <span aria-hidden="true">✦</span>
+      </div>
 
-        <button
-          className="site-header__menu-toggle"
-          type="button"
-          aria-controls="primary-navigation"
-          aria-expanded={menuOpen}
-          aria-label={menuOpen ? 'Fermer la navigation' : 'Ouvrir la navigation'}
-          onClick={() => setMenuOpen((current) => !current)}
-        >
-          <HeaderIcon name="menu" />
-          <span>Menu</span>
-        </button>
+      <header className="pm-header">
+        <div className="pm-wrap pm-header__inner">
+          <Link className="pm-brand" href="/" aria-label="La Petite Maison de l’Épouvante, accueil">
+            <BrandMark />
+            <span className="pm-brand__copy">
+              <strong>La Petite Maison<br />de l’Épouvante</strong>
+              <small>BOUTIQUE &amp; COMMUNAUTÉ</small>
+            </span>
+          </Link>
 
-        <nav
-          className={menuOpen ? 'primary-nav is-open' : 'primary-nav'}
-          id="primary-navigation"
-          aria-label="Navigation principale"
-        >
-          {links.map((link) => {
-            const active = pathname === link.href ||
-              (link.href !== '/' && pathname.startsWith(link.href + '/'));
-            return (
-              <Link
-                key={link.href}
-                className={active ? 'primary-nav__link is-active' : 'primary-nav__link'}
-                href={link.href}
-                aria-current={active ? 'page' : undefined}
-                onClick={() => setMenuOpen(false)}
-              >
-                <HeaderIcon name={link.icon} />
-                <span>{link.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+          <nav className="pm-main-nav" aria-label="Navigation principale">
+            {desktopLinks.map((link) => {
+              const active =
+                (link.href === '/' && pathname === '/') ||
+                (link.href !== '/' && pathname.startsWith(link.href));
+              return (
+                <Link
+                  key={link.href}
+                  className={active ? 'pm-navlink is-active' : 'pm-navlink'}
+                  href={link.href}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
 
-        <div className="session">
-          {ready && authenticated ? (
-            <>
-              {elevatedRole ? (
-                <span className="session__role">
-                  <HeaderIcon name="shield" />
-                  {elevatedRole}
-                </span>
-              ) : null}
-              <details className="session__menu" ref={accountMenuRef}>
-                <summary aria-label={'Compte de ' + label}>
-                  <span className="session__avatar" aria-hidden="true">{initial}</span>
-                  <span className="session__identity">
-                    <small>Mon espace</small>
-                    <strong className="session__name" title={label}>{label}</strong>
-                  </span>
+          <div className="pm-header__actions">
+            <Link
+              className="pm-icon-button"
+              href="/panier"
+              aria-label="Mon panier"
+              title="Mon panier"
+            >
+              <HeaderIcon name="cart" />
+            </Link>
+            <Link
+              className="pm-icon-button"
+              href="/mes-commandes"
+              aria-label="Mes commandes"
+              title="Mes commandes"
+            >
+              <HeaderIcon name="orders" />
+            </Link>
+            <Link
+              className="pm-icon-button"
+              href="/favoris"
+              aria-label="Mes favoris"
+              title="Mes favoris"
+            >
+              <HeaderIcon name="heart" />
+            </Link>
+            <Link
+              className="pm-icon-button"
+              href="/messages"
+              aria-label="Mes échanges"
+              title="Mes échanges"
+            >
+              <HeaderIcon name="message" />
+            </Link>
+            <Link
+              className="pm-icon-button"
+              href="/notifications"
+              aria-label="Mes notifications"
+              title="Mes notifications"
+            >
+              <HeaderIcon name="bell" />
+            </Link>
+
+            {ready && authenticated ? (
+              <details className="pm-account-menu" ref={accountMenuRef}>
+                <summary aria-label="Ouvrir les accès du compte">
+                  <HeaderIcon name="account" />
+                  <span>Mon espace</span>
                   <HeaderIcon name="chevron" />
                 </summary>
-                <div className="session__dropdown">
-                  <p>Accès rapide à mon espace</p>
-                  <Link href="/espace#publier" onClick={closeAccountMenu}>Déposer un objet</Link>
-                  <Link href="/espace#mes-articles" onClick={closeAccountMenu}>Mes annonces</Link>
-                  <Link href="/espace#mes-echanges" onClick={closeAccountMenu}>Mes échanges</Link>
-                  {elevatedRole ? <Link href="/moderation" onClick={closeAccountMenu}>Espace de modération</Link> : null}
-                  {roles.includes('ADMIN') ? <Link href="/admin" onClick={closeAccountMenu}>Administration</Link> : null}
-                  <button type="button" onClick={() => void logout()}>
+                <div className="pm-account-menu__panel">
+                  <div className="pm-account-menu__identity">
+                    <strong>{username?.trim() || 'Mon compte'}</strong>
+                    {elevatedRole ? (
+                      <span><HeaderIcon name="shield" /> {elevatedRole}</span>
+                    ) : (
+                      <span>Membre</span>
+                    )}
+                  </div>
+                  <Link href="/espace" onClick={closeAccountMenu}>Tableau de bord</Link>
+                  <Link href="/publier" onClick={closeAccountMenu}>Déposer un objet</Link>
+                  <Link href="/mes-annonces" onClick={closeAccountMenu}>Mes annonces</Link>
+                  <Link href="/panier" onClick={closeAccountMenu}>Mon panier</Link>
+                  <Link href="/commande" onClick={closeAccountMenu}>Passer commande</Link>
+                  <Link href="/mes-commandes" onClick={closeAccountMenu}>Mes commandes</Link>
+                  <Link href="/messages" onClick={closeAccountMenu}>Mes échanges</Link>
+                  {elevatedRole ? (
+                    <Link href="/moderation" onClick={closeAccountMenu}>Modération</Link>
+                  ) : null}
+                  {roles.includes('ADMIN') ? (
+                    <Link href="/admin" onClick={closeAccountMenu}>Administration</Link>
+                  ) : null}
+                  <button
+                    type="button"
+                    data-account-action="logout"
+                    onClick={() => void logout()}
+                  >
                     <HeaderIcon name="sign-out" />
-                    Sortir
+                    Se déconnecter
                   </button>
                 </div>
               </details>
-            </>
-          ) : (
-            <button
-              className="button button--small site-header__login"
-              type="button"
-              disabled={!ready}
-              onClick={() => void login()}
-            >
-              {ready ? 'Se connecter' : 'Connexion…'}
-            </button>
-          )}
+            ) : (
+              <button
+                className="pm-button pm-button--navy pm-header__login"
+                type="button"
+                disabled={!ready}
+                onClick={() => void login()}
+              >
+                {ready ? 'Se connecter' : 'Connexion…'}
+              </button>
+            )}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <nav className="pm-mobilebar" aria-label="Navigation mobile">
+        {mobileLinks.map((link) => (
+          <Link key={link.href} href={link.href}>
+            <span aria-hidden="true">{link.icon}</span>
+            {link.label}
+          </Link>
+        ))}
+      </nav>
+    </>
   );
 }

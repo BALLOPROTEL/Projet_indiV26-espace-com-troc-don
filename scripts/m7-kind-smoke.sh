@@ -120,6 +120,8 @@ images=(
   projet-indiv26-marketplace-migrate:m7-local
   projet-indiv26-notification-service:m8-local
   projet-indiv26-notification-migrate:m8-local
+  projet-indiv26-commerce-service:l5a-local
+  projet-indiv26-commerce-migrate:l5a-local
   projet-indiv26-web:m7-local
   projet-indiv26-keycloak:m7-local
   projet-indiv26-minio:lot9b-local
@@ -143,7 +145,7 @@ kubectl -n projet-indiv26 create secret generic rabbitmq-credentials \
 
 M7_SKIP_OBSERVABILITY=true bash scripts/m7-k8s-apply.sh
 
-for deployment in legacy-api catalog-service marketplace-service notification-service gateway web; do
+for deployment in legacy-api catalog-service marketplace-service notification-service commerce-service gateway web; do
   kubectl -n projet-indiv26 rollout status "deployment/${deployment}" --timeout=240s
 done
 
@@ -152,6 +154,8 @@ const targets = [
   'http://legacy-api:3099/api/health/live',
   'http://catalog-service:3101/health/ready',
   'http://marketplace-service:3102/health/ready',
+  'http://notification-service:3103/health/ready',
+  'http://commerce-service:3104/health/ready',
 ];
 Promise.all(targets.map(async (url) => {
   const response = await fetch(url);
@@ -160,6 +164,14 @@ Promise.all(targets.map(async (url) => {
 "
 
 kubectl -n projet-indiv26 exec deployment/marketplace-service -- node -e "
+fetch('http://catalog-service:3101/health/ready')
+  .then((response) => {
+    if (!response.ok) throw new Error(String(response.status));
+  })
+  .catch((error) => { console.error(error); process.exit(1); });
+"
+
+kubectl -n projet-indiv26 exec deployment/commerce-service -- node -e "
 fetch('http://catalog-service:3101/health/ready')
   .then((response) => {
     if (!response.ok) throw new Error(String(response.status));
@@ -224,6 +236,17 @@ status="$(
   curl -sS -o /tmp/m7-kind-proposals.json -w '%{http_code}'     -H "Authorization: Bearer ${access_token}"     http://127.0.0.1:13000/api/proposals/me
 )"
 [ "${status}" = "200" ]
+
+cart_status="$(
+  curl -sS -o /tmp/m7-kind-cart.json -w '%{http_code}' \
+    -H "Authorization: Bearer ${access_token}" \
+    http://127.0.0.1:13000/api/cart
+)"
+[ "${cart_status}" = "200" ]
+node -e "
+  const cart = require('/tmp/m7-kind-cart.json');
+  if (!Array.isArray(cart.items) || cart.subtotalCents !== 0) process.exit(1);
+"
 
 # Persistence regression: restarting Keycloak must NOT change JWT subject
 # (Marketplace/PostgreSQL records refer to this stable value).
