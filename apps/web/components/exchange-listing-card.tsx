@@ -90,6 +90,22 @@ export function ExchangeListingCard({
             {copy.helper}
           </p>
 
+          {(listing.category || listing.city || listing.condition) ? (
+            <div className="pm-exchange-card__metadata" aria-label="Informations complémentaires">
+              {listing.category ? <span>{listing.category}</span> : null}
+              {listing.city ? <span>{listing.city}</span> : null}
+              {listing.condition ? (
+                <span>
+                  {listing.condition === 'NEW' ? 'Neuf' :
+                    listing.condition === 'LIKE_NEW' ? 'Comme neuf' :
+                    listing.condition === 'GOOD' ? 'Bon état' :
+                    listing.condition === 'FAIR' ? 'État correct' :
+                    'À réparer / pour pièces'}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+
           <p className="pm-exchange-card__date">
             {formatListingDate(listing.createdAt)}
           </p>
