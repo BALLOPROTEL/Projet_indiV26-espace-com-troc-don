@@ -9,6 +9,7 @@ import { MarketplaceModule } from './marketplace/marketplace.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProposalsModule } from './proposals/proposals.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { PrivacyModule } from './privacy/privacy.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { TransactionsModule } from './transactions/transactions.module';
     MarketplaceModule,
     ProposalsModule,
     TransactionsModule,
+    PrivacyModule,
     HealthModule,
   ],
 })
