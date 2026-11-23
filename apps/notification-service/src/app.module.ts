@@ -6,6 +6,9 @@ import { NotificationsController } from './notifications/notifications.controlle
 import { NotificationStore } from './notifications/notification.store';
 import { RabbitMqConsumer } from './rabbitmq/rabbitmq.consumer';
 import { NotificationPrismaService } from './prisma/prisma.service';
+import { InternalPrivacyGuard } from './privacy/internal-privacy.guard';
+import { PrivacyController } from './privacy/privacy.controller';
+import { PrivacyService } from './privacy/privacy.service';
 
 @Module({
   imports: [
@@ -15,7 +18,13 @@ import { NotificationPrismaService } from './prisma/prisma.service';
     }),
     AuthModule,
   ],
-  controllers: [HealthController, NotificationsController],
-  providers: [NotificationPrismaService, NotificationStore, RabbitMqConsumer],
+  controllers: [HealthController, NotificationsController, PrivacyController],
+  providers: [
+    NotificationPrismaService,
+    NotificationStore,
+    RabbitMqConsumer,
+    PrivacyService,
+    InternalPrivacyGuard,
+  ],
 })
 export class AppModule {}
