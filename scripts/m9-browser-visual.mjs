@@ -2133,7 +2133,7 @@ async function runAdminDashboardBrowser() {
     '.map(a=>a.getAttribute("href"))');
   assert.deepEqual(
     adminQuickLinks,
-    ['/admin/boutique', '/moderation', '/echanges', '/messages'],
+    ['/admin/boutique', '/admin/contenus', '/moderation', '/echanges', '/messages'],
     'Prototype ADMIN shortcuts must point to real authorized destinations only',
   );
   await waitUntil('F5 ADMIN values from Catalog', '(() => {' +
