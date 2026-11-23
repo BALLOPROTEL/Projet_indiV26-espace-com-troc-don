@@ -94,6 +94,30 @@ describe('ListingReportsService', () => {
     );
   });
 
+  it('refuses ACTIONED on a reserved listing to preserve an active exchange', async () => {
+    (prisma.listingReport.findUnique as jest.Mock).mockResolvedValue({
+      id: 'report-reserved',
+      listingId: 'listing-reserved',
+      reason: ListingReportReason.SCAM,
+      listing: {
+        id: 'listing-reserved',
+        status: ListingStatus.APPROVED,
+        availabilityStatus: 'RESERVED',
+      },
+    });
+
+    await expect(
+      service.review(
+        'report-reserved',
+        'moderator-1',
+        { status: ListingReportStatus.ACTIONED },
+      ),
+    ).rejects.toThrow(
+      'A reserved or completed listing cannot be removed through report moderation',
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
   it('ACTIONED hides an approved listing and records reviewer identity', async () => {
     (prisma.listingReport.findUnique as jest.Mock).mockResolvedValue({
       id: 'report-1',
@@ -102,6 +126,7 @@ describe('ListingReportsService', () => {
       listing: {
         id: 'listing-1',
         status: ListingStatus.APPROVED,
+        availabilityStatus: 'AVAILABLE',
       },
     });
     tx.listing.update.mockResolvedValue({ id: 'listing-1' });
