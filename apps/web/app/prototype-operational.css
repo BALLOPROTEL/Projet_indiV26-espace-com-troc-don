@@ -4027,3 +4027,21 @@ body {
     width: 100%;
   }
 }
+
+
+.pm-privacy-rights__confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 12px 0;
+  color: var(--pm-text);
+  font-size: .76rem;
+  line-height: 1.5;
+}
+
+.pm-privacy-rights__confirm input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
