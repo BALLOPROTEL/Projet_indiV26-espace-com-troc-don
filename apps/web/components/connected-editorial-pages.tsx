@@ -139,7 +139,6 @@ export function FanzineReader({
   useEffect(() => {
     if (!slug) return;
     let active = true;
-    setLoading(true);
     void editorialApi.fanzine(slug)
       .then((value) => {
         if (!active) return;
