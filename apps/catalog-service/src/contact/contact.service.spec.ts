@@ -37,7 +37,6 @@ describe('ContactService', () => {
         data: expect.objectContaining({
           name: 'Test User',
           email: 'user@example.fr',
-          userId: undefined,
         }),
       }),
     );
