@@ -4,6 +4,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   Body,
   UseGuards,
@@ -19,6 +20,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { CreateListingDto } from './dto/create-listing.dto';
+import { ListingSearchDto } from './dto/listing-search.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
 import { ListingsService } from './listings.service';
 
@@ -31,8 +33,8 @@ export class ListingsController {
   @ApiOperation({
     summary: 'Lister les annonces approuvées publiquement',
   })
-  findPublic() {
-    return this.listings.findPublic();
+  findPublic(@Query() query: ListingSearchDto) {
+    return this.listings.findPublic(query);
   }
 
   @Post()
