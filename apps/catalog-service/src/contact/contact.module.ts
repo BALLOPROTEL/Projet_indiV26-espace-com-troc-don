@@ -6,6 +6,7 @@ import {
   PrivacyContactController,
 } from './contact.controller';
 import { ContactService } from './contact.service';
+import { PrivacyExecutionService } from './privacy-execution.service';
 
 @Module({
   imports: [AuthModule],
@@ -14,7 +15,7 @@ import { ContactService } from './contact.service';
     PrivacyContactController,
     AdminContactController,
   ],
-  providers: [ContactService],
+  providers: [ContactService, PrivacyExecutionService],
   exports: [ContactService],
 })
 export class ContactModule {}
