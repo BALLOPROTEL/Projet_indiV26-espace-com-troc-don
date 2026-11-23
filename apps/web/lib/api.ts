@@ -629,6 +629,17 @@ export const adminContentApi = {
       token,
     ),
 
+  updateFanzine: (
+    token: string,
+    id: string,
+    input: AdminFanzineInput,
+  ) =>
+    request<Fanzine>(
+      `/admin/fanzines/${encodeURIComponent(id)}`,
+      { method: 'PATCH', body: JSON.stringify(input) },
+      token,
+    ),
+
   publishFanzine: (token: string, id: string) =>
     request<Fanzine>(
       `/admin/fanzines/${encodeURIComponent(id)}/publish`,
@@ -650,6 +661,17 @@ export const adminContentApi = {
     request<FestivalEntry>(
       '/admin/festival',
       { method: 'POST', body: JSON.stringify(input) },
+      token,
+    ),
+
+  updateFestival: (
+    token: string,
+    id: string,
+    input: AdminFestivalInput,
+  ) =>
+    request<FestivalEntry>(
+      `/admin/festival/${encodeURIComponent(id)}`,
+      { method: 'PATCH', body: JSON.stringify(input) },
       token,
     ),
 
