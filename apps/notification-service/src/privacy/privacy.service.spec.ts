@@ -3,7 +3,7 @@ import { PrivacyService } from './privacy.service';
 
 describe('Notification PrivacyService', () => {
   const prisma = {
-    $executeRawUnsafe: jest.fn(),
+    $executeRaw: jest.fn(),
   } as unknown as NotificationPrismaService;
   const service = new PrivacyService(prisma);
 
