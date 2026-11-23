@@ -11,11 +11,22 @@ import {
   formatListingDate,
   operationLabel,
 } from '../lib/presentation';
-import type { Listing } from '../lib/types';
+import type { Listing, ListingReportReason } from '../lib/types';
 import { canRestoreProposalAnchor } from '../lib/listing-navigation';
 import { ListingProposalForm } from './listing-proposal-form';
 import { ListingImageGallery } from './listing-image-gallery';
 import { useAuth } from './auth-provider';
+
+function listingConditionLabel(value: Listing['condition']) {
+  switch (value) {
+    case 'NEW': return 'Neuf';
+    case 'LIKE_NEW': return 'Comme neuf';
+    case 'GOOD': return 'Bon état';
+    case 'FAIR': return 'État correct';
+    case 'FOR_PARTS': return 'À réparer / pour pièces';
+    default: return null;
+  }
+}
 
 export function ListingDetail({
   id,
@@ -43,6 +54,13 @@ export function ListingDetail({
     error: string | null;
   } | null>(null);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] =
+    useState<ListingReportReason>('OTHER');
+  const [reportDetails, setReportDetails] = useState('');
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportNotice, setReportNotice] = useState<string | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
   const favoriteContext =
     authenticated && subject && listing
       ? `${subject}:${listing.id}`
@@ -173,6 +191,45 @@ export function ListingDetail({
       });
     } finally {
       setFavoriteBusy(false);
+    }
+  }
+
+  async function submitReport() {
+    if (!listing || reportBusy) return;
+
+    if (!authenticated) {
+      await login();
+      return;
+    }
+
+    if (subject === listing.ownerId) {
+      setReportError('Vous ne pouvez pas signaler votre propre annonce.');
+      return;
+    }
+
+    setReportBusy(true);
+    setReportError(null);
+    setReportNotice(null);
+
+    try {
+      const token = await getToken();
+      await listingsApi.report(token, listing.id, {
+        reason: reportReason,
+        details: reportDetails.trim() || undefined,
+      });
+      setReportNotice(
+        'Signalement enregistré. Un modérateur pourra désormais l’examiner.',
+      );
+      setReportOpen(false);
+      setReportDetails('');
+    } catch (reason) {
+      setReportError(
+        reason instanceof Error
+          ? reason.message
+          : 'Impossible d’envoyer ce signalement.',
+      );
+    } finally {
+      setReportBusy(false);
     }
   }
 
@@ -351,6 +408,24 @@ export function ListingDetail({
                 <dd>Sans contrepartie</dd>
               </div>
             )}
+            {listing.category ? (
+              <div>
+                <dt>Catégorie</dt>
+                <dd>{listing.category}</dd>
+              </div>
+            ) : null}
+            {listing.city ? (
+              <div>
+                <dt>Ville</dt>
+                <dd>{listing.city}</dd>
+              </div>
+            ) : null}
+            {listing.condition ? (
+              <div>
+                <dt>État</dt>
+                <dd>{listingConditionLabel(listing.condition)}</dd>
+              </div>
+            ) : null}
             <div>
               <dt>Annonce déposée</dt>
               <dd>{formatListingDate(listing.createdAt)}</dd>
@@ -410,6 +485,92 @@ export function ListingDetail({
           <div id="faire-une-demande" className="listing-detail__proposal-target">
             <ListingProposalForm listing={listing} />
           </div>
+
+          {subject !== listing.ownerId ? (
+            <section className="listing-detail__report" aria-labelledby="listing-report-title">
+              <div>
+                <span className="eyebrow">Sécurité de la communauté</span>
+                <h2 id="listing-report-title">Un problème avec cette annonce ?</h2>
+                <p>
+                  Signalez uniquement un contenu trompeur, interdit, dupliqué ou
+                  abusif. Le signalement est lié à votre compte et sera examiné
+                  par la modération.
+                </p>
+              </div>
+
+              {!reportOpen ? (
+                <button
+                  className="button button--quiet"
+                  type="button"
+                  onClick={() => {
+                    if (!authenticated) {
+                      void login();
+                      return;
+                    }
+                    setReportOpen(true);
+                    setReportError(null);
+                    setReportNotice(null);
+                  }}
+                >
+                  Signaler cette annonce
+                </button>
+              ) : (
+                <div className="listing-detail__report-form">
+                  <label>
+                    <span>Motif</span>
+                    <select
+                      value={reportReason}
+                      onChange={(event) =>
+                        setReportReason(event.target.value as ListingReportReason)
+                      }
+                    >
+                      <option value="PROHIBITED">Contenu interdit</option>
+                      <option value="SCAM">Suspicion d’arnaque</option>
+                      <option value="MISLEADING">Description trompeuse</option>
+                      <option value="HARASSMENT">Contenu abusif / harcèlement</option>
+                      <option value="DUPLICATE">Annonce dupliquée</option>
+                      <option value="OTHER">Autre</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Détails <small>(facultatif)</small></span>
+                    <textarea
+                      rows={4}
+                      maxLength={1000}
+                      value={reportDetails}
+                      onChange={(event) => setReportDetails(event.target.value)}
+                      placeholder="Expliquez brièvement le problème observé."
+                    />
+                  </label>
+                  <div>
+                    <button
+                      className="button"
+                      type="button"
+                      disabled={reportBusy}
+                      onClick={() => void submitReport()}
+                    >
+                      {reportBusy ? 'Envoi…' : 'Envoyer le signalement'}
+                    </button>
+                    <button
+                      className="button button--quiet"
+                      type="button"
+                      disabled={reportBusy}
+                      onClick={() => setReportOpen(false)}
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {reportNotice ? (
+                <p className="notice notice--success" role="status">{reportNotice}</p>
+              ) : null}
+              {reportError ? (
+                <p className="notice notice--error" role="alert">{reportError}</p>
+              ) : null}
+            </section>
+          ) : null}
 
           <div className="listing-detail__actions">
             <Link className="button" href="/publier">
