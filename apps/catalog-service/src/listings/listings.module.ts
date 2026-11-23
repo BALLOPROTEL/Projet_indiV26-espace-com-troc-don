@@ -8,6 +8,8 @@ import { ListingsController } from './listings.controller';
 import { ListingsService } from './listings.service';
 import { AdminCatalogController } from './admin-catalog.controller';
 import { ModerationController } from './moderation.controller';
+import { ListingReportsController, ModerationReportsController } from './listing-reports.controller';
+import { ListingReportsService } from './listing-reports.service';
 
 @Module({
   imports: [AuthModule, MarketplaceModule, StorageModule],
@@ -16,8 +18,10 @@ import { ModerationController } from './moderation.controller';
     ListingImagesController,
     ModerationController,
     AdminCatalogController,
+    ListingReportsController,
+    ModerationReportsController,
   ],
-  providers: [ListingsService, ListingImagesService],
+  providers: [ListingsService, ListingImagesService, ListingReportsService],
   exports: [ListingsService, ListingImagesService],
 })
 export class ListingsModule {}
