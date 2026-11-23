@@ -23,27 +23,36 @@ type PrivacyTarget = {
 
 @Injectable()
 export class PrivacyExecutionService {
-  private readonly token: string;
-  private readonly marketplaceUrl: string;
-  private readonly notificationUrl: string;
-  private readonly commerceUrl: string;
-
   constructor(
     private readonly prisma: PrismaService,
-    config: ConfigService,
+    private readonly config: ConfigService,
     private readonly storage: ObjectStorageService,
-  ) {
-    this.token = this.requireConfig(config, 'INTERNAL_SERVICE_TOKEN');
-    this.marketplaceUrl = this.requireConfig(
-      config,
+  ) {}
+
+  private get token(): string {
+    return this.requireConfig(
+      this.config,
+      'INTERNAL_SERVICE_TOKEN',
+    );
+  }
+
+  private get marketplaceUrl(): string {
+    return this.requireConfig(
+      this.config,
       'MARKETPLACE_INTERNAL_URL',
     ).replace(/\/$/, '');
-    this.notificationUrl = this.requireConfig(
-      config,
+  }
+
+  private get notificationUrl(): string {
+    return this.requireConfig(
+      this.config,
       'NOTIFICATION_INTERNAL_URL',
     ).replace(/\/$/, '');
-    this.commerceUrl = this.requireConfig(
-      config,
+  }
+
+  private get commerceUrl(): string {
+    return this.requireConfig(
+      this.config,
       'COMMERCE_INTERNAL_URL',
     ).replace(/\/$/, '');
   }
