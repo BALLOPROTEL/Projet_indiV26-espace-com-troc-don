@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { FanzinesShowcase } from '../../components/prototype-showcase-pages';
+import { FanzinesConnectedPage } from '../../components/connected-editorial-pages';
 
 export const metadata: Metadata = {
   title: 'Fanzines',
@@ -8,5 +8,5 @@ export const metadata: Metadata = {
 };
 
 export default function FanzinesPage() {
-  return <FanzinesShowcase />;
+  return <FanzinesConnectedPage />;
 }

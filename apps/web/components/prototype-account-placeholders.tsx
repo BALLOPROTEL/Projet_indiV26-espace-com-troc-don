@@ -8,6 +8,7 @@ import { AccountShell } from './account-shell';
 import { useAuth } from './auth-provider';
 import { RoadmapBadge } from './design-system';
 import { ListingCard } from './listing-card';
+import { PrivacyRightsPanel } from './privacy-rights-panel';
 
 type PendingAccountView = 'orders' | 'favorites' | 'notifications' | 'settings';
 
@@ -484,6 +485,8 @@ export function SettingsPlaceholderPage() {
             Préférences non persistées
           </button>
         </div>
+
+        <PrivacyRightsPanel />
       </section>
     </PendingAccountShell>
   );

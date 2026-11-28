@@ -24,6 +24,7 @@ import {
 } from '../lib/publication';
 import type {
   Listing,
+  ListingCondition,
   ListingInput,
   ListingOperationType,
 } from '../lib/types';
@@ -262,6 +263,9 @@ export function PersonalSpace({ view = 'all' }: { view?: PersonalSpaceView }) {
       title: listing.title,
       description: listing.description,
       operationType: listing.operationType,
+      category: listing.category ?? '',
+      city: listing.city ?? '',
+      condition: listing.condition ?? undefined,
       tradeWishes:
         listing.operationType === 'TRADE'
           ? padWishes(labels)
@@ -783,6 +787,57 @@ function ListingForm({
         <small>{value.description.length}/2000</small>
       </label>
 
+      <div className="listing-form__enrichment">
+        <label className="field">
+          <span>Catégorie <small>(facultatif)</small></span>
+          <input
+            maxLength={80}
+            value={value.category ?? ''}
+            placeholder="Ex. Livres & BD, Jeux, Figurines"
+            onChange={(event) =>
+              onChange({ ...value, category: event.target.value })
+            }
+          />
+        </label>
+
+        <label className="field">
+          <span>Ville <small>(facultatif)</small></span>
+          <input
+            maxLength={120}
+            autoComplete="address-level2"
+            value={value.city ?? ''}
+            placeholder="Ex. Argenteuil"
+            onChange={(event) =>
+              onChange({ ...value, city: event.target.value })
+            }
+          />
+          <small>Indiquez seulement une ville, jamais une adresse précise.</small>
+        </label>
+
+        <label className="field">
+          <span>État de l’objet <small>(facultatif)</small></span>
+          <select
+            value={value.condition ?? ''}
+            onChange={(event) =>
+              onChange({
+                ...value,
+                condition:
+                  (event.target.value || undefined) as
+                    | ListingCondition
+                    | undefined,
+              })
+            }
+          >
+            <option value="">Non précisé</option>
+            <option value="NEW">Neuf</option>
+            <option value="LIKE_NEW">Comme neuf</option>
+            <option value="GOOD">Bon état</option>
+            <option value="FAIR">État correct</option>
+            <option value="FOR_PARTS">À réparer / pour pièces</option>
+          </select>
+        </label>
+      </div>
+
       {value.operationType === 'TRADE' ? (
         <fieldset className="wish-editor">
           <legend>Ce qui pourrait vous intéresser</legend>
@@ -896,6 +951,17 @@ function ListingForm({
           <h3>{value.title.trim()}</h3>
           <p>{value.operationType === 'TRADE' ? 'À troquer' : 'À donner'} · {images.length} photos</p>
           <p>{value.description.trim()}</p>
+          {(value.category || value.city || value.condition) ? (
+            <p>
+              {[value.category?.trim(), value.city?.trim(),
+                value.condition === 'NEW' ? 'Neuf' :
+                value.condition === 'LIKE_NEW' ? 'Comme neuf' :
+                value.condition === 'GOOD' ? 'Bon état' :
+                value.condition === 'FAIR' ? 'État correct' :
+                value.condition === 'FOR_PARTS' ? 'À réparer / pour pièces' :
+                null].filter(Boolean).join(' · ')}
+            </p>
+          ) : null}
           {value.operationType === 'TRADE' ? (
             <p>{value.tradeWishes.map(w => w.trim()).filter(Boolean).length} souhaits pour ce troc</p>
           ) : null}

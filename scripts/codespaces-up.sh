@@ -22,6 +22,7 @@ echo "=== ProjetIndiv26 Codespaces M6 stack ==="
 "${compose[@]}" up -d --force-recreate --no-deps keycloak
 "${compose[@]}" up -d --build
 
+bash scripts/codespaces-keycloak-account-delete.sh
 bash scripts/m6-compose-check.sh
 
 echo

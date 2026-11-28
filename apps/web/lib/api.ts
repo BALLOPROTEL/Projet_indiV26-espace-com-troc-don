@@ -1,12 +1,23 @@
 import { parseAdminCatalogSummary } from './admin-dashboard';
 import type {
+  AdminContactMessage,
+  AdminFanzineInput,
+  AdminFestivalInput,
   AdminProduct,
   AdminProductCreateInput,
   AdminProductImage,
   Cart,
+  ContactReceipt,
+  ContactSubject,
   CreateOrderInput,
+  Fanzine,
+  FestivalEntry,
   Listing,
+  ListingCondition,
   ListingImage,
+  ListingReport,
+  ListingReportReason,
+  ListingReportStatus,
   ListingInput,
   ListingStatus,
   ConversationMessage,
@@ -16,6 +27,7 @@ import type {
   Order,
   ProposalType,
   Product,
+  PrivacyAction,
   UserNotification,
 } from './types';
 
@@ -238,7 +250,22 @@ export const productsApi = {
 };
 
 export const listingsApi = {
-  public: () => request<Listing[]>('/listings'),
+  public: (
+    filters: {
+      q?: string;
+      category?: string;
+      city?: string;
+      condition?: ListingCondition | '';
+    } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (filters.q?.trim()) params.set('q', filters.q.trim());
+    if (filters.category?.trim()) params.set('category', filters.category.trim());
+    if (filters.city?.trim()) params.set('city', filters.city.trim());
+    if (filters.condition) params.set('condition', filters.condition);
+    const query = params.toString();
+    return request<Listing[]>(`/listings${query ? `?${query}` : ''}`);
+  },
 
   publicById: (id: string) =>
     request<Listing>(`/listings/${encodeURIComponent(id)}`),
@@ -343,6 +370,53 @@ export const listingsApi = {
       {
         method: 'POST',
         body: JSON.stringify({ reason, reviewedUpdatedAt }),
+      },
+      token,
+    ),
+
+  report: (
+    token: string,
+    id: string,
+    input: {
+      reason: ListingReportReason;
+      details?: string;
+    },
+  ) =>
+    request<{
+      id: string;
+      listingId: string;
+      reason: ListingReportReason;
+      status: ListingReportStatus;
+      createdAt: string;
+    }>(
+      `/listings/${encodeURIComponent(id)}/reports`,
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+
+  moderationReports: (
+    token: string,
+    status: ListingReportStatus = 'OPEN',
+  ) =>
+    request<ListingReport[]>(
+      `/moderation/reports?status=${status}`,
+      {},
+      token,
+    ),
+
+  reviewReport: (
+    token: string,
+    id: string,
+    status: Extract<ListingReportStatus, 'REVIEWED' | 'DISMISSED' | 'ACTIONED'>,
+  ) =>
+    request<ListingReport>(
+      `/moderation/reports/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
       },
       token,
     ),
@@ -565,6 +639,164 @@ export const marketplaceApi = {
   confirm: (token: string, id: string) =>
     request<MarketplaceTransaction>(
       `/transactions/${encodeURIComponent(id)}/confirm`,
+      { method: 'POST' },
+      token,
+    ),
+};
+
+
+export const editorialApi = {
+  fanzines: () => request<Fanzine[]>('/fanzines'),
+  fanzine: (slug: string) =>
+    request<Fanzine>(`/fanzines/${encodeURIComponent(slug)}`),
+  festival: () => request<FestivalEntry[]>('/festival'),
+  festivalEntry: (slug: string) =>
+    request<FestivalEntry>(`/festival/${encodeURIComponent(slug)}`),
+};
+
+export const contactApi = {
+  send: (input: {
+    name: string;
+    email: string;
+    subject: ContactSubject;
+    message: string;
+  }) =>
+    request<ContactReceipt>('/contact', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+
+  privacy: (
+    token: string,
+    input: {
+      action: PrivacyAction;
+      message: string;
+    },
+  ) =>
+    request<ContactReceipt>(
+      '/contact/privacy',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      token,
+    ),
+};
+
+
+export const adminContentApi = {
+  fanzines: (token: string) =>
+    request<Fanzine[]>('/admin/fanzines', {}, token),
+
+  createFanzine: (token: string, input: AdminFanzineInput) =>
+    request<Fanzine>(
+      '/admin/fanzines',
+      { method: 'POST', body: JSON.stringify(input) },
+      token,
+    ),
+
+  updateFanzine: (
+    token: string,
+    id: string,
+    input: AdminFanzineInput,
+  ) =>
+    request<Fanzine>(
+      `/admin/fanzines/${encodeURIComponent(id)}`,
+      { method: 'PATCH', body: JSON.stringify(input) },
+      token,
+    ),
+
+  publishFanzine: (token: string, id: string) =>
+    request<Fanzine>(
+      `/admin/fanzines/${encodeURIComponent(id)}/publish`,
+      { method: 'POST' },
+      token,
+    ),
+
+  archiveFanzine: (token: string, id: string) =>
+    request<Fanzine>(
+      `/admin/fanzines/${encodeURIComponent(id)}/archive`,
+      { method: 'POST' },
+      token,
+    ),
+
+  festival: (token: string) =>
+    request<FestivalEntry[]>('/admin/festival', {}, token),
+
+  createFestival: (token: string, input: AdminFestivalInput) =>
+    request<FestivalEntry>(
+      '/admin/festival',
+      { method: 'POST', body: JSON.stringify(input) },
+      token,
+    ),
+
+  updateFestival: (
+    token: string,
+    id: string,
+    input: AdminFestivalInput,
+  ) =>
+    request<FestivalEntry>(
+      `/admin/festival/${encodeURIComponent(id)}`,
+      { method: 'PATCH', body: JSON.stringify(input) },
+      token,
+    ),
+
+  publishFestival: (token: string, id: string) =>
+    request<FestivalEntry>(
+      `/admin/festival/${encodeURIComponent(id)}/publish`,
+      { method: 'POST' },
+      token,
+    ),
+
+  archiveFestival: (token: string, id: string) =>
+    request<FestivalEntry>(
+      `/admin/festival/${encodeURIComponent(id)}/archive`,
+      { method: 'POST' },
+      token,
+    ),
+
+  contacts: (
+    token: string,
+    status?: 'NEW' | 'IN_PROGRESS' | 'CLOSED',
+  ) =>
+    request<AdminContactMessage[]>(
+      `/admin/contact${status ? `?status=${status}` : ''}`,
+      {},
+      token,
+    ),
+
+  updateContactStatus: (
+    token: string,
+    id: string,
+    status: 'NEW' | 'IN_PROGRESS' | 'CLOSED',
+  ) =>
+    request<AdminContactMessage>(
+      `/admin/contact/${encodeURIComponent(id)}/status`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      },
+      token,
+    ),
+
+  anonymizeContact: (token: string, id: string) =>
+    request<{
+      execution: {
+        id: string;
+        status: 'COMPLETED';
+        completedAt: string | null;
+      };
+      catalog: {
+        listingsAnonymized: number;
+        favoritesRemoved: number;
+        reportsAnonymized: number;
+        contactMessagesRedacted: number;
+        listingImagesRemoved: number;
+      };
+      identityDeletionRequired: boolean;
+      alreadyCompleted?: boolean;
+    }>(
+      `/admin/contact/${encodeURIComponent(id)}/anonymize`,
       { method: 'POST' },
       token,
     ),

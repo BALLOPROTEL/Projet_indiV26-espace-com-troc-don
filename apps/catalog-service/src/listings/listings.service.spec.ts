@@ -41,6 +41,9 @@ describe('ListingsService', () => {
     status: ListingStatus.PENDING,
     availabilityStatus: ListingAvailabilityStatus.AVAILABLE,
     moderationReason: null,
+    category: null,
+    city: null,
+    condition: null,
     createdAt: new Date('2026-09-25T12:00:00Z'),
     updatedAt: new Date('2026-09-25T12:00:00Z'),
   };

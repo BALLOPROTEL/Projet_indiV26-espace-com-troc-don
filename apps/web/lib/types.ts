@@ -1,5 +1,11 @@
 export type ListingOperationType = 'TRADE' | 'DONATION';
 export type ListingStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type ListingCondition =
+  | 'NEW'
+  | 'LIKE_NEW'
+  | 'GOOD'
+  | 'FAIR'
+  | 'FOR_PARTS';
 export type ListingAvailabilityStatus =
   | 'AVAILABLE'
   | 'RESERVED'
@@ -28,6 +34,9 @@ export type Listing = {
   status: ListingStatus;
   availabilityStatus: ListingAvailabilityStatus;
   moderationReason: string | null;
+  category?: string | null;
+  city?: string | null;
+  condition?: ListingCondition | null;
   createdAt: string;
   updatedAt: string;
   images: ListingImage[];
@@ -38,6 +47,9 @@ export type ListingInput = {
   title: string;
   description: string;
   operationType: ListingOperationType;
+  category?: string;
+  city?: string;
+  condition?: ListingCondition;
   tradeWishes: string[];
 };
 
@@ -332,4 +344,129 @@ export type CreateOrderInput = {
   postalCode: string;
   city: string;
   countryCode: string;
+};
+
+
+export type EditorialStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export type Fanzine = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  issueLabel: string | null;
+  status: EditorialStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FestivalEntry = {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  body: string;
+  location: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  status: EditorialStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ContactSubject =
+  | 'SHOP'
+  | 'ACCOUNT'
+  | 'FESTIVAL'
+  | 'FANZINE'
+  | 'OTHER';
+
+export type PrivacyAction =
+  | 'ACCESS'
+  | 'EXPORT'
+  | 'RECTIFY'
+  | 'ANONYMIZE'
+  | 'ERASE';
+
+export type ContactReceipt = {
+  id: string;
+  subject: ContactSubject | 'PRIVACY';
+  privacyAction?: PrivacyAction | null;
+  status: 'NEW' | 'IN_PROGRESS' | 'CLOSED';
+  createdAt: string;
+};
+
+
+export type AdminFanzineInput = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  body: string;
+  issueLabel?: string;
+};
+
+export type AdminFestivalInput = {
+  slug: string;
+  title: string;
+  summary: string;
+  body: string;
+  location?: string;
+  startsAt?: string;
+  endsAt?: string;
+};
+
+export type AdminContactMessage = {
+  id: string;
+  userId: string | null;
+  name: string | null;
+  email: string | null;
+  subject: ContactSubject | 'PRIVACY';
+  privacyAction: PrivacyAction | null;
+  message: string;
+  status: 'NEW' | 'IN_PROGRESS' | 'CLOSED';
+  createdAt: string;
+  updatedAt: string;
+};
+
+
+export type ListingReportReason =
+  | 'PROHIBITED'
+  | 'SCAM'
+  | 'MISLEADING'
+  | 'HARASSMENT'
+  | 'DUPLICATE'
+  | 'OTHER';
+
+export type ListingReportStatus =
+  | 'OPEN'
+  | 'REVIEWED'
+  | 'DISMISSED'
+  | 'ACTIONED';
+
+export type ListingReport = {
+  id: string;
+  listingId: string;
+  reporterId: string;
+  reason: ListingReportReason;
+  details: string | null;
+  status: ListingReportStatus;
+  reviewerId: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  listing: {
+    id: string;
+    ownerId: string;
+    title: string;
+    description: string;
+    status: ListingStatus;
+    availabilityStatus: ListingAvailabilityStatus;
+    category: string | null;
+    city: string | null;
+    condition: ListingCondition | null;
+    createdAt: string;
+  };
 };

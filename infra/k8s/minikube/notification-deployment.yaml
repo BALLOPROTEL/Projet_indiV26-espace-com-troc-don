@@ -30,6 +30,12 @@ spec:
         - name: notification-service
           image: projet-indiv26-notification-service:m8-local
           imagePullPolicy: Never
+          env:
+            - name: INTERNAL_SERVICE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: catalog-secrets
+                  key: INTERNAL_SERVICE_TOKEN
           envFrom:
             - configMapRef:
                 name: notification-config
